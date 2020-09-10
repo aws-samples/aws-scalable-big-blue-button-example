@@ -1,0 +1,196 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+
+  This Cloudformation Template deploys a Custom SES Provider with DNS validation support.
+
+  Disclaimer: Not for production use. Demo and testing purposes only.
+
+  Author: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
+
+Parameters:
+  BBBHostedZone:
+    Description: Hosted zone in which the DNS entries for SES should be created
+    Type: String
+  BBBEnvironmentStage:
+    Type: String
+    Description: Select the appropriate environment
+    AllowedValues:
+      - stage
+      - prod
+      - dev
+
+Conditions:
+  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
+  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
+
+Resources:
+  BBBSESProviderLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyName: CFNSESResourceRecordProvider
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+                - ses:VerifyDomainDkim
+                - ses:DeleteIdentity
+                - ses:ListIdentities
+                - ses:VerifyDomainIdentity
+                - ses:DescribeActiveReceiptRuleSet
+                - ses:SetActiveReceiptRuleSet
+                - ses:GetIdentityVerificationAttributes
+                - ses:GetIdentityNotificationAttributes
+                - ses:SetIdentityNotificationTopic
+                - ses:SetIdentityHeadersInNotificationsEnabled
+                - ses:SetIdentityFeedbackForwardingEnabled
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - route53:GetHostedZone
+                - route53:ChangeResourceRecordSets
+                - route53:ListResourceRecordSets
+              Resource: !Sub "arn:aws:route53:::hostedzone/${BBBHostedZone}"
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource:
+                - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-ses-provider'   
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  BBBSESProviderLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 7
+      LogGroupName: !Join ["", ["/aws/lambda/", !Ref BBBSESProvider]]
+
+  BBBSESProvider:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - BBBSESProviderLambdaRole
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-ses-provider
+      Description: CloudFormation SES provider implementation
+      Code:
+      Code:
+        S3Bucket: !Sub "binxio-public-${AWS::Region}"
+        S3Key: lambdas/cfn-ses-provider-0.6.4.zip
+      Handler: ses.handler
+      MemorySize: 128
+      Role: !GetAtt 'BBBSESProviderLambdaRole.Arn'
+      Runtime: python3.6
+      Timeout: 30
+
+  BBBSMTPSecretProviderLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  BBBSMTPSecretProviderLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 7
+      LogGroupName: !Join ["", ["/aws/lambda/", !Ref BBBSMTPSecretProvider]]
+
+  BBBSMTPSecretProvider:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.7
+      Handler: index.main
+      Role: !Sub ${BBBSMTPSecretProviderLambdaRole.Arn}
+      Timeout: 60
+      Code:
+        ZipFile: |
+          import cfnresponse
+          import json
+          import hmac
+          import hashlib
+          import base64
+          import os
+          
+          # Values that are required to calculate the signature. These values should
+          # never change.
+          DATE = "11111111"
+          SERVICE = "ses"
+          MESSAGE = "SendRawEmail"
+          TERMINAL = "aws4_request"
+          VERSION = 0x04
+
+          def sign(key, msg):
+              return hmac.new(key, msg.encode('utf-8'), hashlib.sha256).digest()
+          
+          def calculateKey(secretAccessKey, region):
+              signature = sign(("AWS4" + secretAccessKey).encode('utf-8'), DATE)
+              signature = sign(signature, region)
+              signature = sign(signature, SERVICE)
+              signature = sign(signature, TERMINAL)
+              signature = sign(signature, MESSAGE)
+              signatureAndVersion = bytes([VERSION]) + signature
+              smtpPassword = base64.b64encode(signatureAndVersion)
+              return(smtpPassword.decode('utf-8'))
+              
+          def main(event, context):
+            print('## ENVIRONMENT VARIABLES')
+            print(os.environ)
+            print('## EVENT')
+            print(event)
+            try: 
+              secret = event['ResourceProperties']['SecretKey']
+              region = event['ResourceProperties']['Region']
+          
+              plainsmtpPassword = calculateKey(secret,region)
+
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, plainsmtpPassword)
+            except Exception as e:
+              print(e)
+              cfnresponse.send(event, context, cfnresponse.FAILED, {}, "This did not work, Sherlock")
+
+Outputs:
+  BBBSESProvider:
+    Description: Name of the SES Provider
+    Value:
+      Ref: BBBSESProvider
+  BBBSESProviderLogGroup:
+    Description: Name of the SES Provider Log Group
+    Value:
+      Ref: BBBSESProviderLogGroup
+  BBBSESProviderLambdaRole:
+    Description: Name of the SES Provider Lambda Role
+    Value:
+      Ref: BBBSESProviderLambdaRole
+  BBBSESProviderArn:
+    Description: The Arn of the SES Provider Lambda Function
+    Value: !Sub ${BBBSESProvider.Arn}
+  BBBSMTPSecretProvider:
+    Description: Name of the Secrets Provider
+    Value:
+      Ref: BBBSMTPSecretProvider
+  BBBSMTPSecretProviderLambdaRole:
+    Description: Name of the Secrets Provider Lambda Role
+    Value:
+      Ref: BBBSMTPSecretProviderLambdaRole
+  BBBSMTPSecretProviderArn:
+    Description: The Arn of the Secrets Provider Lambda Function
+    Value: !Sub ${BBBSMTPSecretProvider.Arn}

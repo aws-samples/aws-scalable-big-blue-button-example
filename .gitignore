@@ -1,0 +1,10 @@
+server.*
+v3.ext
+ssl/*
+ssl/server.*
+secrets/*
+.DS_Store
+
+.idea
+
+deploy.sh

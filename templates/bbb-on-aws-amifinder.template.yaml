@@ -1,0 +1,130 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+
+  This Cloudformation Template deploys a Custom AMI Finder.
+
+  Disclaimer: Not for production use. Demo and testing purposes only.
+
+  Author: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
+
+Parameters:
+  BBBEnvironmentStage:
+    Type: String
+    Description: Select the appropriate environment
+    AllowedValues:
+      - stage
+      - prod
+      - dev
+
+Conditions:
+  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
+  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
+
+Resources:
+  BBBGetLatestAMILambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+      Policies:
+        - PolicyName: DescribeImages
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action: ec2:DescribeImages
+                Effect: Allow
+                Resource: "*"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  BBBGetLatestAMILogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 7
+      LogGroupName: !Join ["", ["/aws/lambda/", !Ref BBBGetLatestAMI]]
+
+  BBBGetLatestAMI:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.6
+      Handler: index.handler
+      Role: !Sub ${BBBGetLatestAMILambdaRole.Arn}
+      Timeout: 60
+      Code:
+        ZipFile: |
+          import boto3
+          import cfnresponse
+          import json
+
+          def handler(event, context):
+            try:
+              response = boto3.client('ec2').describe_images(
+                  Owners=[event['ResourceProperties']['Owner']],
+                  Filters=[
+                    {'Name': 'name', 'Values': [event['ResourceProperties']['Name']]},
+                    {'Name': 'architecture', 'Values': [event['ResourceProperties']['Architecture']]},
+                    {'Name': 'root-device-type', 'Values': ['ebs']},
+                  ],
+              )
+
+              amis = sorted(response['Images'],
+                            key=lambda x: x['CreationDate'],
+                            reverse=True)
+              id = amis[0]['ImageId']
+
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, id)
+            except:
+              cfnresponse.send(event, context, cfnresponse.FAILED, {}, "ok")
+
+  BBBApplicationAmiID:
+    Type: Custom::FindAMI
+    Properties:
+      ServiceToken: !Sub ${BBBGetLatestAMI.Arn}
+      Owner: "099720109477"
+      Name: "ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server*"
+      Architecture: "x86_64"
+
+  BBBTurnAmiID:
+    Type: Custom::FindAMI
+    Properties:
+      ServiceToken: !Sub ${BBBGetLatestAMI.Arn}
+      Owner: "099720109477"
+      Name: "ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-*"
+      Architecture: "x86_64"
+
+  BBBTurnAMIParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: turniamgeamiid
+      Type: String
+      Value: !Ref BBBTurnAmiID
+      Description: SSM Parameter for the variable part of the Turn Ubuntu AMI
+
+  BBBApplicationAMIParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: applicationimageamiid
+      Type: String
+      Value: !Ref BBBApplicationAmiID
+      Description: SSM Parameter for the variable part of the Application Server Ubuntu AMI
+
+Outputs:
+  BBBGetLatestAMILambdaRole: 
+    Description: Role for the Lambda to search for Image AMIs
+    Value: !Ref BBBGetLatestAMILambdaRole
+  BBBGetLatestAMI: 
+    Description: Function to search for Image AMIs dynamically
+    Value: !Ref BBBGetLatestAMI
+  BBBTurnAMIParameter:
+    Description: Parameter for the Turn AMI 
+    Value: !Ref BBBTurnAMIParameter
+  BBBApplicationAMIParameter:
+    Description: Parameter for the Application AMI
+    Value: !Ref BBBApplicationAMIParameter
+

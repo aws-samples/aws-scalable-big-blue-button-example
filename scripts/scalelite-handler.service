@@ -1,0 +1,13 @@
+[Unit]
+Description=Run Scalelite Handling at Start and Stop
+Wants=network-online.target
+After=network.target network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStart=/usr/local/bin/scalelite-handler.sh -p 'SECRET_PLACEHOLDER' -s 'SERVER_PLACEHOLDER' -m create -r AWSREGION_PLACEHOLDER -c ECSCLUSTER_PLACEHOLDER
+ExecStop=/usr/local/bin/scalelite-handler.sh -p 'SECRET_PLACEHOLDER' -s 'SERVER_PLACEHOLDER' -m delete -r AWSREGION_PLACEHOLDER -c ECSCLUSTER_PLACEHOLDER
+
+[Install]
+WantedBy=multi-user.target  

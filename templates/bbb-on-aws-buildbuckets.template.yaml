@@ -1,0 +1,24 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: > 
+
+  This Cloudformation Template deploys the prerequisites to handle the BigBlueButton application deployment. The Template deploys an S3 Bucket
+  for archive and Application bits.
+
+  Disclaimer: Not for production use. Demo and testing purposes only.
+
+  Author: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
+
+Resources:
+  BBBStackBucket:
+    Type: AWS::S3::Bucket
+    Description: This is the S3 Bucket for the CF Template files and the BigBlueButton application source files.
+    DeletionPolicy: Delete
+
+Outputs: 
+  BBBStackBucketName:
+    Description: Bucket name for the bucket holfing CF Template files and the BigBlueButton application source Files.
+    Value: 
+      Ref: BBBStackBucket
+    Export: 
+      Name: !Sub "${AWS::StackName}-BBBStackBucket"

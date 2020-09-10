@@ -1,0 +1,68 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+
+  This Cloudformation Template deploys the Shared Storage for the application infrastructure.
+
+  Disclaimer: Not for production use. Demo and testing purposes only.
+
+  Author: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
+
+Parameters:
+  BBBVPC:
+    Description: Reference for the VPC
+    Type: String
+  BBBSharedStorageSecurityGroup:
+    Type: String
+    Description: Security Group that should be assigned to the shared storage
+  BBBPrivateApplicationSubnets:
+    Type: CommaDelimitedList
+    Description: Comma separated list of the private instance subnets
+  BBBEnvironmentStage:
+    Type: String
+    Description: Select the appropriate environment
+    AllowedValues:
+      - stage
+      - prod
+      - dev
+
+Conditions:
+  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
+  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
+
+Resources:
+  BBBSharedStorageFS:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      Encrypted: true
+
+  BBBSharedStorageMountTarget1:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId:
+        Ref: BBBSharedStorageFS
+      SubnetId: !Select [0, !Ref BBBPrivateApplicationSubnets]
+      SecurityGroups:
+        - !Ref BBBSharedStorageSecurityGroup
+
+  BBBSharedStorageMountTarget2:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId:
+        Ref: BBBSharedStorageFS
+      SubnetId: !Select [1, !Ref BBBPrivateApplicationSubnets]
+      SecurityGroups:
+        - !Ref BBBSharedStorageSecurityGroup
+
+  BBBSharedStorageMountTarget3:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId:
+        Ref: BBBSharedStorageFS
+      SubnetId: !Select [2, !Ref BBBPrivateApplicationSubnets]
+      SecurityGroups:
+        - !Ref BBBSharedStorageSecurityGroup
+Outputs:
+  BBBSharedStorageFS:
+    Value: !Ref BBBSharedStorageFS
+    Description: Reference to the created Amazon EFS Volume

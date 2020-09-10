@@ -1,0 +1,346 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+
+  This Cloudformation Template deploys the Coturn / Turn Server for the video and audio handling.
+
+  Disclaimer: Not for production use. Demo and testing purposes only.
+
+  Author: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
+
+Parameters:
+  BBBOperatorEMail:
+    Description: E-Mail address to notify if there are any operational issues
+    Type: String
+    AllowedPattern: "([a-zA-Z0-9_\\-\\.]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)"
+    ConstraintDescription: Must be a valid email address.
+    Default: johndoe@example.com
+  BBBNotificationTopic:
+    Description: Topic to be used for alarm notifications
+    Type: String
+  BBBPublicApplicationSubnets:
+    Description: Comma separated list of the appserver's subnets
+    Type: CommaDelimitedList
+  BBBTurnInstanceType:
+    Description: Instance type for the turn server
+    Type: String
+    Default: t3a.medium
+    AllowedValues:
+      - t3a.micro
+      - t3a.small
+      - t3a.medium
+      - t3a.large
+      - t3a.xlarge
+      - t3a.2xlarge
+      - c5a.large
+      - c5a.xlarge
+      - c5a.2xlarge
+      - c5a.4xlarge
+      - c5a.8xlarge
+      - c5a.12xlarge
+      - c5a.16xlarge
+      - c5a.24xlarge
+      - m5a.large
+      - m5a.xlarge
+      - m5a.2xlarge
+      - m5a.4xlarge
+      - m5a.8xlarge
+      - m5a.12xlarge
+      - m5a.16xlarge
+      - m5a.24xlarge
+      - r5a.large
+      - r5a.xlarge
+      - r5a.2xlarge
+      - r5a.4xlarge
+      - r5a.8xlarge
+      - r5a.12xlarge
+      - r5a.16xlarge
+      - r5a.24xlarge
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.8xlarge
+      - c5.12xlarge
+      - c5.16xlarge
+      - c5.24xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - m5.12xlarge
+      - m5.16xlarge
+      - m5.24xlarge
+      - r5.large
+      - r5.xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.8xlarge
+      - r5.12xlarge
+      - r5.16xlarge
+      - r5.24xlarge
+  BBBTurnMaxInstances:
+    Type: Number
+    Description: Maximum number of turn server instance
+    Default: 1
+  BBBTurnMinInstances:
+    Type: Number
+    Description: Minimum number of turn server instance
+    Default: 1
+  BBBTurnDesiredInstances:
+    Type: Number
+    Description: Desired number of turn server instance
+    Default: 1
+  BBBEnvironmentStage:
+    Type: String
+    Description: Select the appropriate environment
+    AllowedValues:
+      - stage
+      - prod
+      - dev
+  BBBTurnSecurityGroup:
+    Description: Security Group that should be assigned for the turn server
+    Type: String
+  BBBHostedZone:
+    Description: Hosted zone in which the DNS entries for the app servers should be created
+    Type: String
+  BBBDomainName:
+    Description: Base domain name used for the instance
+    Type: String
+  BBBStackBucketStack:
+    Description: S3 Bucket Stack that contains scripts and sources
+    Type: String
+  BBBAuthLogLogGroup:
+    Description: Log group to be used for the auth logs
+    Type: String
+  BBBSyslogLogGroup:
+    Description: Log group to be used for the system logs
+    Type: String
+  BBBLetsEncryptLogGroup:
+    Description: Log group to be used for the Let's Encrypt logs
+    Type: String
+  BBBLatestTurnAmiId:
+    Description: AMI id that should be used for the turn server instaces
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: 'bbbturnimageid'
+
+Conditions:
+  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
+  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
+
+Resources:
+  BBBTurnSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'This is the BBB Database instance secret'
+      GenerateSecretString:
+        SecretStringTemplate: '{"turnkeyname": "turnsecretkey"}'
+        GenerateStringKey: 'turnkeyvalue'
+        PasswordLength: 16
+        ExcludePunctuation: 'true'
+
+  BBBTurnHostnameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: turnhostname
+      Type: String
+      Value: placeholder
+      Description: SSM Parameter for the variable part of the turn hostname
+
+  BBBCoturnLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: /var/log/coturn.log
+      RetentionInDays: 7
+
+  BBBTurnAutoScaling:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref BBBPublicApplicationSubnets
+      LaunchConfigurationName: !Ref BBBTurnInstanceLaunchConfiguration
+      TerminationPolicies:
+        - DEFAULT
+      MaxSize: !Ref BBBTurnMaxInstances
+      MinSize: !Ref BBBTurnMinInstances
+      DesiredCapacity: !Ref BBBTurnDesiredInstances
+      NotificationConfiguration:
+        TopicARN:
+          Ref: BBBNotificationTopic
+        NotificationTypes:
+          - autoscaling:EC2_INSTANCE_LAUNCH
+          - autoscaling:EC2_INSTANCE_LAUNCH_ERROR
+          - autoscaling:EC2_INSTANCE_TERMINATE
+          - autoscaling:EC2_INSTANCE_TERMINATE_ERROR
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: true
+
+  BBBTurnEC2Role:
+    Type: AWS::IAM::Role
+    DependsOn: 
+      - BBBTurnHostnameParameter
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ec2.amazonaws.com]
+            Action: ["sts:AssumeRole"]
+      Path: /
+      Policies:
+        - PolicyName: TurnEC2Role
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - route53:ChangeResourceRecordSets
+                  - route53:GetHostedZone
+                  - route53:ListResourceRecordSets
+                Resource: !Sub "arn:aws:route53:::hostedzone/${BBBHostedZone}"
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameters
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Ref BBBTurnSecret
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource:
+                  - !Sub "arn:aws:s3:::${BBBStackBucketStack}/*"
+              - Effect: Allow
+                Action:
+                  - ssm:PutParameter
+                Resource:
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/turnhostname"
+              - Effect: Allow
+                Action:
+                  - logs:PutLogEvents
+                  - logs:CreateLogStream
+                  - logs:DescribeLogStreams
+                  - logs:CreateLogGroup
+                  - logs:GetLogEvents
+                Resource:
+                  - Fn::GetAtt: [ BBBCoturnLogGroup, Arn ]
+                  - !Ref BBBAuthLogLogGroup
+                  - !Ref BBBSyslogLogGroup
+                  - !Ref BBBLetsEncryptLogGroup
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  BBBTurnEC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref BBBTurnEC2Role
+
+  BBBTurnInstanceLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: true
+      IamInstanceProfile: !Ref BBBTurnEC2InstanceProfile
+      ImageId: !Ref BBBLatestTurnAmiId
+      EbsOptimized: false
+      InstanceMonitoring: true
+      InstanceType: !Ref BBBTurnInstanceType
+      SecurityGroups:
+        - !Ref BBBTurnSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          apt update -y
+          DEBIAN_FRONTEND='noninteractive' apt -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' full-upgrade
+
+          apt autoremove -y
+          apt clean
+          apt autoclean
+
+          apt install -y git binutils python3-pip python-pip build-essential python-dev python-setuptools jq
+
+          pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+          pip install -U awscli
+
+          # associate Elastic IP
+          instance_ipv4=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+          instance_random=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 6 | head -n 1)
+          instance_publichostname=tu-$instance_random
+          instance_fqdn=$instance_publichostname.${BBBDomainName}
+
+          aws ssm --region ${AWS::Region} put-parameter --name "${BBBTurnHostnameParameter}" --value "$instance_publichostname" --type String --overwrite
+
+          # register in route53
+          wget --tries=10 https://github.com/barnybug/cli53/releases/download/0.8.17/cli53-linux-amd64 -O /usr/local/bin/cli53
+          sudo chmod +x /usr/local/bin/cli53
+
+          # create script for route53-handler
+          aws s3 cp s3://${BBBStackBucketStack}/route53-handler.service /etc/systemd/system/route53-handler.service
+          aws s3 cp s3://${BBBStackBucketStack}/route53-handler.sh /usr/local/bin/route53-handler.sh
+          chmod +x /usr/local/bin/route53-handler.sh
+
+          sed -i "s/INSTANCE_PLACEHOLDER/$instance_publichostname/g" /etc/systemd/system/route53-handler.service
+          sed -i "s/ZONE_PLACEHOLDER/${BBBHostedZone}/g" /etc/systemd/system/route53-handler.service
+
+          systemctl daemon-reload
+          systemctl enable route53-handler
+          systemctl start route53-handler
+
+          turnsecret=$(aws secretsmanager get-secret-value --region ${AWS::Region} --secret-id ${BBBTurnSecret} --query SecretString --output text | jq -r .turnkeyvalue)
+          sleep 1m
+
+          x=1
+          while [ $x -le 5 ]
+          do
+            until host $instance_fqdn  | grep -m 1 "has address $instance_ipv4"; do sleep 5 ; done
+            x=$(( $x + 1 ))
+          done
+
+          /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBTurnAutoScaling --region ${AWS::Region} || true
+
+          wget -qO- https://ubuntu.bigbluebutton.org/bbb-install.sh | bash -s -- -c $instance_fqdn:$turnsecret -e ${BBBOperatorEMail}
+
+          curl https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py -O
+          chmod +x ./awslogs-agent-setup.py
+          ./awslogs-agent-setup.py -n -r ${AWS::Region} -c s3://${BBBStackBucketStack}/turn-cwagent.config
+          systemctl enable awslogs
+
+Outputs:
+  BBBTurnSecret:
+    Description: The Big Blue Button Turn Secret Key
+    Value:
+      Ref: BBBTurnSecret
+  BBBTurnHostnameParameter: 
+    Description: The Parameter containing the Big Blue Button Turn Hostname
+    Value: 
+      Ref: BBBTurnHostnameParameter
+  BBBCoturnLogGroup:
+    Description: Coturn Log Group
+    Value:
+      Ref: BBBCoturnLogGroup
+  BBBTurnEC2InstanceProfile:
+    Description: Big Blue Button Turn Instance Profile
+    Value:
+      Ref: BBBTurnEC2InstanceProfile
+  BBBTurnEC2Role: 
+    Description: Big Blue Button Turn Instance Role
+    Value:
+      Ref: BBBTurnEC2Role
+  BBBTurnAutoScaling: 
+    Description: Big Blue Button Turn Instance Autoscaling Group
+    Value:
+      Ref: BBBTurnAutoScaling
+  BBBTurnInstanceLaunchConfiguration: 
+    Description: Big Blue Button Turn Instance Launch Configuration
+    Value:
+      Ref: BBBTurnInstanceLaunchConfiguration

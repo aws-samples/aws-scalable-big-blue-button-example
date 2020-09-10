@@ -1,0 +1,13 @@
+[Unit]
+Description=Run Route53 Handling at Start and Stop
+Wants=network-online.target
+After=network.target network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStart=/usr/local/bin/route53-handler.sh -h INSTANCE_PLACEHOLDER -m create -z ZONE_PLACEHOLDER
+ExecStop=/usr/local/bin/route53-handler.sh -h INSTANCE_PLACEHOLDER -m delete -z ZONE_PLACEHOLDER
+
+[Install]
+WantedBy=multi-user.target  

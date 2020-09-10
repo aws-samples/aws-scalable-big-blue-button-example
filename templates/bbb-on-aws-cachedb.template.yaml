@@ -1,0 +1,185 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+
+  This Cloudformation Template deploys the Redis Cluster (Amazon ElastiCache) used by the Scalelite load balancer.
+
+  Disclaimer: Not for production use. Demo and testing purposes only.
+
+  Author: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
+
+Parameters:
+  BBBNotificationTopic:
+    Description: Topic to be used for alarm notifications
+    Type: String
+  BBBVPC:
+    Description: Reference for the VPC in which to deploy Amazon ElastiCache
+    Type: String
+  BBBCACHEDBInstanceType:
+    Description: Instance type for Amazon ElastiCache (Redis)
+    Type: String
+    AllowedValues:
+      - cache.t3.micro
+      - cache.t3.small
+      - cache.t3.medium
+      - cache.m5.large
+      - cache.m5.xlarge
+      - cache.m5.2xlarge
+      - cache.m5.4xlarge
+      - cache.m5.12xlarge
+      - cache.m5.24xlarge
+      - cache.r5.large
+      - cache.r5.xlarge
+      - cache.r5.2xlarge
+      - cache.r5.4xlarge
+      - cache.r5.12xlarge
+      - cache.r5.24xlarge
+  BBBPrivateDBSubnets:
+    Description: Comma separated list of the private database subnets
+    Type: CommaDelimitedList
+  BBBCACHEDBSecurityGroup:
+    Description: Security Group that should be assigned for cache database
+    Type: String
+  BBBCacheAZMode:
+    Description: Redis Cache AZ Mode
+    Type: String
+    Default: single-az
+    AllowedValues:
+      - single-az
+      - cross-az
+  BBBEnvironmentStage:
+    Type: String
+    Description: Select the appropriate environment
+    AllowedValues:
+      - stage
+      - prod
+      - dev
+
+Conditions:
+  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
+  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
+
+Resources:
+
+  BBBCacheSubnetGroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties:
+      Description: !Sub CacheSubnetGroup-${BBBEnvironmentStage}
+      SubnetIds: !Ref BBBPrivateDBSubnets
+
+  BBBParametersGroup:
+    Type: AWS::ElastiCache::ParameterGroup
+    Properties:
+      CacheParameterGroupFamily: "redis5.0"
+      Description: "Modifications to support better performance"
+      Properties:
+        tcp-keepalive: 60
+        timeout: 900
+
+  BBBElasticacheRedis:
+    Type: AWS::ElastiCache::CacheCluster
+    Properties:
+      NumCacheNodes: 1
+      CacheNodeType:
+        Ref: BBBCACHEDBInstanceType
+      CacheParameterGroupName:
+        Ref: BBBParametersGroup
+      CacheSubnetGroupName: !Ref BBBCacheSubnetGroup
+      AZMode: !Ref BBBCacheAZMode
+      Engine: "redis"
+      EngineVersion: "5.0.5"
+      NotificationTopicArn: !Ref BBBNotificationTopic
+      VpcSecurityGroupIds:
+        - Ref: BBBCACHEDBSecurityGroup
+
+  BBBDatabaseACPUUtilizationTooHighAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+        - Ref: BBBNotificationTopic
+      AlarmDescription: 'Average Cache-Node CPU utilization over last 10 minutes too high.'
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: CacheClusterId
+          Value:
+            Ref: BBBElasticacheRedis
+        - Name: CacheNodeId
+          Value: 0001
+      EvaluationPeriods: 1
+      MetricName: CPUUtilization
+      Namespace: 'AWS/ElastiCache'
+      OKActions:
+        - Ref: BBBNotificationTopic
+      Period: 600
+      Statistic: Average
+      Threshold: 80
+
+  BBBCacheACPUCreditBalanceTooLowAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+        - Ref: BBBNotificationTopic
+      AlarmDescription: 'Average Cache-Node CPU credit balance over last 10 minutes too low, expect a significant performance drop soon.'
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: CacheClusterId
+          Value:
+            Ref: BBBElasticacheRedis
+        - Name: CacheNodeId
+          Value: 0001
+      EvaluationPeriods: 1
+      MetricName: CPUCreditBalance
+      Namespace: 'AWS/ElastiCache'
+      OKActions:
+        - Ref: BBBNotificationTopic
+      Period: 600
+      Statistic: Average
+      Threshold: 20
+
+  BBBCacheAFreeableMemoryTooLowAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+        - Ref: BBBNotificationTopic
+      AlarmDescription: 'Average Cache-Node freeable memory over last 10 minutes too low, performance may suffer.'
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: CacheClusterId
+          Value:
+            Ref: BBBElasticacheRedis
+        - Name: CacheNodeId
+          Value: 0001
+      EvaluationPeriods: 1
+      MetricName: FreeableMemory
+      Namespace: 'AWS/ElastiCache'
+      OKActions:
+        - Ref: BBBNotificationTopic
+      Period: 600
+      Statistic: Average
+      Threshold: 64000000 
+
+Outputs:
+  BBBCacheDBAddress:
+    Description: The Big Blue Button Cache Database Address
+    Value:
+      Fn::GetAtt:
+        - BBBElasticacheRedis
+        - RedisEndpoint.Address
+  BBBCacheDBPort:
+    Description: The Big Blue Button Cache Database Port
+    Value:
+      Fn::GetAtt:
+        - BBBElasticacheRedis
+        - RedisEndpoint.Port
+  BBBElasticacheRedis: 
+    Description: The Big Blue Button Cache Redis Cluster
+    Value:
+      Ref: BBBElasticacheRedis
+  BBBParametersGroup: 
+    Description: The Big Blue Button Cache Redis Parameter Group
+    Value:
+      Ref: BBBParametersGroup
+  BBBCacheSubnetGroup: 
+    Description: The Big Blue Button Cache Redis Subnet Group
+    Value:
+      Ref: BBBCacheSubnetGroup

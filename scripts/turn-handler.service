@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Turn Handling and watchdog
+Wants=network-online.target
+After=network.target network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/turn-handler.sh -r AWSREGION_PLACEHOLDER -p PARAMETER_PLACEHOLDER
+
+[Install]
+WantedBy=multi-user.target

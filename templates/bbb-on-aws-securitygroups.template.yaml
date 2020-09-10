@@ -1,0 +1,296 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+
+  This Cloudformation Template deploys the Security Groups used by all stacks.
+
+  Disclaimer: Not for production use. Demo and testing purposes only.
+
+  Author: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
+
+Parameters:
+  BBBVPC:
+    Description: Reference for the VPC
+    Type: String
+  BBBEnvironmentType:
+    Description: 'Defines the environment type. Allowed values: scalable, single'
+    AllowedValues:
+      - scalable
+      - single
+    Type: String
+  BBBEnvironmentStage:
+    Type: String
+    Description: Select the appropriate environment
+    AllowedValues:
+      - stage
+      - prod
+      - dev
+
+Conditions:
+  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
+  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
+  BBBScalableEnvironment: !Equals [!Ref BBBEnvironmentType, scalable]
+
+Resources:
+  BBBECSInstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: BBBScalableEnvironment
+    Properties:
+      GroupDescription: ECS Instance Security Group
+      VpcId: !Ref BBBVPC
+
+  BBBECSInstanceSecurityGroupPorts:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
+    Properties:
+      GroupId: !Ref BBBECSInstanceSecurityGroup
+      IpProtocol: tcp
+      FromPort: 32768
+      ToPort: 60999
+      SourceSecurityGroupId: !Ref BBBScaleliteELBSecurityGroup
+
+  BBBScaleliteELBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: BBBScalableEnvironment
+    Properties:
+      GroupDescription: Scalelite Security Group
+      VpcId: !Ref BBBVPC
+
+  BBBScaleliteELBSecurityGroupPorts:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
+    Properties:
+      GroupId: !Ref BBBScaleliteELBSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: 0.0.0.0/0
+
+  BBBFrontendELBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: BBBScalableEnvironment
+    Properties:
+      GroupDescription: ALB Security Group
+      VpcId: !Ref BBBVPC
+
+  BBBECSSecurityGroupPublicports:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
+    Properties:
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      GroupId: !Ref BBBFrontendELBSecurityGroup
+
+  BBBFrontendSecurityGroupALBports:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
+    Properties:
+      GroupId: !Ref BBBECSInstanceSecurityGroup
+      IpProtocol: tcp
+      FromPort: 32768
+      ToPort: 60999
+      SourceSecurityGroupId: !Ref BBBFrontendELBSecurityGroup
+
+  BBBDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: BBBScalableEnvironment
+    Properties:
+      VpcId:
+        Ref: BBBVPC
+      GroupDescription: Security group for the Postgres DB
+
+  BBBDBSecurityGroupPorts:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
+    Properties:
+      SourceSecurityGroupId: !Ref BBBECSInstanceSecurityGroup
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      GroupId: !Ref BBBDBSecurityGroup
+
+  BBBCACHEDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: BBBScalableEnvironment
+    Properties:
+      VpcId:
+        Ref: BBBVPC
+      GroupDescription: Security group for the Redis Cache
+
+  BBBCACHEDBSecurityGroupPorts:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
+    Properties:
+      SourceSecurityGroupId: !Ref BBBECSInstanceSecurityGroup
+      IpProtocol: tcp
+      FromPort: 6379
+      ToPort: 6379
+      GroupId: !Ref BBBCACHEDBSecurityGroup
+
+  BBBApplicationSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: BBBScalableEnvironment
+    Properties:
+      VpcId:
+        Ref: BBBVPC
+      GroupDescription: Security group for the BigBlueButton Application Host
+
+  BBBApplicationSecurityGroupWebSSLPort:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
+    Properties:
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      GroupId: !Ref BBBApplicationSecurityGroup
+
+  BBBApplicationSecurityGroupWebPlainPort:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
+    Properties:
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      GroupId: !Ref BBBApplicationSecurityGroup
+
+  BBBApplicationSecurityGroupVCPorts:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
+    Properties:
+      CidrIp: 0.0.0.0/0
+      IpProtocol: udp
+      FromPort: 16384
+      ToPort: 32768
+      GroupId: !Ref BBBApplicationSecurityGroup
+
+  BBBApplicationSecurityGroupTurnPorts:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
+    Properties:
+      SourceSecurityGroupId: !Ref BBBTurnSecurityGroup
+      IpProtocol: udp
+      FromPort: 49152
+      ToPort: 65535
+      GroupId: !Ref BBBApplicationSecurityGroup
+
+  BBBTurnSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: BBBScalableEnvironment
+    Properties:
+      VpcId:
+        Ref: BBBVPC
+      GroupDescription: Security group for the Turn Host
+
+  BBBTurnSecurityGroupWebSSLPort:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
+    Properties:
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      GroupId: !Ref BBBTurnSecurityGroup
+
+  BBBTurnSecurityGroupWebPlainPort:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
+    Properties:
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      GroupId: !Ref BBBTurnSecurityGroup
+
+  BBBTurnSecurityGroupWebSSLUDPPort:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
+    Properties:
+      CidrIp: 0.0.0.0/0
+      IpProtocol: udp
+      FromPort: 443
+      ToPort: 443
+      GroupId: !Ref BBBTurnSecurityGroup
+
+  BBBTurnSecurityGroupWebPlainUDPPort:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
+    Properties:
+      CidrIp: 0.0.0.0/0
+      IpProtocol: udp
+      FromPort: 3478
+      ToPort: 3478
+      GroupId: !Ref BBBTurnSecurityGroup
+
+  BBBTurnSecurityGroupWebPlainTCPPort:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
+    Properties:
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 3478
+      ToPort: 3478
+      GroupId: !Ref BBBTurnSecurityGroup
+
+  BBBSharedStorageSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: BBBScalableEnvironment
+    Properties:
+      VpcId:
+        Ref: BBBVPC
+      GroupDescription: Security group for the Shared Storage
+
+  BBBSharedStorageSecurityGroupApplicationPort:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
+    Properties:
+      SourceSecurityGroupId: !Ref BBBApplicationSecurityGroup
+      IpProtocol: tcp
+      FromPort: 2049
+      ToPort: 2049
+      GroupId: !Ref BBBSharedStorageSecurityGroup
+
+  BBBSharedStorageSecurityGroupECSPort:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
+    Properties:
+      SourceSecurityGroupId: !Ref BBBECSInstanceSecurityGroup
+      IpProtocol: tcp
+      FromPort: 2049
+      ToPort: 2049
+      GroupId: !Ref BBBSharedStorageSecurityGroup
+
+Outputs:
+  BBBECSInstanceSecurityGroup:
+    Condition: BBBScalableEnvironment
+    Description: A reference to the created Security Group for ECS
+    Value: !Ref BBBECSInstanceSecurityGroup
+  BBBFrontendELBSecurityGroup:
+    Condition: BBBScalableEnvironment
+    Description: A reference to the created Security Group for ELB
+    Value: !Ref BBBFrontendELBSecurityGroup
+  BBBScaleliteELBSecurityGroup:
+    Condition: BBBScalableEnvironment
+    Description: A reference to the created Security Group for the Scalelite Load Balancer
+    Value: !Ref BBBScaleliteELBSecurityGroup
+  BBBDBSecurityGroup:
+    Condition: BBBScalableEnvironment
+    Description: A reference to the created Security Group for the Database
+    Value: !Ref BBBDBSecurityGroup
+  BBBCACHEDBSecurityGroup:
+    Condition: BBBScalableEnvironment
+    Description: A reference to the created Security Group for the Redis Cache
+    Value: !Ref BBBCACHEDBSecurityGroup
+  BBBApplicationSecurityGroup:
+    Description: A reference to the created Security Group for the Public Ports of the Application
+    Value: !Ref BBBApplicationSecurityGroup
+  BBBTurnSecurityGroup:
+    Description: A reference to the created Security Group for the Public Ports of the Turn Service
+    Value: !Ref BBBTurnSecurityGroup
+  BBBSharedStorageSecurityGroup:
+    Condition: BBBScalableEnvironment
+    Description: A reference to the created Security Group for the SharedStorage
+    Value: !Ref BBBSharedStorageSecurityGroup

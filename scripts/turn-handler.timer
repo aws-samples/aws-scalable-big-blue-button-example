@@ -1,0 +1,9 @@
+[Unit]
+Description=This is the timer to start the turn handler for turn server name updates
+
+[Timer]
+OnUnitActiveSec=30s
+OnBootSec=1m
+
+[Install]
+WantedBy=timers.target

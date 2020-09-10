@@ -1,0 +1,3 @@
+work_dir: /var/bigbluebutton/recording/scalelite
+spool_dir: /mnt/bbb-recordings/var/bigbluebutton/spool
+extra_rsync_opts: []

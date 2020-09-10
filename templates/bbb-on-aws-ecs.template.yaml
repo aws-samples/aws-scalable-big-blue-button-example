@@ -1,0 +1,253 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+
+  This Cloudformation Template deploys a private ECS Cluster for the BigBlueButton Frontend (Greenlight and Scalelite).
+
+  Disclaimer: Not for production use. Demo and testing purposes only.
+
+  Author: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
+
+Parameters:
+  BBBNotificationTopic:
+    Description: Topic to be used for alarm notifications
+    Type: String
+  BBBECSInstanceType:
+    Description: EC2 instance type for ECS Cluster worker nodes
+    Type: String
+    Default: t3a.large
+    AllowedValues:
+      - t3a.medium
+      - t3a.large
+      - t3a.xlarge
+      - t3a.2xlarge
+      - c5a.large
+      - c5a.xlarge
+      - c5a.2xlarge
+      - c5a.4xlarge
+      - c5a.8xlarge
+      - c5a.12xlarge
+      - c5a.16xlarge
+      - c5a.24xlarge
+      - m5a.large
+      - m5a.xlarge
+      - m5a.2xlarge
+      - m5a.4xlarge
+      - m5a.8xlarge
+      - m5a.12xlarge
+      - m5a.16xlarge
+      - m5a.24xlarge
+      - r5a.large
+      - r5a.xlarge
+      - r5a.2xlarge
+      - r5a.4xlarge
+      - r5a.8xlarge
+      - r5a.12xlarge
+      - r5a.16xlarge
+      - r5a.24xlarge
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.8xlarge
+      - c5.12xlarge
+      - c5.16xlarge
+      - c5.24xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - m5.12xlarge
+      - m5.16xlarge
+      - m5.24xlarge
+      - r5.large
+      - r5.xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.8xlarge
+      - r5.12xlarge
+      - r5.16xlarge
+      - r5.24xlarge
+  BBBECSMaxInstances:
+    Type: Number
+    Description: Maximum number of ECS Worker Instances
+    Default: 3
+  BBBECSMinInstances:
+    Type: Number
+    Description: Minimum number of ECS Worker Instances
+    Default: 1
+  BBBECSDesiredInstances:
+    Type: Number
+    Description: Desired number of ECS Worker Instances
+    Default: 1
+  BBBPrivateApplicationSubnets:
+    Description: Comma separated list of the private EC2 instance subnets
+    Type: CommaDelimitedList
+  BBBVPC:
+    Description: Reference for the VPC in which to deploy the EC2 instances
+    Type: String
+  BBBEnvironmentStage:
+    Type: String
+    Description: Select the appropriate environment
+    AllowedValues:
+      - stage
+      - prod
+      - dev
+  BBBECSInstanceSecurityGroup:
+    Description: Security Group that should be assigned for the EC2 Instances
+    Type: String
+  BBBLatestECSAmiId:
+    Description: AMI id that should be used for the EC2 instaces
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id'
+  BBBSharedStorageFS:
+    Description: File system id for the Amazon EFS volume to be mounted
+    Type: String
+
+Conditions:
+  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
+  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
+
+Resources:
+
+  BBBECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub ${AWS::StackName}-ECSCluster
+      CapacityProviders: 
+        - !Ref BBBECSCapacityProvider
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+ 
+  BBBECSCapacityProvider:
+    Type: AWS::ECS::CapacityProvider
+    Properties:
+      AutoScalingGroupProvider: 
+        AutoScalingGroupArn: !Ref BBBECSAutoScaling
+        ManagedScaling: 
+          Status: ENABLED
+          MinimumScalingStepSize: !Ref BBBECSMinInstances
+          MaximumScalingStepSize: !Ref BBBECSMaxInstances
+          TargetCapacity: 85
+        ManagedTerminationProtection: DISABLED
+
+  BBBECSAutoScaling:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref BBBPrivateApplicationSubnets
+      LaunchConfigurationName: !Ref BBBECSInstanceLaunchConfiguration
+      TerminationPolicies:
+        - DEFAULT
+      MaxSize: !Ref BBBECSMaxInstances
+      MinSize: !Ref BBBECSMinInstances
+      DesiredCapacity: !Ref BBBECSDesiredInstances
+      NotificationConfiguration:
+        TopicARN:
+          Ref: BBBNotificationTopic
+        NotificationTypes:
+          - autoscaling:EC2_INSTANCE_LAUNCH
+          - autoscaling:EC2_INSTANCE_LAUNCH_ERROR
+          - autoscaling:EC2_INSTANCE_TERMINATE
+          - autoscaling:EC2_INSTANCE_TERMINATE_ERROR
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: true
+
+  BBBECSEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ec2.amazonaws.com]
+            Action: ["sts:AssumeRole"]
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  BBBECSEC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref BBBECSEC2Role
+
+  BBBECSInstanceLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: false
+      IamInstanceProfile: !Ref BBBECSEC2InstanceProfile
+      ImageId: !Ref BBBLatestECSAmiId
+      EbsOptimized: false
+      InstanceMonitoring: true
+      InstanceType: !Ref BBBECSInstanceType
+      SecurityGroups:
+        - !Ref BBBECSInstanceSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          echo ECS_CLUSTER=${AWS::StackName}-ECSCluster >> /etc/ecs/ecs.config
+          yum install -y aws-cfn-bootstrap
+          yum install -y amazon-efs-utils
+          yum update -y ecs-init
+
+          mkdir /mnt/bbb-recordings
+
+          mount -t efs ${BBBSharedStorageFS}:/ /mnt/bbb-recordings/
+
+          if [ ! -d /mnt/bbb-recordings/var ]; then
+            # Create the spool directory for recording transfer from BigBlueButton
+            mkdir -p /mnt/bbb-recordings/var/bigbluebutton/spool
+            chmod ugo+rwx /mnt/bbb-recordings/var/bigbluebutton/spool
+  
+            # Create the spool directory for recording transfer from BigBlueButton
+            chown 1000:2000 /mnt/bbb-recordings/var/bigbluebutton/spool
+            chmod 0775 /mnt/bbb-recordings/var/bigbluebutton/spool
+  
+            # Create the temporary (working) directory for recording import
+            mkdir -p /mnt/bbb-recordings/var/bigbluebutton/recording/scalelite
+            chown 1000:1000 /mnt/bbb-recordings/var/bigbluebutton/recording/scalelite
+            chmod 0775 /mnt/bbb-recordings/var/bigbluebutton/recording/scalelite
+  
+            # Create the directory for published recordings
+            mkdir -p /mnt/bbb-recordings/var/bigbluebutton/published
+            chown 1000:1000 /mnt/bbb-recordings/var/bigbluebutton/published
+            chmod 0775 /mnt/bbb-recordings/var/bigbluebutton/published
+  
+            # Create the directory for unpublished recordings
+            mkdir -p /mnt/bbb-recordings/var/bigbluebutton/unpublished
+            chown 1000:1000 /mnt/bbb-recordings/var/bigbluebutton/unpublished
+            chmod 0775 /mnt/bbb-recordings/var/bigbluebutton/unpublished
+          fi
+
+          umount /mnt/bbb-recordings/
+
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBECSAutoScaling --region ${AWS::Region}
+
+Outputs:
+  BBBECSCluster:
+    Description: A reference to the created Cluster
+    Value: !Ref BBBECSCluster
+  BBBECSAutoScaling:
+    Description: A reference to the created Cluster Autoscaling Group
+    Value: !Ref BBBECSAutoScaling
+  BBBECSEC2Role:
+    Description: A reference to the created Cluster Role
+    Value: !Ref BBBECSEC2Role
+  BBBECSEC2InstanceProfile:
+    Description: A reference to the created Cluster Instance profile
+    Value: !Ref BBBECSEC2InstanceProfile
+  BBBECSInstanceLaunchConfiguration:
+    Description: A reference to the created Cluster Launch Configuration
+    Value: !Ref BBBECSInstanceLaunchConfiguration
