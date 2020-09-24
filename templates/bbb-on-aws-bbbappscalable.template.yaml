@@ -82,7 +82,7 @@ Parameters:
       - r5.12xlarge
       - r5.16xlarge
       - r5.24xlarge
-  BBBApplicationDataVolumeSize: 
+  BBBApplicationDataVolumeSize:
     Description: Size of the application instance data volume
     Type: Number
     Default: 20
@@ -179,61 +179,61 @@ Resources:
 
   BBBAkkaLogGroup:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: /var/log/bbb-apps-akka/bbb-apps-akka.log
       RetentionInDays: 7
 
   BBBfseslLogGroup:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: /var/log/bbb-fsesl-akka/bbb-fsesl-akka.log
       RetentionInDays: 7
 
   BBBTranscodeLogGroup:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: /var/log/bbb-transcode-akka/bbb-transcode.log
       RetentionInDays: 7
 
   BBBWebRTCLogGroup:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: /var/log/bbb-webrtc-sfu/bbb-webrtc-sfu.log
       RetentionInDays: 7
 
   BBBWebAppLogGroup:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: /var/log/bigbluebutton/bbb-web.log
       RetentionInDays: 7
 
   BBBKurentoLogGroup:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: /var/log/kurento-media-server
       RetentionInDays: 7
 
   BBBMongoLogGroup:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: /var/log/mongodb/mongod.log
       RetentionInDays: 7
 
   BBBRedisLogGroup:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: /var/log/redis/redis-server.log
       RetentionInDays: 7
 
   BBBRed5LogGroup:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: /var/log/red5
       RetentionInDays: 7
 
   BBBNginxLogGroup:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: /var/log/nginx
       RetentionInDays: 7
 
@@ -289,7 +289,7 @@ Resources:
                   - !Ref BBBScaleliteTaskExecutionRole
               - Effect: Allow
                 Action:
-                  - ssm:GetParameter 
+                  - ssm:GetParameter
                 Resource:
                   - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/turnhostname"
               - Effect: Allow
@@ -397,13 +397,13 @@ Resources:
             DEVICE=/dev/nvme1n1
             parted -s -a optimal -- $DEVICE mklabel gpt mkpart primary 1MiB -2048s
             sleep 20s
-            mkfs.ext4 -F $DEVICE\p1 
+            mkfs.ext4 -F $DEVICE\p1
             UUID=$(blkid |grep "$DEVICE\p1" | awk '{print $2}' |sed 's/"//g')
-          else 
+          else
             DEVICE=/dev/sdf
             parted -s -a optimal -- $DEVICE mklabel gpt mkpart primary 1MiB -2048s
             sleep 20s
-            mkfs.ext4 -F $DEVICE\1 
+            mkfs.ext4 -F $DEVICE\1
             UUID=$(blkid |grep "$DEVICE\1" | awk '{print $2}' |sed 's/"//g')
           fi
 
@@ -424,11 +424,15 @@ Resources:
             x=$(( $x + 1 ))
           done
 
-          /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBApplicationAutoScaling --region ${AWS::Region} || true 
+          /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBApplicationAutoScaling --region ${AWS::Region} || true
 
           wget -qO- https://ubuntu.bigbluebutton.org/bbb-install.sh | bash -s -- -v xenial-220 -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret
 
+          groupadd -g 2000 scalelite-spool
+          usermod -a -G scalelite-spool bigbluebutton
+
           wget --tries=10  https://raw.githubusercontent.com/blindsidenetworks/scalelite/master/bigbluebutton/scalelite_post_publish.rb -O /usr/local/bigbluebutton/core/scripts/post_publish/scalelite_post_publish.rb
+          chmod +x /usr/local/bigbluebutton/core/scripts/post_publish/scalelite_post_publish.rb
           aws s3 cp s3://${BBBStackBucketStack}/scalelite-config.yml /usr/local/bigbluebutton/core/scripts/scalelite.yml
 
           # create script for scalelite-handler
@@ -511,15 +515,15 @@ Outputs:
     Description: Big Blue Button Application Instance Profile
     Value:
       Ref: BBBApplicationEC2InstanceProfile
-  BBBApplicationEC2Role: 
+  BBBApplicationEC2Role:
     Description: Big Blue Button Application Instance Role
     Value:
       Ref: BBBApplicationEC2Role
-  BBBApplicationAutoScaling: 
+  BBBApplicationAutoScaling:
     Description: Big Blue Button Application Instance Autoscaling Group
     Value:
       Ref: BBBApplicationAutoScaling
-  BBBApplicationInstanceLaunchConfiguration: 
+  BBBApplicationInstanceLaunchConfiguration:
     Description: Big Blue Button Application Instance Launch Configuration
     Value:
       Ref: BBBApplicationInstanceLaunchConfiguration

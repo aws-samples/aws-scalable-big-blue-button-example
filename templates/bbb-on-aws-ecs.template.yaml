@@ -119,18 +119,18 @@ Resources:
     Type: AWS::ECS::Cluster
     Properties:
       ClusterName: !Sub ${AWS::StackName}-ECSCluster
-      CapacityProviders: 
+      CapacityProviders:
         - !Ref BBBECSCapacityProvider
       ClusterSettings:
         - Name: containerInsights
           Value: enabled
- 
+
   BBBECSCapacityProvider:
     Type: AWS::ECS::CapacityProvider
     Properties:
-      AutoScalingGroupProvider: 
+      AutoScalingGroupProvider:
         AutoScalingGroupArn: !Ref BBBECSAutoScaling
-        ManagedScaling: 
+        ManagedScaling:
           Status: ENABLED
           MinimumScalingStepSize: !Ref BBBECSMinInstances
           MaximumScalingStepSize: !Ref BBBECSMaxInstances
@@ -210,21 +210,21 @@ Resources:
             # Create the spool directory for recording transfer from BigBlueButton
             mkdir -p /mnt/bbb-recordings/var/bigbluebutton/spool
             chmod ugo+rwx /mnt/bbb-recordings/var/bigbluebutton/spool
-  
+
             # Create the spool directory for recording transfer from BigBlueButton
             chown 1000:2000 /mnt/bbb-recordings/var/bigbluebutton/spool
             chmod 0775 /mnt/bbb-recordings/var/bigbluebutton/spool
-  
+
             # Create the temporary (working) directory for recording import
             mkdir -p /mnt/bbb-recordings/var/bigbluebutton/recording/scalelite
             chown 1000:1000 /mnt/bbb-recordings/var/bigbluebutton/recording/scalelite
             chmod 0775 /mnt/bbb-recordings/var/bigbluebutton/recording/scalelite
-  
+
             # Create the directory for published recordings
             mkdir -p /mnt/bbb-recordings/var/bigbluebutton/published
             chown 1000:1000 /mnt/bbb-recordings/var/bigbluebutton/published
             chmod 0775 /mnt/bbb-recordings/var/bigbluebutton/published
-  
+
             # Create the directory for unpublished recordings
             mkdir -p /mnt/bbb-recordings/var/bigbluebutton/unpublished
             chown 1000:1000 /mnt/bbb-recordings/var/bigbluebutton/unpublished
