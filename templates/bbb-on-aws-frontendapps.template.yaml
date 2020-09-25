@@ -664,29 +664,13 @@ Resources:
       PolicyType: TargetTrackingScaling
       ScalingTargetId: !Ref BBBgreenlightServiceScalingTarget
       TargetTrackingScalingPolicyConfiguration:
-        TargetValue: 20
+        TargetValue: 80
         DisableScaleIn: False
         ScaleInCooldown: 15
         ScaleOutCooldown: 15
-        CustomizedMetricSpecification:
-          MetricName: RequestCount
-          Statistic: Sum
-          Namespace: AWS/ApplicationELB
-
-  BBBgreenlightServiceScalingPolicyCPU:
-    Type: AWS::ApplicationAutoScaling::ScalingPolicy
-    DependsOn: BBBAutoscalingRole
-    Properties:
-      PolicyName: BBBgreenlightTargetTrackingPolicyCPU
-      PolicyType: TargetTrackingScaling
-      ScalingTargetId: !Ref BBBgreenlightServiceScalingTarget
-      TargetTrackingScalingPolicyConfiguration:
-        TargetValue: 75
-        DisableScaleIn: False
-        ScaleInCooldown: 60
-        ScaleOutCooldown: 15
         PredefinedMetricSpecification:
-          PredefinedMetricType: ECSServiceAverageCPUUtilization
+          PredefinedMetricType: ALBRequestCountPerTarget
+          ResourceLabel: !Join ["/", [!GetAtt BBBFrontendALB.LoadBalancerFullName, !GetAtt BBBFrontendTG.TargetGroupFullName]]
 
   BBBScaleliteTaskdefinition:
     Type: AWS::ECS::TaskDefinition
