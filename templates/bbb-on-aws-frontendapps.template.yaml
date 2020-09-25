@@ -164,7 +164,7 @@ Parameters:
   BBBSharedStorageFS:
     Description: File system id for the Amazon EFS volume to be mounted
     Type: String
-  BBBSesRegion: 
+  BBBSesRegion:
     Description: Region for the SES Domain. If not set, current deployment region will be used
     Type: String
   BBBOperatorEMail:
@@ -173,22 +173,22 @@ Parameters:
     AllowedPattern: "([a-zA-Z0-9_\\-\\.]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)"
     ConstraintDescription: must be a valid email address.
     Default: johndoe@example.com
-    
+
 Conditions:
-  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
-  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
-  BBBSESRegionSet: !Not [!Equals [!Ref BBBSesRegion, "AWS::NoValue"]]
+  BBBProdEnvironment: !Equals [ !Ref BBBEnvironmentStage, prod ]
+  BBBStageEnvironment: !Not [ !Equals [ !Ref BBBEnvironmentStage, prod ] ]
+  BBBSESRegionSet: !Not [ !Equals [ !Ref BBBSesRegion, "AWS::NoValue" ] ]
 
 Resources:
   BBBSESDomainIdentity:
     Type: Custom::DomainIdentity
     Properties:
       Domain: !Ref BBBDomainName
-      Region: !If [BBBSESRegionSet, !Ref BBBSesRegion, !Ref "AWS::Region" ]
+      Region: !If [ BBBSESRegionSet, !Ref BBBSesRegion, !Ref "AWS::Region" ]
       RecordSetDefaults:
         TTL: 60
         Weight: 1
-        SetIdentifier: !If [BBBSESRegionSet, !Ref BBBSesRegion, !Ref "AWS::Region" ]
+        SetIdentifier: !If [ BBBSESRegionSet, !Ref BBBSesRegion, !Ref "AWS::Region" ]
       ServiceToken: !Ref BBBSESProviderArn
 
   BBBSESVerifiedIdentity:
@@ -205,9 +205,9 @@ Resources:
   BBBSESVerificationRecords:
     Type: AWS::Route53::RecordSetGroup
     Properties:
-        Comment: !Sub 'SES identity for ${BBBDomainName}'
-        HostedZoneId: !Ref BBBHostedZone
-        RecordSets: !GetAtt 'BBBSESDomainIdentity.RecordSets'
+      Comment: !Sub 'SES identity for ${BBBDomainName}'
+      HostedZoneId: !Ref BBBHostedZone
+      RecordSets: !GetAtt 'BBBSESDomainIdentity.RecordSets'
 
   BBBSESDkimTokens:
     Type: Custom::DkimTokens
@@ -249,7 +249,7 @@ Resources:
 
   BBBUserAccessKey:
     Type: AWS::IAM::AccessKey
-    Properties: 
+    Properties:
       Serial: 8
       Status: Active
       UserName: !Ref BBBSMTPUser
@@ -259,7 +259,7 @@ Resources:
     Properties:
       Description: The SMTP User Password for Email Sendout
       SecretKey: !GetAtt BBBUserAccessKey.SecretAccessKey
-      Region: !If [BBBSESRegionSet, !Ref BBBSesRegion, !Ref "AWS::Region" ]
+      Region: !If [ BBBSESRegionSet, !Ref BBBSesRegion, !Ref "AWS::Region" ]
       NoEcho: true
       ServiceToken: !Ref BBBSMTPSecretProviderArn
 
@@ -268,7 +268,7 @@ Resources:
     Properties:
       Description: 'This is the BBB SMTP Login'
       SecretString: !Sub "{\"smtpusername\":\"${BBBUserAccessKey}\",\"smtppassword\":\"${BBBSMTPAccessKey}\"}"
-      
+
   BBBApplicationBaseSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
@@ -304,7 +304,7 @@ Resources:
   BBBFrontendAppsLogsGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Join ["", ["/aws/ecs/", !Ref BBBECSCluster]]
+      LogGroupName: !Join [ "", [ "/aws/ecs/", !Ref BBBECSCluster ] ]
       RetentionInDays: 7
 
   BBBScaleliteExecutionRole:
@@ -366,8 +366,8 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: [application-autoscaling.amazonaws.com]
-            Action: ["sts:AssumeRole"]
+              Service: [ application-autoscaling.amazonaws.com ]
+            Action: [ "sts:AssumeRole" ]
       Path: /
       Policies:
         - PolicyName: service-autoscaling
@@ -454,7 +454,7 @@ Resources:
           TargetGroupArn: !Ref BBBFrontendTG
       Conditions:
         - Field: path-pattern
-          Values: [/b*]
+          Values: [ /b* ]
       ListenerArn: !Ref BBBFrontendALBListener
       Priority: 1
 
@@ -531,7 +531,7 @@ Resources:
           TargetGroupArn: !Ref BBBScaleliteTG
       Conditions:
         - Field: path-pattern
-          Values: [/]
+          Values: [ / ]
       ListenerArn: !Ref BBBScaleliteALBListener
       Priority: 1
 
@@ -552,10 +552,10 @@ Resources:
 
   BBBgreenlightTaskdefinition:
     Type: AWS::ECS::TaskDefinition
-    DependsOn: 
+    DependsOn:
       - BBBSMTPAccessKey
     Properties:
-      Family: !Join ["", [!Ref "AWS::StackName", -greenlight]]
+      Family: !Join [ "", [ !Ref "AWS::StackName", -greenlight ] ]
       ExecutionRoleArn: !Ref BBBGreenlightTaskExecutionRole
       ContainerDefinitions:
         - Name: greenlight
@@ -583,16 +583,16 @@ Resources:
             - name: BIGBLUEBUTTON_SECRET
               ValueFrom: !Sub "${BBBLoadbalancerSecret}:basekeyvalue::"
             - name: DB_PASSWORD
-              ValueFrom: !Sub "${BBBRDSDBSecret}:password::"      
+              ValueFrom: !Sub "${BBBRDSDBSecret}:password::"
             - name: SMTP_PASSWORD
-              ValueFrom: !Sub "${BBBSMTPAccessSecret}:smtppassword::"   
+              ValueFrom: !Sub "${BBBSMTPAccessSecret}:smtppassword::"
             - name: DB_USERNAME
-              ValueFrom: !Sub "${BBBRDSDBSecret}:username::"      
+              ValueFrom: !Sub "${BBBRDSDBSecret}:username::"
             - name: SMTP_USERNAME
-              ValueFrom: !Sub "${BBBSMTPAccessSecret}:smtpusername::"                       
+              ValueFrom: !Sub "${BBBSMTPAccessSecret}:smtpusername::"
           Environment:
             - Name: ADMIN_LOGIN
-              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBAdministratorlogin, ':SecretString:username}}' ]]
+              Value: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBAdministratorlogin, ':SecretString:username}}' ] ]
             - Name: DB_ADAPTER
               Value: postgresql
             - Name: DB_HOST
@@ -600,9 +600,9 @@ Resources:
             - Name: DB_PORT
               Value: !Ref BBBDBPort
             - Name: DB_NAME
-              Value: !Join ['_', [!Ref BBBDBName, !Ref BBBEnvironmentStage]]
+              Value: !Join [ '_', [ !Ref BBBDBName, !Ref BBBEnvironmentStage ] ]
             - Name: BIGBLUEBUTTON_ENDPOINT
-              Value: !Join ["", ["https://", !Sub "scalelite.${BBBDomainName}", "/bigbluebutton/api"]]
+              Value: !Join [ "", [ "https://", !Sub "scalelite.${BBBDomainName}", "/bigbluebutton/api" ] ]
             - Name: ALLOW_GREENLIGHT_ACCOUNTS
               Value: "true"
             - Name: RAILS_LOG_TO_STDOUT
@@ -614,7 +614,7 @@ Resources:
             - Name: GREENLIGHT_USE_WEBHOOKS
               Value: "false"
             - Name: SMTP_SERVER
-              Value: !If [BBBSESRegionSet, !Sub "email-smtp.${BBBSesRegion}.amazonaws.com" , !Sub "email-smtp.${AWS::Region}.amazonaws.com" ]
+              Value: !If [ BBBSESRegionSet, !Sub "email-smtp.${BBBSesRegion}.amazonaws.com" , !Sub "email-smtp.${AWS::Region}.amazonaws.com" ]
             - Name: SMTP_PORT
               Value: 587
             - Name: SMTP_DOMAIN
@@ -649,8 +649,8 @@ Resources:
       MinCapacity: !Ref BBBGreenlightMinReplicas
       ResourceId:
         !Join [
-          "",
-          [service/, !Ref BBBECSCluster, /, !GetAtt [BBBgreenlightService, Name]],
+            "",
+            [ service/, !Ref BBBECSCluster, /, !GetAtt [ BBBgreenlightService, Name ] ],
         ]
       RoleARN: !GetAtt BBBAutoscalingRole.Arn
       ScalableDimension: ecs:service:DesiredCount
@@ -691,14 +691,29 @@ Resources:
   BBBScaleliteTaskdefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: !Join ["", [!Ref "AWS::StackName", -scalelite]]
+      Family: !Join [ "", [ !Ref "AWS::StackName", -scalelite ] ]
       ExecutionRoleArn: !Ref BBBScaleliteExecutionRole
       Volumes:
-        - Name: !Join ["", [scalelite-recordings-volume-, !Ref BBBEnvironmentStage]]
+        - Name: !Join [ "", [ scalelite-recordings-volume-published-, !Ref BBBEnvironmentStage ] ]
           efsVolumeConfiguration:
             fileSystemId: !Ref BBBSharedStorageFS
             transitEncryption: ENABLED
-            RootDirectory: /var/bigbluebutton
+            RootDirectory: /var/bigbluebutton/published
+        - Name: !Join [ "", [ scalelite-recordings-volume-unpublished-, !Ref BBBEnvironmentStage ] ]
+          efsVolumeConfiguration:
+            fileSystemId: !Ref BBBSharedStorageFS
+            transitEncryption: ENABLED
+            RootDirectory: /var/bigbluebutton/unpublished
+        - Name: !Join [ "", [ scalelite-recordings-volume-spool-, !Ref BBBEnvironmentStage ] ]
+          efsVolumeConfiguration:
+            fileSystemId: !Ref BBBSharedStorageFS
+            transitEncryption: ENABLED
+            RootDirectory: /var/bigbluebutton/spool
+        - Name: !Join [ "", [ scalelite-recordings-volume-recording-, !Ref BBBEnvironmentStage ] ]
+          efsVolumeConfiguration:
+            fileSystemId: !Ref BBBSharedStorageFS
+            transitEncryption: ENABLED
+            RootDirectory: /var/bigbluebutton/recording
       ContainerDefinitions:
         - Name: scalelite-importer
           Cpu: !Ref BBBScaleliteImporterContainerCPU
@@ -706,8 +721,14 @@ Resources:
           Image: !Ref BBBScaleliteImporterImage
           Memory: !Ref BBBScaleliteImporterContainerMemory
           MountPoints:
-            - ContainerPath: /var/bigbluebutton
-              SourceVolume: !Join ["", [scalelite-recordings-volume-, !Ref BBBEnvironmentStage]]
+            - ContainerPath: /var/bigbluebutton/published
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-published-, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/unpublished
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished-, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/recording
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-recording-, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/spool
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool-, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -727,8 +748,8 @@ Resources:
             - Name: DATABASE_URL
               Value: !Sub
                 - "postgresql://${BBBDBUser}:${BBBDBPassword}@${BBBDBAddress}:${BBBDBPort}"
-                - BBBDBUser: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ]]
-                  BBBDBPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ]]
+                - BBBDBUser: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
+                  BBBDBPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
                   BBBDBAddress: !Ref BBBDBAddress
                   BBBDBPort: !Ref BBBDBPort
             - Name: REDIS_URL
@@ -760,8 +781,8 @@ Resources:
             - Name: DATABASE_URL
               Value: !Sub
                 - "postgresql://${BBBDBUser}:${BBBDBPassword}@${BBBDBAddress}:${BBBDBPort}"
-                - BBBDBUser: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ]]
-                  BBBDBPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ]]
+                - BBBDBUser: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
+                  BBBDBPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
                   BBBDBAddress: !Ref BBBDBAddress
                   BBBDBPort: !Ref BBBDBPort
             - Name: REDIS_URL
@@ -777,9 +798,14 @@ Resources:
           Links:
             - scalelite-api:scalelite-api
           MountPoints:
-            - ContainerPath: /var/bigbluebutton
-              ReadOnly: True
-              SourceVolume: !Join ["", [scalelite-recordings-volume-, !Ref BBBEnvironmentStage]]
+            - ContainerPath: /var/bigbluebutton/published
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-published-, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/unpublished
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished-, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/recordings
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-recording-, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/spool
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool-, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -801,8 +827,8 @@ Resources:
             - Name: DATABASE_URL
               Value: !Sub
                 - "postgresql://${BBBDBUser}:${BBBDBPassword}@${BBBDBAddress}:${BBBDBPort}"
-                - BBBDBUser: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ]]
-                  BBBDBPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ]]
+                - BBBDBUser: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
+                  BBBDBPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
                   BBBDBAddress: !Ref BBBDBAddress
                   BBBDBPort: !Ref BBBDBPort
             - Name: REDIS_URL
@@ -816,8 +842,14 @@ Resources:
           Image: !Ref BBBScaleliteApiImage
           Memory: !Ref BBBScaleliteApiContainerMemory
           MountPoints:
-            - ContainerPath: /var/bigbluebutton
-              SourceVolume: !Join ["", [scalelite-recordings-volume-, !Ref BBBEnvironmentStage]]
+            - ContainerPath: /var/bigbluebutton/published
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-published-, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/unpublished
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished-, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/recordings
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-recording-, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/spool
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool-, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -841,8 +873,8 @@ Resources:
             - Name: DATABASE_URL
               Value: !Sub
                 - "postgresql://${BBBDBUser}:${BBBDBPassword}@${BBBDBAddress}:${BBBDBPort}"
-                - BBBDBUser: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ]]
-                  BBBDBPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ]]
+                - BBBDBUser: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
+                  BBBDBPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
                   BBBDBAddress: !Ref BBBDBAddress
                   BBBDBPort: !Ref BBBDBPort
             - Name: REDIS_URL
@@ -854,21 +886,14 @@ Resources:
   BBBScaleliteAddServerTaskdefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: !Join ["", [!Ref "AWS::StackName", -scalelite-handle-server]]
+      Family: !Join [ "", [ !Ref "AWS::StackName", -scalelite-handle-server ] ]
       ExecutionRoleArn: !Ref BBBScaleliteExecutionRole
-      Volumes:
-        - Name: !Join ["", [scalelite-recordings-volume-, !Ref BBBEnvironmentStage]]
-          Host:
-            SourcePath: /mnt/scalelite-recordings/var/bigbluebutton
       ContainerDefinitions:
         - Name: scalelite-handle-server
           Cpu: !Ref BBBScaleliteAddServerContainerCPU
           Essential: true
           Image: !Ref BBBScaleliteApiImage
           Memory: !Ref BBBScaleliteAddServerContainerMemory
-          MountPoints:
-            - ContainerPath: /var/bigbluebutton
-              SourceVolume: !Join ["", [scalelite-recordings-volume-, !Ref BBBEnvironmentStage]]
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -888,8 +913,8 @@ Resources:
             - Name: DATABASE_URL
               Value: !Sub
                 - "postgresql://${BBBDBUser}:${BBBDBPassword}@${BBBDBAddress}:${BBBDBPort}"
-                - BBBDBUser: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ]]
-                  BBBDBPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ]]
+                - BBBDBUser: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
+                  BBBDBPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
                   BBBDBAddress: !Ref BBBDBAddress
                   BBBDBPort: !Ref BBBDBPort
             - Name: REDIS_URL
@@ -917,8 +942,8 @@ Resources:
       MinCapacity: !Ref BBBScaleliteMinReplicas
       ResourceId:
         !Join [
-          "",
-          [service/, !Ref BBBECSCluster, /, !GetAtt [BBBScaleliteService, Name]],
+            "",
+            [ service/, !Ref BBBECSCluster, /, !GetAtt [ BBBScaleliteService, Name ] ],
         ]
       RoleARN: !GetAtt BBBAutoscalingRole.Arn
       ScalableDimension: ecs:service:DesiredCount

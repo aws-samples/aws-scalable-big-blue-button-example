@@ -19,7 +19,7 @@ while getopts ":s:p:m:r:c:" opt; do
   esac
 done
 
-TASK_ARN=$(aws ecs list-task-definitions --region $REGION | jq -r '.taskDefinitionArns[] | select(contains("scalelite-handle-server"))')
+TASK_ARN=$(aws ecs list-task-definitions --region $REGION | jq -r '[ .taskDefinitionArns[] | select(contains("scalelite-handle-server")) ] | last')
 CLUSTER=$(aws ecs list-clusters --region $REGION | jq -r ".clusterArns[] | select(contains(\"$ECSCLUSTER\"))" )
 
 if [[ $METHOD == "create" ]]; then
