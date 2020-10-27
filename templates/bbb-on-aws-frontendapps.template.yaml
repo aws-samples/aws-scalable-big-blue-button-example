@@ -576,19 +576,19 @@ Resources:
             - -c
             - /usr/local/bin/bundle exec rake db:migrate; /usr/local/bin/bundle exec rake user:create["bbbadmin","${ADMIN_LOGIN}","${ADMIN_PASSWORD}","admin"]; bin/start
           Secrets:
-            - name: ADMIN_PASSWORD
+            - Name: ADMIN_PASSWORD
               ValueFrom: !Sub "${BBBAdministratorlogin}:password::"
-            - name: SECRET_KEY_BASE
+            - Name: SECRET_KEY_BASE
               ValueFrom: !Sub "${BBBApplicationBaseSecret}:basekeyvalue::"
-            - name: BIGBLUEBUTTON_SECRET
+            - Name: BIGBLUEBUTTON_SECRET
               ValueFrom: !Sub "${BBBLoadbalancerSecret}:basekeyvalue::"
-            - name: DB_PASSWORD
+            - Name: DB_PASSWORD
               ValueFrom: !Sub "${BBBRDSDBSecret}:password::"
-            - name: SMTP_PASSWORD
+            - Name: SMTP_PASSWORD
               ValueFrom: !Sub "${BBBSMTPAccessSecret}:smtppassword::"
-            - name: DB_USERNAME
+            - Name: DB_USERNAME
               ValueFrom: !Sub "${BBBRDSDBSecret}:username::"
-            - name: SMTP_USERNAME
+            - Name: SMTP_USERNAME
               ValueFrom: !Sub "${BBBSMTPAccessSecret}:smtpusername::"
           Environment:
             - Name: ADMIN_LOGIN
@@ -724,9 +724,9 @@ Resources:
               - CMD-SHELL
               - exit 0
           Secrets:
-            - name: SECRET_KEY_BASE
+            - Name: SECRET_KEY_BASE
               ValueFrom: !Sub "${BBBApplicationBaseSecret}:basekeyvalue::"
-            - name: LOADBALANCER_SECRET
+            - Name: LOADBALANCER_SECRET
               ValueFrom: !Sub "${BBBLoadbalancerSecret}:basekeyvalue::"
           Environment:
             - Name: DATABASE_URL
@@ -757,9 +757,9 @@ Resources:
               - CMD-SHELL
               - exit 0
           Secrets:
-            - name: SECRET_KEY_BASE
+            - Name: SECRET_KEY_BASE
               ValueFrom: !Sub "${BBBApplicationBaseSecret}:basekeyvalue::"
-            - name: LOADBALANCER_SECRET
+            - Name: LOADBALANCER_SECRET
               ValueFrom: !Sub "${BBBLoadbalancerSecret}:basekeyvalue::"
           Environment:
             - Name: DATABASE_URL
@@ -803,9 +803,9 @@ Resources:
               - CMD-SHELL
               - exit 0
           Secrets:
-            - name: SECRET_KEY_BASE
+            - Name: SECRET_KEY_BASE
               ValueFrom: !Sub "${BBBApplicationBaseSecret}:basekeyvalue::"
-            - name: LOADBALANCER_SECRET
+            - Name: LOADBALANCER_SECRET
               ValueFrom: !Sub "${BBBLoadbalancerSecret}:basekeyvalue::"
           Environment:
             - Name: DATABASE_URL
@@ -849,9 +849,9 @@ Resources:
               - CMD-SHELL
               - exit 0
           Secrets:
-            - name: SECRET_KEY_BASE
+            - Name: SECRET_KEY_BASE
               ValueFrom: !Sub "${BBBApplicationBaseSecret}:basekeyvalue::"
-            - name: LOADBALANCER_SECRET
+            - Name: LOADBALANCER_SECRET
               ValueFrom: !Sub "${BBBLoadbalancerSecret}:basekeyvalue::"
           Environment:
             - Name: DATABASE_URL
@@ -889,9 +889,9 @@ Resources:
               - CMD-SHELL
               - exit 0
           Secrets:
-            - name: SECRET_KEY_BASE
+            - Name: SECRET_KEY_BASE
               ValueFrom: !Sub "${BBBApplicationBaseSecret}:basekeyvalue::"
-            - name: LOADBALANCER_SECRET
+            - Name: LOADBALANCER_SECRET
               ValueFrom: !Sub "${BBBLoadbalancerSecret}:basekeyvalue::"
           Environment:
             - Name: DATABASE_URL
