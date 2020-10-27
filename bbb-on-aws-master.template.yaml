@@ -406,6 +406,7 @@ Parameters:
   BBBScaleliteApiContainerMemory:
     Description: Memory constraints for Scalelite API container
     Type: Number
+    Default: 1024
   BBBScaleliteApiContainerCPU:
     Description: CPU constraints for Scalelite API container
     Type: Number
