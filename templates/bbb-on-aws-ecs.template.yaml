@@ -112,6 +112,8 @@ Parameters:
 Conditions:
   BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
   BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
+  BBBECSFargate: !Equals [!Ref BBBECSInstanceType, fargate]
+  BBBECSEC2: !Not [!Equals [!Ref BBBECSInstanceType, fargate]]
 
 Resources:
 
@@ -120,13 +122,15 @@ Resources:
     Properties:
       ClusterName: !Sub ${AWS::StackName}-ECSCluster
       CapacityProviders:
-        - !Ref BBBECSCapacityProvider
+        - !If [ BBBECSFargate, FARGATE, !Ref BBBECSCapacityProvider ] 
+        - !If [ BBBECSFargate, FARGATE_SPOT, !Ref "AWS::NoValue" ] 
       ClusterSettings:
         - Name: containerInsights
           Value: enabled
 
   BBBECSCapacityProvider:
     Type: AWS::ECS::CapacityProvider
+    Condition: BBBECSEC2
     Properties:
       AutoScalingGroupProvider:
         AutoScalingGroupArn: !Ref BBBECSAutoScaling
@@ -139,6 +143,7 @@ Resources:
 
   BBBECSAutoScaling:
     Type: AWS::AutoScaling::AutoScalingGroup
+    Condition: BBBECSEC2
     Properties:
       VPCZoneIdentifier: !Ref BBBPrivateApplicationSubnets
       LaunchConfigurationName: !Ref BBBECSInstanceLaunchConfiguration
@@ -164,6 +169,7 @@ Resources:
 
   BBBECSEC2Role:
     Type: AWS::IAM::Role
+    Condition: BBBECSEC2
     Properties:
       AssumeRolePolicyDocument:
         Statement:
@@ -178,6 +184,7 @@ Resources:
 
   BBBECSEC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
+    Condition: BBBECSEC2
     Properties:
       Path: /
       Roles:
@@ -185,6 +192,7 @@ Resources:
 
   BBBECSInstanceLaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
+    Condition: BBBECSEC2
     Properties:
       AssociatePublicIpAddress: false
       IamInstanceProfile: !Ref BBBECSEC2InstanceProfile
@@ -242,12 +250,16 @@ Outputs:
   BBBECSAutoScaling:
     Description: A reference to the created Cluster Autoscaling Group
     Value: !Ref BBBECSAutoScaling
+    Condition: BBBECSEC2
   BBBECSEC2Role:
     Description: A reference to the created Cluster Role
     Value: !Ref BBBECSEC2Role
+    Condition: BBBECSEC2
   BBBECSEC2InstanceProfile:
     Description: A reference to the created Cluster Instance profile
     Value: !Ref BBBECSEC2InstanceProfile
+    Condition: BBBECSEC2
   BBBECSInstanceLaunchConfiguration:
     Description: A reference to the created Cluster Launch Configuration
     Value: !Ref BBBECSInstanceLaunchConfiguration
+    Condition: BBBECSEC2

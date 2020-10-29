@@ -6,9 +6,13 @@ Example deployment of a scalable Video Conference System
 ## Summary
 This project demonstrates the deployment of a scalable Video Conference Setup jointly using open-source software components and AWS Services. 
 
-## High-Level Architecture
+## High-Level architecture
 
-![Architecture](./documentation/BBBArchitectureDiagram.png)
+### EC2 based deployment - architecture
+![Architecture](./documentation/BBBArchitectureDiagramEC2.png)
+
+### Serverless based deployment - architecture
+![Architecture](./documentation/BBBArchitectureDiagramServerless.png)
 
 ## Disclaimer
 This project is an example of an deployment and meant to be used for testing and learning purposes only. Do not use in production.
@@ -75,7 +79,7 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 
 | Parameter Name | Default Value | Description | Comment |
 | ---- | ---- | ---- | ---- |
-| BBBECSInstanceType| t3a.large| Instance size of the ECS Cluster worker nodes | should be aligned with the size VCPU and Memory limits of the to be deployed tasks below |
+| BBBECSInstanceType| t3a.large| Instance size of the ECS Cluster worker nodes or "fargate" for serverless deployment | EC2 instance sizes should be aligned with the size VCPU and Memory limits of the to be deployed tasks. setting this parameter to fargate will cause a Serverless Setup using AWS Fargate |
 | BBBApplicationInstanceType| t3a.xlarge| Instance size of the Big Blue Button Application node(s) | please refer to the Big Blue Button [Documentation](https://docs.bigbluebutton.org/2.2/install.html#minimum-server-requirements) for rightsizing |
 | BBBApplicationDataVolumeSize | 20 | the size of the application data volume used for recording buffer |
 | BBBTurnInstanceType| t3.micro| Instance size of the turn server | For right sizing please refer to the Big Blue Button [Documentation](https://docs.bigbluebutton.org/2.2/setup-turn-server.html)
@@ -117,6 +121,8 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 | BBBScaleliteApiContainerCPU| 512| vCPU limit of the Scalelite API container | check metrics for sizing
 | BBBScaleliteAddServerContainerMemory| 512| memory limit of the Greenlight container | does not need many resources
 | BBBScaleliteAddServerContainerCPU| 128 | vCPU limit of the Greenlight container | does not need many resources
+| BBBScaleliteFargateMemory | 2048 | Memory limit for the Scalelite tasks if deployed on AWS Fargate | setting per task for all inheritated containers
+| BBBScaleliteFargateCPU | 1024 | vCPU limit for the Scalelite tasks if deployed on AWS Fargate | setting once per task for all containers
 | BBBSesRegion| - | Region of the SES Service to be used | if the setup is planned to be deployed in a Region w/o Amazon SES, choose a proper region here. 
 
 # Deployment
@@ -224,7 +230,7 @@ The Deployment consists of 2 main templates and 13 nested templates.
 --- 
 - Fire up the ECS Cluster: [bbb-on-aws-ecs.template.yaml](./templates/bbb-on-aws-ecs.template.yaml)
 
-    *The template deploys the ECS cluster and EC2 Autoscaling Group with the Launch Configuration for the Amazon EC2 worker nodes.*
+    *The template deploys the ECS cluster and EC2 Autoscaling Group with the Launch Configuration for the Amazon EC2 worker nodes. If the parameter BBBECSInstanceType is set to "fargate" the ECS Cluster will be utilizing AWS Fargate for the tasks and EC2 worker instances as well as Autoscaling Groups will not be created*
 ---
 - Add a turnserver to the stack: [bbb-on-aws-bbbturn.template.yaml](./templates/bbb-on-aws-bbbturn.template.yaml)
 

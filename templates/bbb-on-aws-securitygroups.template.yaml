@@ -25,11 +25,16 @@ Parameters:
       - stage
       - prod
       - dev
+  BBBECSInstanceType: 
+    Description: Set the ECS Cluster Type to either EC2 based or Fargate based deployments
+    Type: String
 
 Conditions:
   BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
   BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
   BBBScalableEnvironment: !Equals [!Ref BBBEnvironmentType, scalable]
+  BBBECSFargate: !Equals [!Ref BBBECSInstanceType, fargate]
+  BBBECSEC2: !Not [!Equals [!Ref BBBECSInstanceType, fargate]]
 
 Resources:
   BBBECSInstanceSecurityGroup:
@@ -45,8 +50,8 @@ Resources:
     Properties:
       GroupId: !Ref BBBECSInstanceSecurityGroup
       IpProtocol: tcp
-      FromPort: 32768
-      ToPort: 60999
+      FromPort: !If [ BBBECSFargate, 80, 32768]
+      ToPort: !If [ BBBECSFargate, 80, 60999]
       SourceSecurityGroupId: !Ref BBBScaleliteELBSecurityGroup
 
   BBBScaleliteELBSecurityGroup:
@@ -89,8 +94,8 @@ Resources:
     Properties:
       GroupId: !Ref BBBECSInstanceSecurityGroup
       IpProtocol: tcp
-      FromPort: 32768
-      ToPort: 60999
+      FromPort: !If [ BBBECSFargate, 80, 32768]
+      ToPort: !If [ BBBECSFargate, 80, 60999]
       SourceSecurityGroupId: !Ref BBBFrontendELBSecurityGroup
 
   BBBDBSecurityGroup:

@@ -28,7 +28,7 @@ Parameters:
   BBBECSMaxInstances:
     Type: Number
     Description: Maximum number of ECS Worker Instances
-    Default: 10
+    Default: 3
   BBBECSMinInstances:
     Type: Number
     Description: Minimum number of ECS Worker Instances
@@ -36,11 +36,11 @@ Parameters:
   BBBECSDesiredInstances:
     Type: Number
     Description: Desired number of ECS Worker Instances
-    Default: 3
+    Default: 1
   BBBApplicationMaxInstances:
     Type: Number
     Description: Maximum number of appserver instances
-    Default: 3
+    Default: 1
   BBBApplicationMinInstances:
     Type: Number
     Description: Minimum number of appserver instances
@@ -79,10 +79,11 @@ Parameters:
     Type: String
     Default: 10.7
   BBBECSInstanceType:
-    Description: EC2 instance type for ECS Cluster worker nodes
+    Description: Instance type for ECS Cluster worker nodes
     Type: String
     Default: t3a.large
     AllowedValues:
+      - fargate
       - t3a.small
       - t3a.medium
       - t3a.large
@@ -207,7 +208,7 @@ Parameters:
   BBBApplicationDataVolumeSize: 
     Description: Size of the application instance data volume
     Type: Number
-    Default: 20
+    Default: 50
   BBBTurnInstanceType:
     Description: Instance type for the turn server
     Type: String
@@ -418,6 +419,14 @@ Parameters:
     Description: CPU constraints for Scalelite add server container
     Type: Number
     Default: 128
+  BBBScaleliteFargateMemory: 
+    Description: Memory constraints for Scalelite Fargate Task
+    Type: Number
+    Default: 2048
+  BBBScaleliteFargateCPU:
+    Description: CPU constraints for Scalelite Fargate Task
+    Type: Number
+    Default: 1024
   BBBGreenlightMinReplicas:
     Description: Minimum amount of greenlight containers available
     Type: Number
@@ -425,11 +434,11 @@ Parameters:
   BBBGreenlightMaxReplicas:
     Description: Maximum amount of greenlight containers available
     Type: Number
-    Default: 10
+    Default: 3
   BBBGreenlightDesiredReplicas:
     Description: Desired amount of greenlight containers available
     Type: Number
-    Default: 3
+    Default: 1
   BBBScaleliteMinReplicas:
     Description: Minimum amount of Scalelite containers available
     Type: Number
@@ -437,11 +446,11 @@ Parameters:
   BBBScaleliteMaxReplicas:
     Description: Maximum amount of Scalelite containers available
     Type: Number
-    Default: 10
+    Default: 3
   BBBScaleliteDesiredReplicas:
     Description: Desired amount of Scalelite containers available
     Type: Number
-    Default: 3
+    Default: 1
   BBBSesRegion:
     Description: Set the Region for the SES Service if deployment in a non-SES Region
     Type: String
@@ -603,6 +612,8 @@ Resources:
           Ref: BBBEnvironmentStage
         BBBEnvironmentType:
           Ref: BBBEnvironmentType
+        BBBECSInstanceType:
+          Ref: BBBECSInstanceType
       Tags:
         - Key: Name
           Value:
@@ -1100,6 +1111,10 @@ Resources:
           Ref: BBBScaleliteAddServerContainerMemory
         BBBScaleliteAddServerContainerCPU:
           Ref: BBBScaleliteAddServerContainerCPU
+        BBBScaleliteFargateMemory: 
+          Ref: BBBScaleliteFargateMemory
+        BBBScaleliteFargateCPU:
+          Ref: BBBScaleliteFargateCPU
         BBBGreenlightMinReplicas:
           Ref: BBBGreenlightMinReplicas
         BBBGreenlightMaxReplicas:
@@ -1120,6 +1135,16 @@ Resources:
           Ref: BBBSesRegion
         BBBOperatorEMail: 
           Ref: BBBOperatorEMail
+        BBBECSInstanceType:
+          Ref: BBBECSInstanceType
+        BBBPrivateApplicationSubnets:
+          Fn::GetAtt:
+            - BBBNetworkStack
+            - Outputs.BBBPrivateApplicationSubnets
+        BBBECSInstanceSecurityGroup:
+          Fn::GetAtt:
+            - BBBSecurityGroupStack
+            - Outputs.BBBECSInstanceSecurityGroup
       Tags:
         - Key: Name
           Value:
