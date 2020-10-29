@@ -43,7 +43,7 @@ fi
 
 
 if [[ $ECSMODE == "fargate" ]]; then
-  aws ecs run-task --task-definition "$TASK_ARN" --cluster "$CLUSTER" --region $REGION --network-configuration "{\"awsvpcConfiguration\": {\"subnets\": [\"$TASKSUBS\"],\"securityGroups\": [\"$TASK_SGS\"],\"assignPublicIp\": \"DISABLED\"}}" --overrides "{\"containerOverrides\": [{\"name\": \"scalelite-handle-server\",\"command\": [\"/bin/sh\", \"-c\", \"$COMMAND_STRING\"]}]}"
+  aws ecs run-task --task-definition "$TASK_ARN" --cluster "$CLUSTER" --region $REGION --launch-type "FARGATE" --network-configuration "{\"awsvpcConfiguration\": {\"subnets\": [\"$TASKSUBS\"],\"securityGroups\": [\"$TASK_SGS\"],\"assignPublicIp\": \"DISABLED\"}}" --overrides "{\"containerOverrides\": [{\"name\": \"scalelite-handle-server\",\"command\": [\"/bin/sh\", \"-c\", \"$COMMAND_STRING\"]}]}"
 else
   aws ecs run-task --task-definition "$TASK_ARN" --cluster "$CLUSTER" --region $REGION --overrides "{\"containerOverrides\": [{\"name\": \"scalelite-handle-server\",\"command\": [\"/bin/sh\", \"-c\", \"$COMMAND_STRING\"]}]}"
 fi
