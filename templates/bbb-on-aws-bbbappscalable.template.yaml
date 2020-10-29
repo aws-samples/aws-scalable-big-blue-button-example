@@ -465,8 +465,6 @@ Resources:
           sed -i "s/TASKSUBNETS_PLACEHOLDER/${BBBPrivateApplicationSubnets}/g" /etc/systemd/system/scalelite-handler.service
           sed -i "s/TASKSGS_PLACEHOLDER/${BBBECSTaskSecurityGroup}/g" /etc/systemd/system/scalelite-handler.service
 
-          /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBApplicationAutoScaling --region ${AWS::Region} || true
-
           systemctl daemon-reload
           systemctl enable scalelite-handler
           systemctl start scalelite-handler
@@ -488,6 +486,8 @@ Resources:
           chmod +x ./awslogs-agent-setup.py
           ./awslogs-agent-setup.py -n -r ${AWS::Region} -c s3://${BBBStackBucketStack}/bbb-cwagent.config
           systemctl enable awslogs
+
+          /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBApplicationAutoScaling --region ${AWS::Region} || true
 
 Outputs:
   BBBAkkaLogGroup:
