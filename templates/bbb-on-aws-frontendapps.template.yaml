@@ -176,6 +176,18 @@ Parameters:
   BBBSharedStorageFS:
     Description: File system id for the Amazon EFS volume to be mounted
     Type: String
+  BBBSharedStorageAPspool:
+    Description: Access Point id for the Amazon EFS volume to be mounted
+    Type: String
+  BBBSharedStorageAPpublished:
+    Description: Access Point id for the Amazon EFS volume to be mounted
+    Type: String
+  BBBSharedStorageAPunpublished:
+    Description: Access Point id for the Amazon EFS volume to be mounted
+    Type: String
+  BBBSharedStorageAPrecordings:
+    Description: Access Point id for the Amazon EFS volume to be mounted
+    Type: String
   BBBSesRegion:
     Description: Region for the SES Domain. If not set, current deployment region will be used
     Type: String
@@ -188,7 +200,7 @@ Parameters:
   BBBECSInstanceType: 
     Description: Set the ECS Instance Type to either EC2 based or Fargate based deployments
     Type: String
-  BBBECSInstanceSecurityGroup:
+  BBBECSTaskSecurityGroup:
     Description: Security Group that should be assigned for the EC2 Instances
     Type: String
 
@@ -668,7 +680,7 @@ Resources:
           AwsvpcConfiguration:
             AssignPublicIp: DISABLED
             SecurityGroups:
-              - !Ref BBBECSInstanceSecurityGroup
+              - !Ref BBBECSTaskSecurityGroup
             Subnets: !Ref BBBPrivateApplicationSubnets
         - !Ref "AWS::NoValue"
       LoadBalancers:
@@ -722,25 +734,45 @@ Resources:
         - FARGATE
         - EC2
       Volumes:
-        - Name: !Join [ "", [ scalelite-recordings-volume-, !Ref BBBEnvironmentStage ] ]
+        - Name: !Join [ "", [ scalelite-recordings-volume-spool, !Ref BBBEnvironmentStage ] ]
           efsVolumeConfiguration:
             fileSystemId: !Ref BBBSharedStorageFS
             transitEncryption: ENABLED
-            RootDirectory: /
+            AuthorizationConfig:
+              AccessPointId: !Ref BBBSharedStorageAPspool
+        - Name: !Join [ "", [ scalelite-recordings-volume-published, !Ref BBBEnvironmentStage ] ]
+          efsVolumeConfiguration:
+            fileSystemId: !Ref BBBSharedStorageFS
+            transitEncryption: ENABLED
+            AuthorizationConfig:
+              AccessPointId: !Ref BBBSharedStorageAPpublished
+        - Name: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref BBBEnvironmentStage ] ]
+          efsVolumeConfiguration:
+            fileSystemId: !Ref BBBSharedStorageFS
+            transitEncryption: ENABLED
+            AuthorizationConfig:
+              AccessPointId: !Ref BBBSharedStorageAPunpublished
+        - Name: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref BBBEnvironmentStage ] ]
+          efsVolumeConfiguration:
+            fileSystemId: !Ref BBBSharedStorageFS
+            transitEncryption: ENABLED
+            AuthorizationConfig:
+              AccessPointId: !Ref BBBSharedStorageAPrecordings
       ContainerDefinitions:
         - Name: scalelite-importer
           Memory: !If [ BBBECSEC2, !Ref BBBScaleliteImporterContainerMemory, !Ref "AWS::NoValue"]
           Cpu: !If [ BBBECSEC2, !Ref BBBScaleliteImporterContainerCPU, !Ref "AWS::NoValue"] 
           Essential: true
           Image: !Ref BBBScaleliteImporterImage
-          EntryPoint:
-            - "sh"
-            - "-c"
-          Command: 
-            - "/bin/sh -c \"if [ ! -d /var/bigbluebutton/published ]; then mkdir -p /var/bigbluebutton/published /var/bigbluebutton/unpublished /var/bigbluebutton/spool /var/bigbluebutton/recording /var/bigbluebutton/recording/scalelite; fi; bin/start-recording-importer\""
           MountPoints:
-            - ContainerPath: /var/bigbluebutton
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/spool
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/published
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-published, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/unpublished
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/recordings
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -830,8 +862,14 @@ Resources:
               - scalelite-api:scalelite-api
             - !Ref "AWS::NoValue"
           MountPoints:
-            - ContainerPath: /var/bigbluebutton
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/spool
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/published
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-published, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/unpublished
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/recordings
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -868,8 +906,14 @@ Resources:
           Essential: true
           Image: !Ref BBBScaleliteApiImage
           MountPoints:
-            - ContainerPath: /var/bigbluebutton
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/spool
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/published
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-published, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/unpublished
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/recordings
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -964,7 +1008,7 @@ Resources:
           AwsvpcConfiguration:
             AssignPublicIp: DISABLED
             SecurityGroups:
-              - !Ref BBBECSInstanceSecurityGroup
+              - !Ref BBBECSTaskSecurityGroup
             Subnets: !Ref BBBPrivateApplicationSubnets
         - !Ref "AWS::NoValue"
       LoadBalancers:

@@ -762,10 +762,10 @@ Resources:
           Ref: BBBEnvironmentStage
         BBBECSInstanceType:
           Ref: BBBECSInstanceType
-        BBBECSInstanceSecurityGroup:
+        BBBECSTaskSecurityGroup:
           Fn::GetAtt:
             - BBBSecurityGroupStack
-            - Outputs.BBBECSInstanceSecurityGroup
+            - Outputs.BBBECSTaskSecurityGroup
         BBBECSMaxInstances:
           Ref: BBBECSMaxInstances
         BBBECSMinInstances:
@@ -881,10 +881,18 @@ Resources:
           Fn::GetAtt:
             - BBBSecurityGroupStack
             - Outputs.BBBApplicationSecurityGroup
+        BBBECSTaskSecurityGroup:
+          Fn::GetAtt:
+            - BBBSecurityGroupStack
+            - Outputs.BBBECSTaskSecurityGroup
         BBBPublicApplicationSubnets:
           Fn::GetAtt:
             - BBBNetworkStack
             - Outputs.BBBPublicApplicationSubnets
+        BBBPrivateApplicationSubnets:
+          Fn::GetAtt:
+            - BBBNetworkStack
+            - Outputs.BBBPrivateApplicationSubnets
         BBBTurnHostnameParameter:
           Fn::GetAtt:
             - BBBTurnStack
@@ -909,6 +917,10 @@ Resources:
           Fn::GetAtt:
             - BBBStorageStack
             - Outputs.BBBSharedStorageFS
+        BBBSharedStorageAPspool:
+          Fn::GetAtt:
+            - BBBStorageStack
+            - Outputs.BBBSharedStorageAPspool
         BBBHostedZone: 
           Ref: BBBHostedZone
         BBBDomainName:
@@ -921,6 +933,8 @@ Resources:
           Fn::GetAtt:
             - BBBFontendAppsStack
             - Outputs.BBBScaleliteTaskExecutionRole
+        BBBECSInstanceType:
+          Ref: BBBECSInstanceType
       Tags:
         - Key: Name
           Value:
@@ -1131,6 +1145,22 @@ Resources:
           Fn::GetAtt:
             - BBBStorageStack
             - Outputs.BBBSharedStorageFS
+        BBBSharedStorageAPspool:
+          Fn::GetAtt:
+            - BBBStorageStack
+            - Outputs.BBBSharedStorageAPspool
+        BBBSharedStorageAPpublished:
+          Fn::GetAtt:
+            - BBBStorageStack
+            - Outputs.BBBSharedStorageAPpublished
+        BBBSharedStorageAPunpublished:
+          Fn::GetAtt:
+            - BBBStorageStack
+            - Outputs.BBBSharedStorageAPunpublished
+        BBBSharedStorageAPrecordings:
+          Fn::GetAtt:
+            - BBBStorageStack
+            - Outputs.BBBSharedStorageAPrecordings
         BBBSesRegion:
           Ref: BBBSesRegion
         BBBOperatorEMail: 
@@ -1141,10 +1171,10 @@ Resources:
           Fn::GetAtt:
             - BBBNetworkStack
             - Outputs.BBBPrivateApplicationSubnets
-        BBBECSInstanceSecurityGroup:
+        BBBECSTaskSecurityGroup:
           Fn::GetAtt:
             - BBBSecurityGroupStack
-            - Outputs.BBBECSInstanceSecurityGroup
+            - Outputs.BBBECSTaskSecurityGroup
       Tags:
         - Key: Name
           Value:

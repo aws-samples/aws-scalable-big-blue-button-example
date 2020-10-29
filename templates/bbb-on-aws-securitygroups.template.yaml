@@ -37,18 +37,18 @@ Conditions:
   BBBECSEC2: !Not [!Equals [!Ref BBBECSInstanceType, fargate]]
 
 Resources:
-  BBBECSInstanceSecurityGroup:
+  BBBECSTaskSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Condition: BBBScalableEnvironment
     Properties:
       GroupDescription: ECS Instance Security Group
       VpcId: !Ref BBBVPC
 
-  BBBECSInstanceSecurityGroupPorts:
+  BBBECSTaskSecurityGroupPorts:
     Type: AWS::EC2::SecurityGroupIngress
     Condition: BBBScalableEnvironment
     Properties:
-      GroupId: !Ref BBBECSInstanceSecurityGroup
+      GroupId: !Ref BBBECSTaskSecurityGroup
       IpProtocol: tcp
       FromPort: !If [ BBBECSFargate, 80, 32768]
       ToPort: !If [ BBBECSFargate, 80, 60999]
@@ -92,7 +92,7 @@ Resources:
     Type: AWS::EC2::SecurityGroupIngress
     Condition: BBBScalableEnvironment
     Properties:
-      GroupId: !Ref BBBECSInstanceSecurityGroup
+      GroupId: !Ref BBBECSTaskSecurityGroup
       IpProtocol: tcp
       FromPort: !If [ BBBECSFargate, 80, 32768]
       ToPort: !If [ BBBECSFargate, 80, 60999]
@@ -110,7 +110,7 @@ Resources:
     Type: AWS::EC2::SecurityGroupIngress
     Condition: BBBScalableEnvironment
     Properties:
-      SourceSecurityGroupId: !Ref BBBECSInstanceSecurityGroup
+      SourceSecurityGroupId: !Ref BBBECSTaskSecurityGroup
       IpProtocol: tcp
       FromPort: 5432
       ToPort: 5432
@@ -128,7 +128,7 @@ Resources:
     Type: AWS::EC2::SecurityGroupIngress
     Condition: BBBScalableEnvironment
     Properties:
-      SourceSecurityGroupId: !Ref BBBECSInstanceSecurityGroup
+      SourceSecurityGroupId: !Ref BBBECSTaskSecurityGroup
       IpProtocol: tcp
       FromPort: 6379
       ToPort: 6379
@@ -262,17 +262,17 @@ Resources:
     Type: AWS::EC2::SecurityGroupIngress
     Condition: BBBScalableEnvironment
     Properties:
-      SourceSecurityGroupId: !Ref BBBECSInstanceSecurityGroup
+      SourceSecurityGroupId: !Ref BBBECSTaskSecurityGroup
       IpProtocol: tcp
       FromPort: 2049
       ToPort: 2049
       GroupId: !Ref BBBSharedStorageSecurityGroup
 
 Outputs:
-  BBBECSInstanceSecurityGroup:
+  BBBECSTaskSecurityGroup:
     Condition: BBBScalableEnvironment
     Description: A reference to the created Security Group for ECS
-    Value: !Ref BBBECSInstanceSecurityGroup
+    Value: !Ref BBBECSTaskSecurityGroup
   BBBFrontendELBSecurityGroup:
     Condition: BBBScalableEnvironment
     Description: A reference to the created Security Group for ELB

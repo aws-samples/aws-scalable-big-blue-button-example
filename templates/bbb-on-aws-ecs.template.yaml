@@ -99,7 +99,7 @@ Parameters:
       - stage
       - prod
       - dev
-  BBBECSInstanceSecurityGroup:
+  BBBECSTaskSecurityGroup:
     Description: Security Group that should be assigned for the EC2 Instances
     Type: String
   BBBLatestECSAmiId:
@@ -199,7 +199,7 @@ Resources:
       InstanceMonitoring: true
       InstanceType: !Ref BBBECSInstanceType
       SecurityGroups:
-        - !Ref BBBECSInstanceSecurityGroup
+        - !Ref BBBECSTaskSecurityGroup
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -xe
