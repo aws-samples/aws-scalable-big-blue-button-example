@@ -1,6 +1,5 @@
 {
   "Parameters" : {
-    // "BBBECSInstanceType": "t3a.large",
     "BBBECSInstanceType": "fargate",
     "BBBApplicationInstanceType": "t3a.xlarge",
     "BBBApplicationDataVolumeSize": 50,

@@ -17,6 +17,7 @@ Parameters:
     Type: String
     Default: t3a.large
     AllowedValues:
+      - fargate
       - t3a.medium
       - t3a.large
       - t3a.xlarge
