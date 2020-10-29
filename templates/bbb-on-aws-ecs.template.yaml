@@ -106,9 +106,6 @@ Parameters:
     Description: AMI id that should be used for the EC2 instaces
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
     Default: '/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id'
-  BBBSharedStorageFS:
-    Description: File system id for the Amazon EFS volume to be mounted
-    Type: String
 
 Conditions:
   BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
@@ -208,39 +205,7 @@ Resources:
           #!/bin/bash -xe
           echo ECS_CLUSTER=${AWS::StackName}-ECSCluster >> /etc/ecs/ecs.config
           yum install -y aws-cfn-bootstrap
-          yum install -y amazon-efs-utils
           yum update -y ecs-init
-
-          mkdir /mnt/bbb-recordings
-
-          mount -t efs ${BBBSharedStorageFS}:/ /mnt/bbb-recordings/
-
-          if [ ! -d /mnt/bbb-recordings/var ]; then
-            # Create the spool directory for recording transfer from BigBlueButton
-            mkdir -p /mnt/bbb-recordings/var/bigbluebutton/spool
-            chmod ugo+rwx /mnt/bbb-recordings/var/bigbluebutton/spool
-
-            # Create the spool directory for recording transfer from BigBlueButton
-            chown 1000:2000 /mnt/bbb-recordings/var/bigbluebutton/spool
-            chmod 0775 /mnt/bbb-recordings/var/bigbluebutton/spool
-
-            # Create the temporary (working) directory for recording import
-            mkdir -p /mnt/bbb-recordings/var/bigbluebutton/recording/scalelite
-            chown 1000:1000 /mnt/bbb-recordings/var/bigbluebutton/recording/scalelite
-            chmod 0775 /mnt/bbb-recordings/var/bigbluebutton/recording/scalelite
-
-            # Create the directory for published recordings
-            mkdir -p /mnt/bbb-recordings/var/bigbluebutton/published
-            chown 1000:1000 /mnt/bbb-recordings/var/bigbluebutton/published
-            chmod 0775 /mnt/bbb-recordings/var/bigbluebutton/published
-
-            # Create the directory for unpublished recordings
-            mkdir -p /mnt/bbb-recordings/var/bigbluebutton/unpublished
-            chown 1000:1000 /mnt/bbb-recordings/var/bigbluebutton/unpublished
-            chmod 0775 /mnt/bbb-recordings/var/bigbluebutton/unpublished
-          fi
-
-          umount /mnt/bbb-recordings/
 
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBECSAutoScaling --region ${AWS::Region}
 

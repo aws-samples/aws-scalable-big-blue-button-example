@@ -722,41 +722,25 @@ Resources:
         - FARGATE
         - EC2
       Volumes:
-        - Name: !Join [ "", [ scalelite-recordings-volume-published-, !Ref BBBEnvironmentStage ] ]
+        - Name: !Join [ "", [ scalelite-recordings-volume-, !Ref BBBEnvironmentStage ] ]
           efsVolumeConfiguration:
             fileSystemId: !Ref BBBSharedStorageFS
             transitEncryption: ENABLED
-            RootDirectory: /var/bigbluebutton/published
-        - Name: !Join [ "", [ scalelite-recordings-volume-unpublished-, !Ref BBBEnvironmentStage ] ]
-          efsVolumeConfiguration:
-            fileSystemId: !Ref BBBSharedStorageFS
-            transitEncryption: ENABLED
-            RootDirectory: /var/bigbluebutton/unpublished
-        - Name: !Join [ "", [ scalelite-recordings-volume-spool-, !Ref BBBEnvironmentStage ] ]
-          efsVolumeConfiguration:
-            fileSystemId: !Ref BBBSharedStorageFS
-            transitEncryption: ENABLED
-            RootDirectory: /var/bigbluebutton/spool
-        - Name: !Join [ "", [ scalelite-recordings-volume-recording-, !Ref BBBEnvironmentStage ] ]
-          efsVolumeConfiguration:
-            fileSystemId: !Ref BBBSharedStorageFS
-            transitEncryption: ENABLED
-            RootDirectory: /var/bigbluebutton/recording
+            RootDirectory: /
       ContainerDefinitions:
         - Name: scalelite-importer
           Memory: !If [ BBBECSEC2, !Ref BBBScaleliteImporterContainerMemory, !Ref "AWS::NoValue"]
           Cpu: !If [ BBBECSEC2, !Ref BBBScaleliteImporterContainerCPU, !Ref "AWS::NoValue"] 
           Essential: true
           Image: !Ref BBBScaleliteImporterImage
+          EntryPoint:
+            - "sh"
+            - "-c"
+          Command: 
+            - "/bin/sh -c \"if [ ! -d /var/bigbluebutton/published ]; then mkdir -p /var/bigbluebutton/published /var/bigbluebutton/unpublished /var/bigbluebutton/spool /var/bigbluebutton/recording /var/bigbluebutton/recording/scalelite; fi; bin/start-recording-importer\""
           MountPoints:
-            - ContainerPath: /var/bigbluebutton/published
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-published-, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/unpublished
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished-, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/recording
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-recording-, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/spool
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool-, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -822,6 +806,9 @@ Resources:
           Memory: !If [ BBBECSEC2, !Ref BBBScaleliteNginxContainerMemory, !Ref "AWS::NoValue"]
           Cpu: !If [ BBBECSEC2, !Ref BBBScaleliteNginxContainerCPU, !Ref "AWS::NoValue"] 
           Essential: true
+          DependsOn:
+            - ContainerName: scalelite-importer
+              Condition: START
           Image: !Ref BBBScaleliteNginxImage
           EntryPoint:
             !If 
@@ -843,14 +830,8 @@ Resources:
               - scalelite-api:scalelite-api
             - !Ref "AWS::NoValue"
           MountPoints:
-            - ContainerPath: /var/bigbluebutton/published
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-published-, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/unpublished
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished-, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/recordings
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-recording-, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/spool
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool-, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -887,14 +868,8 @@ Resources:
           Essential: true
           Image: !Ref BBBScaleliteApiImage
           MountPoints:
-            - ContainerPath: /var/bigbluebutton/published
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-published-, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/unpublished
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished-, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/recordings
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-recording-, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/spool
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool-, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
             Options:

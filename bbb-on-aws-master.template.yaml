@@ -772,10 +772,6 @@ Resources:
           Ref: BBBECSMinInstances
         BBBECSDesiredInstances:
           Ref: BBBECSDesiredInstances
-        BBBSharedStorageFS:
-          Fn::GetAtt:
-            - BBBStorageStack
-            - Outputs.BBBSharedStorageFS
       Tags:
         - Key: Name
           Value:
@@ -835,7 +831,8 @@ Resources:
           Ref: BBBTurnMinInstances
         BBBTurnDesiredInstances:
           Ref: BBBTurnDesiredInstances
-        BBBHostedZone: !Ref BBBHostedZone
+        BBBHostedZone:
+          Ref: BBBHostedZone
         BBBDomainName:
           Ref: BBBDomainName
       Tags:
@@ -912,7 +909,8 @@ Resources:
           Fn::GetAtt:
             - BBBStorageStack
             - Outputs.BBBSharedStorageFS
-        BBBHostedZone: !Ref BBBHostedZone
+        BBBHostedZone: 
+          Ref: BBBHostedZone
         BBBDomainName:
           Ref: BBBDomainName
         BBBECSCluster:
@@ -989,7 +987,8 @@ Resources:
           Ref: BBBApplicationMinInstances
         BBBApplicationDesiredInstances:
           Ref: BBBApplicationDesiredInstances
-        BBBHostedZone: !Ref BBBHostedZone
+        BBBHostedZone: 
+          Ref: BBBHostedZone
         BBBDomainName:
           Ref: BBBDomainName
       Tags:
@@ -1080,7 +1079,8 @@ Resources:
           Fn::GetAtt:
             - BBBCacheDBStack
             - Outputs.BBBCacheDBPort
-        BBBHostedZone: !Ref BBBHostedZone
+        BBBHostedZone: 
+          Ref: BBBHostedZone
         BBBDomainName:
           Ref: BBBDomainName
         BBBTurnSecret:

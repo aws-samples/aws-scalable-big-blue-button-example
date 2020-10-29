@@ -62,7 +62,25 @@ Resources:
       SubnetId: !Select [2, !Ref BBBPrivateApplicationSubnets]
       SecurityGroups:
         - !Ref BBBSharedStorageSecurityGroup
+
+  BBBSharedStorageAP:
+    Type: 'AWS::EFS::AccessPoint'
+    Properties:
+      FileSystemId: !Ref BBBSharedStorageFS
+      PosixUser:
+        Uid: "1000"
+        Gid: "1000"
+      RootDirectory:
+        CreationInfo:
+          OwnerGid: "1000"
+          OwnerUid: "1000"
+          Permissions: "0775"
+        Path: "/"
+
 Outputs:
   BBBSharedStorageFS:
     Value: !Ref BBBSharedStorageFS
+    Description: Reference to the created Amazon EFS Volume
+  BBBSharedStorageAP:
+    Value: !Ref BBBSharedStorageAP
     Description: Reference to the created Amazon EFS Volume
