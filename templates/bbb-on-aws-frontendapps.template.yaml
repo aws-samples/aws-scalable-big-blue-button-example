@@ -84,59 +84,19 @@ Parameters:
   BBBTurnSecret:
     Description: Secret used for Turn communication
     Type: String
-  BBBGreenlightContainerMemory:
+  BBBGreenlightMemory:
     Description: Memory constraints for Greenlight container
     Type: Number
     Default: 1024
-  BBBGreenlightContainerCPU:
+  BBBGreenlightCPU:
     Description: CPU constraints for Greenlight container
     Type: Number
     Default: 512
-  BBBScaleliteImporterContainerMemory:
-    Description: Memory constraints for Scalelite importer container
-    Type: Number
-    Default: 256
-  BBBScaleliteImporterContainerCPU:
-    Description: CPU constraints for Scalelite importer container
-    Type: Number
-    Default: 128
-  BBBScalelitePollerContainerMemory:
-    Description: Memory constraints for Scalelite poller container
-    Type: Number
-    Default: 256
-  BBBScalelitePollerContainerCPU:
-    Description: CPU constraints for Scalelite poller container
-    Type: Number
-    Default: 128
-  BBBScaleliteNginxContainerMemory:
-    Description: Memory constraints for Scalelite NGINX container
-    Type: Number
-    Default: 512
-  BBBScaleliteNginxContainerCPU:
-    Description: CPU constraints for Scalelite NGINX container
-    Type: Number
-    Default: 512
-  BBBScaleliteApiContainerMemory:
-    Description: Memory constraints for Scalelite API container
-    Type: Number
-    Default: 512
-  BBBScaleliteApiContainerCPU:
-    Description: CPU constraints for Scalelite API container
-    Type: Number
-    Default: 512
-  BBBScaleliteAddServerContainerMemory:
-    Description: Memory constraints for Scalelite add server container
-    Type: Number
-    Default: 256
-  BBBScaleliteAddServerContainerCPU:
-    Description: CPU constraints for Scalelite add server container
-    Type: Number
-    Default: 128
-  BBBScaleliteFargateMemory: 
+  BBBScaleliteMemory: 
     Description: Memory constraints for Scalelite Fargate Task
     Type: Number
     Default: 2048
-  BBBScaleliteFargateCPU:
+  BBBScaleliteCPU:
     Description: CPU constraints for Scalelite Fargate Task
     Type: Number
     Default: 1024
@@ -590,15 +550,15 @@ Resources:
       Family: !Join [ "", [ !Ref "AWS::StackName", -greenlight ] ]
       ExecutionRoleArn: !Ref BBBGreenlightTaskExecutionRole
       NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue"]
-      Memory: !If [ BBBECSFargate, !Ref BBBGreenlightContainerMemory, !Ref "AWS::NoValue"]
-      Cpu: !If [ BBBECSFargate, !Ref BBBGreenlightContainerCPU, !Ref "AWS::NoValue"] 
+      Memory: !Ref BBBGreenlightMemory
+      Cpu: !Ref BBBGreenlightCPU 
       RequiresCompatibilities: 
+        !If 
+        - BBBECSFargate
         - FARGATE
-        - EC2
+        - !Ref "AWS::NoValue"
       ContainerDefinitions:
         - Name: greenlight
-          Memory: !If [ BBBECSEC2, !Ref BBBGreenlightContainerMemory, !Ref "AWS::NoValue"]
-          Cpu: !If [ BBBECSEC2, !Ref BBBGreenlightContainerCPU, !Ref "AWS::NoValue"] 
           Essential: true
           Image: !Ref BBBgreenlightImage
           LogConfiguration:
@@ -728,11 +688,13 @@ Resources:
       Family: !Join [ "", [ !Ref "AWS::StackName", -scalelite ] ]
       ExecutionRoleArn: !Ref BBBScaleliteExecutionRole
       NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue"]
-      Memory: !If [ BBBECSFargate, !Ref BBBScaleliteFargateMemory, !Ref "AWS::NoValue"]
-      Cpu: !If [ BBBECSFargate, !Ref BBBScaleliteFargateCPU, !Ref "AWS::NoValue"] 
+      Memory: !Ref BBBScaleliteMemory
+      Cpu: !Ref BBBScaleliteCPU
       RequiresCompatibilities: 
+        !If 
+        - BBBECSFargate
         - FARGATE
-        - EC2
+        - !Ref "AWS::NoValue"
       Volumes:
         - Name: !Join [ "", [ scalelite-recordings-volume-spool, !Ref BBBEnvironmentStage ] ]
           efsVolumeConfiguration:
@@ -760,8 +722,6 @@ Resources:
               AccessPointId: !Ref BBBSharedStorageAPrecordings
       ContainerDefinitions:
         - Name: scalelite-importer
-          Memory: !If [ BBBECSEC2, !Ref BBBScaleliteImporterContainerMemory, !Ref "AWS::NoValue"]
-          Cpu: !If [ BBBECSEC2, !Ref BBBScaleliteImporterContainerCPU, !Ref "AWS::NoValue"] 
           Essential: true
           Image: !Ref BBBScaleliteImporterImage
           MountPoints:
@@ -802,8 +762,6 @@ Resources:
                 - BBBCacheDBAddress: !Ref BBBCacheDBAddress
                   BBBCacheDBPort: !Ref BBBCacheDBPort
         - Name: scalelite-poller
-          Memory: !If [ BBBECSEC2, !Ref BBBScalelitePollerContainerMemory, !Ref "AWS::NoValue"]
-          Cpu: !If [ BBBECSEC2, !Ref BBBScalelitePollerContainerCPU, !Ref "AWS::NoValue"] 
           Essential: true
           Image: !Ref BBBScalelitePollerImage
           LogConfiguration:
@@ -835,8 +793,6 @@ Resources:
                 - BBBCacheDBAddress: !Ref BBBCacheDBAddress
                   BBBCacheDBPort: !Ref BBBCacheDBPort
         - Name: scalelite-nginx
-          Memory: !If [ BBBECSEC2, !Ref BBBScaleliteNginxContainerMemory, !Ref "AWS::NoValue"]
-          Cpu: !If [ BBBECSEC2, !Ref BBBScaleliteNginxContainerCPU, !Ref "AWS::NoValue"] 
           Essential: true
           DependsOn:
             - ContainerName: scalelite-importer
@@ -901,8 +857,6 @@ Resources:
                 - BBBCacheDBAddress: !Ref BBBCacheDBAddress
                   BBBCacheDBPort: !Ref BBBCacheDBPort
         - Name: scalelite-api
-          Memory: !If [ BBBECSEC2, !Ref BBBScaleliteApiContainerMemory, !Ref "AWS::NoValue"]
-          Cpu: !If [ BBBECSEC2, !Ref BBBScaleliteApiContainerCPU, !Ref "AWS::NoValue"] 
           Essential: true
           Image: !Ref BBBScaleliteApiImage
           MountPoints:
@@ -953,15 +907,15 @@ Resources:
       Family: !Join [ "", [ !Ref "AWS::StackName", -scalelite-handle-server ] ]
       ExecutionRoleArn: !Ref BBBScaleliteExecutionRole
       NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue"]
-      Memory: !If [ BBBECSFargate, !Ref BBBScaleliteAddServerContainerMemory, !Ref "AWS::NoValue"]
-      Cpu: !If [ BBBECSFargate, !Ref BBBScaleliteAddServerContainerCPU, !Ref "AWS::NoValue"] 
+      Memory: 256
+      Cpu: 128
       RequiresCompatibilities: 
+        !If 
+        - BBBECSFargate
         - FARGATE
-        - EC2
+        - !Ref "AWS::NoValue"
       ContainerDefinitions:
         - Name: scalelite-handle-server
-          Memory: !If [ BBBECSEC2, !Ref BBBScaleliteAddServerContainerMemory, !Ref "AWS::NoValue"]
-          Cpu: !If [ BBBECSEC2, !Ref BBBScaleliteAddServerContainerCPU, !Ref "AWS::NoValue"] 
           Essential: true
           Image: !Ref BBBScaleliteApiImage
           LogConfiguration:

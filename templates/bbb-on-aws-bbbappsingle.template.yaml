@@ -167,7 +167,7 @@ Resources:
           - autoscaling:EC2_INSTANCE_TERMINATE_ERROR
     CreationPolicy:
       ResourceSignal:
-        Timeout: PT15M
+        Timeout: PT30M
     UpdatePolicy:
       AutoScalingReplacingUpdate:
         WillReplace: true

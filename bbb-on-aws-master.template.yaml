@@ -372,58 +372,19 @@ Parameters:
   BBBDomainName:
     Description: Base domain name used for the instance
     Type: String
-  BBBGreenlightContainerMemory:
+  BBBGreenlightMemory:
     Description: Memory constraints for Greenlight container
     Type: Number
     Default: 1024
-  BBBGreenlightContainerCPU:
+  BBBGreenlightCPU:
     Description: CPU constraints for Greenlight container
     Type: Number
     Default: 512
-  BBBScaleliteImporterContainerMemory:
-    Description: Memory constraints for Scalelite importer container
-    Type: Number
-    Default: 256
-  BBBScaleliteImporterContainerCPU:
-    Description: CPU constraints for Scalelite importer container
-    Type: Number
-    Default: 128
-  BBBScalelitePollerContainerMemory:
-    Description: Memory constraints for Scalelite poller container
-    Type: Number
-    Default: 256
-  BBBScalelitePollerContainerCPU:
-    Description: CPU constraints for Scalelite poller container
-    Type: Number
-    Default: 128
-  BBBScaleliteNginxContainerMemory:
-    Description: Memory constraints for Scalelite NGINX container
-    Type: Number
-    Default: 512
-  BBBScaleliteNginxContainerCPU:
-    Description: CPU constraints for Scalelite NGINX container
-    Type: Number
-    Default: 512
-  BBBScaleliteApiContainerMemory:
-    Description: Memory constraints for Scalelite API container
-    Type: Number
-  BBBScaleliteApiContainerCPU:
-    Description: CPU constraints for Scalelite API container
-    Type: Number
-    Default: 512
-  BBBScaleliteAddServerContainerMemory:
-    Description: Memory constraints for Scalelite add server container
-    Type: Number
-    Default: 256
-  BBBScaleliteAddServerContainerCPU:
-    Description: CPU constraints for Scalelite add server container
-    Type: Number
-    Default: 128
-  BBBScaleliteFargateMemory: 
+  BBBScaleliteMemory: 
     Description: Memory constraints for Scalelite Fargate Task
     Type: Number
     Default: 2048
-  BBBScaleliteFargateCPU:
+  BBBScaleliteCPU:
     Description: CPU constraints for Scalelite Fargate Task
     Type: Number
     Default: 1024
@@ -1101,34 +1062,14 @@ Resources:
           Fn::GetAtt:
             - BBBTurnStack
             - Outputs.BBBTurnSecret
-        BBBGreenlightContainerMemory:
-          Ref: BBBGreenlightContainerMemory
-        BBBGreenlightContainerCPU:
-          Ref: BBBGreenlightContainerCPU
-        BBBScaleliteImporterContainerMemory:
-          Ref: BBBScaleliteImporterContainerMemory
-        BBBScaleliteImporterContainerCPU:
-          Ref: BBBScaleliteImporterContainerCPU
-        BBBScalelitePollerContainerMemory:
-          Ref: BBBScalelitePollerContainerMemory
-        BBBScalelitePollerContainerCPU:
-          Ref: BBBScalelitePollerContainerCPU
-        BBBScaleliteNginxContainerMemory:
-          Ref: BBBScaleliteNginxContainerMemory
-        BBBScaleliteNginxContainerCPU:
-          Ref: BBBScaleliteNginxContainerCPU
-        BBBScaleliteApiContainerMemory:
-          Ref: BBBScaleliteApiContainerMemory
-        BBBScaleliteApiContainerCPU:
-          Ref: BBBScaleliteApiContainerCPU
-        BBBScaleliteAddServerContainerMemory:
-          Ref: BBBScaleliteAddServerContainerMemory
-        BBBScaleliteAddServerContainerCPU:
-          Ref: BBBScaleliteAddServerContainerCPU
-        BBBScaleliteFargateMemory: 
-          Ref: BBBScaleliteFargateMemory
-        BBBScaleliteFargateCPU:
-          Ref: BBBScaleliteFargateCPU
+        BBBGreenlightMemory:
+          Ref: BBBGreenlightMemory
+        BBBGreenlightCPU:
+          Ref: BBBGreenlightCPU
+        BBBScaleliteMemory: 
+          Ref: BBBScaleliteMemory
+        BBBScaleliteCPU:
+          Ref: BBBScaleliteCPU
         BBBGreenlightMinReplicas:
           Ref: BBBGreenlightMinReplicas
         BBBGreenlightMaxReplicas:

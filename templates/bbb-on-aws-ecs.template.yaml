@@ -136,7 +136,7 @@ Resources:
           Status: ENABLED
           MinimumScalingStepSize: !Ref BBBECSMinInstances
           MaximumScalingStepSize: !Ref BBBECSMaxInstances
-          TargetCapacity: 85
+          TargetCapacity: 90
         ManagedTerminationProtection: DISABLED
 
   BBBECSAutoScaling:

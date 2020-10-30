@@ -109,20 +109,10 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 | BBBScalelitePollerImage| blindsidenetwks/scalelite:v1-poller| scalelite poller container image to be used
 | BBBScaleliteImporterImage| blindsidenetwks/scalelite:v1-recording-importer| scalelite recording importer container image to be used
 | BBBCacheAZMode| cross-az| Deploy the Redis cluster cross-az or single-az | only cross-az supported atm
-| BBBGreenlightContainerMemory| 1024| memory limit of the Greenlight container 
-| BBBGreenlightContainerCPU| 512| vCPU limit of the Greenlight container 
-| BBBScaleliteImporterContainerMemory| 256| memory limit of the Scalelite recording importer container | usually does not need much resources, watch the metrics
-| BBBScaleliteImporterContainerCPU| 128| vCPU limit of the Scalelite recording importer container | usually does not need much resources, watch the metrics
-| BBBScalelitePollerContainerMemory| 256| memory limit of the Scalelite application server poller container | usually does not need much resources, watch the metrics
-| BBBScalelitePollerContainerCPU| 128| vCPU limit of the Scalelite application server poller container | usually does not need much resources, watch the metrics
-| BBBScaleliteNginxContainerMemory| 512| memory limit of the Nginx Reverse Proxy container | check metrics for sizing
-| BBBScaleliteNginxContainerCPU| 512| vCPU limit of the Nginx Reverse Proxy container | check metrics for sizing
-| BBBScaleliteApiContainerMemory| 1024| memory limit of the Scalelite API container | check metrics for sizing
-| BBBScaleliteApiContainerCPU| 512| vCPU limit of the Scalelite API container | check metrics for sizing
-| BBBScaleliteAddServerContainerMemory| 512| memory limit of the Greenlight container | does not need many resources
-| BBBScaleliteAddServerContainerCPU| 128 | vCPU limit of the Greenlight container | does not need many resources
-| BBBScaleliteFargateMemory | 2048 | Memory limit for the Scalelite tasks if deployed on AWS Fargate | setting per task for all inheritated containers
-| BBBScaleliteFargateCPU | 1024 | vCPU limit for the Scalelite tasks if deployed on AWS Fargate | setting once per task for all containers
+| BBBGreenlightMemory| 1024 | memory limit of the Greenlight task 
+| BBBGreenlightCPU| 512| vCPU limit of the Greenlight task 
+| BBBScaleliteMemory | 2048 | Memory limit for the Scalelite tasks | setting per task for all inheritated containers
+| BBBScaleliteCPU | 1024 | vCPU limit for the Scalelite tasks if deployed | setting once per task for all containers
 | BBBSesRegion| - | Region of the SES Service to be used | if the setup is planned to be deployed in a Region w/o Amazon SES, choose a proper region here. 
 
 # Deployment
