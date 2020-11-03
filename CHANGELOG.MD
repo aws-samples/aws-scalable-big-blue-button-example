@@ -2,7 +2,7 @@
 # Change Log
 All notable changes to this project will be documented in this file.
  
-## [2.0.0] - 2020-10-28
+## [2.0.0] - 2020-11-03
 
 ### Upgrade Notes: 
 - Be sure to backup especially your persistent storages like your recording storage before attempting the upgrade. the Changes in this Version will cause the EFS folder structure to be changed and simplyfied. 
@@ -28,6 +28,6 @@ To Upgrade, simply run the setup.sh with your parameters. Be sure to test and ev
 - #32
 - #28
 
-## [1.0.0]
+## [1.0.0] - inital release
 
 ### inital version
