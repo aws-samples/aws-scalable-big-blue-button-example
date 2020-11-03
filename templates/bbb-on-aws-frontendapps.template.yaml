@@ -24,6 +24,9 @@ Parameters:
   BBBPublicApplicationSubnets:
     Description: Comma separated list of the public subnets
     Type: CommaDelimitedList
+  BBBPrivateApplicationSubnets:
+    Description: Comma separated list of the private EC2 instance subnets
+    Type: CommaDelimitedList
   BBBNotificationTopic:
     Description: Topic to be used for alarm notifications
     Type: String
@@ -81,53 +84,22 @@ Parameters:
   BBBTurnSecret:
     Description: Secret used for Turn communication
     Type: String
-  BBBGreenlightContainerMemory:
+  BBBGreenlightMemory:
     Description: Memory constraints for Greenlight container
     Type: Number
     Default: 1024
-  BBBGreenlightContainerCPU:
+  BBBGreenlightCPU:
     Description: CPU constraints for Greenlight container
     Type: Number
     Default: 512
-  BBBScaleliteImporterContainerMemory:
-    Description: Memory constraints for Scalelite importer container
+  BBBScaleliteMemory: 
+    Description: Memory constraints for Scalelite Fargate Task
     Type: Number
-    Default: 256
-  BBBScaleliteImporterContainerCPU:
-    Description: CPU constraints for Scalelite importer container
+    Default: 2048
+  BBBScaleliteCPU:
+    Description: CPU constraints for Scalelite Fargate Task
     Type: Number
-    Default: 128
-  BBBScalelitePollerContainerMemory:
-    Description: Memory constraints for Scalelite poller container
-    Type: Number
-    Default: 256
-  BBBScalelitePollerContainerCPU:
-    Description: CPU constraints for Scalelite poller container
-    Type: Number
-    Default: 128
-  BBBScaleliteNginxContainerMemory:
-    Description: Memory constraints for Scalelite NGINX container
-    Type: Number
-    Default: 512
-  BBBScaleliteNginxContainerCPU:
-    Description: CPU constraints for Scalelite NGINX container
-    Type: Number
-    Default: 512
-  BBBScaleliteApiContainerMemory:
-    Description: Memory constraints for Scalelite API container
-    Type: Number
-  BBBScaleliteApiContainerCPU:
-    Description: CPU constraints for Scalelite API container
-    Type: Number
-    Default: 512
-  BBBScaleliteAddServerContainerMemory:
-    Description: Memory constraints for Scalelite add server container
-    Type: Number
-    Default: 256
-  BBBScaleliteAddServerContainerCPU:
-    Description: CPU constraints for Scalelite add server container
-    Type: Number
-    Default: 128
+    Default: 1024
   BBBACMCertProviderArn:
     Description: ARN of the custom certificate provider
     Type: String
@@ -144,11 +116,11 @@ Parameters:
   BBBGreenlightMaxReplicas:
     Description: Maximum amount of Greenlight containers available
     Type: Number
-    Default: 10
+    Default: 3
   BBBGreenlightDesiredReplicas:
     Description: Desired amount of Greenlight containers available
     Type: Number
-    Default: 3
+    Default: 1
   BBBScaleliteMinReplicas:
     Description: Minimum amount of Scalelite containers available
     Type: Number
@@ -156,13 +128,25 @@ Parameters:
   BBBScaleliteMaxReplicas:
     Description: Maximum amount of Scalelite containers available
     Type: Number
-    Default: 10
+    Default: 3
   BBBScaleliteDesiredReplicas:
     Description: Desired amount of Scalelite containers available
     Type: Number
-    Default: 3
+    Default: 1
   BBBSharedStorageFS:
     Description: File system id for the Amazon EFS volume to be mounted
+    Type: String
+  BBBSharedStorageAPspool:
+    Description: Access Point id for the Amazon EFS volume to be mounted
+    Type: String
+  BBBSharedStorageAPpublished:
+    Description: Access Point id for the Amazon EFS volume to be mounted
+    Type: String
+  BBBSharedStorageAPunpublished:
+    Description: Access Point id for the Amazon EFS volume to be mounted
+    Type: String
+  BBBSharedStorageAPrecordings:
+    Description: Access Point id for the Amazon EFS volume to be mounted
     Type: String
   BBBSesRegion:
     Description: Region for the SES Domain. If not set, current deployment region will be used
@@ -173,11 +157,19 @@ Parameters:
     AllowedPattern: "([a-zA-Z0-9_\\-\\.]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)"
     ConstraintDescription: must be a valid email address.
     Default: johndoe@example.com
+  BBBECSInstanceType: 
+    Description: Set the ECS Instance Type to either EC2 based or Fargate based deployments
+    Type: String
+  BBBECSTaskSecurityGroup:
+    Description: Security Group that should be assigned for the EC2 Instances
+    Type: String
 
 Conditions:
   BBBProdEnvironment: !Equals [ !Ref BBBEnvironmentStage, prod ]
   BBBStageEnvironment: !Not [ !Equals [ !Ref BBBEnvironmentStage, prod ] ]
   BBBSESRegionSet: !Not [ !Equals [ !Ref BBBSesRegion, "AWS::NoValue" ] ]
+  BBBECSFargate: !Equals [!Ref BBBECSInstanceType, fargate]
+  BBBECSEC2: !Not [!Equals [!Ref BBBECSInstanceType, fargate]]
 
 Resources:
   BBBSESDomainIdentity:
@@ -462,15 +454,15 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     DependsOn: BBBFrontendALB
     Properties:
-      HealthCheckIntervalSeconds: 10
+      HealthCheckIntervalSeconds: 90
       HealthCheckPath: /b
       HealthCheckProtocol: HTTP
-      HealthCheckTimeoutSeconds: 5
-      HealthyThresholdCount: 2
+      HealthCheckTimeoutSeconds: 60
+      HealthyThresholdCount: 3
       Port: 80
-      TargetType: instance
+      TargetType: !If [ BBBECSFargate, ip, instance]
       Protocol: HTTP
-      UnhealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
       VpcId: !Ref BBBVPC
 
   BBBFrontendALBDNS:
@@ -539,13 +531,13 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     DependsOn: BBBScaleliteALB
     Properties:
-      HealthCheckIntervalSeconds: 10
+      HealthCheckIntervalSeconds: 90
       HealthCheckPath: /
       HealthCheckProtocol: HTTP
-      HealthCheckTimeoutSeconds: 5
+      HealthCheckTimeoutSeconds: 60
       HealthyThresholdCount: 2
       Port: 80
-      TargetType: instance
+      TargetType: !If [ BBBECSFargate, ip, instance]
       Protocol: HTTP
       UnhealthyThresholdCount: 2
       VpcId: !Ref BBBVPC
@@ -557,12 +549,18 @@ Resources:
     Properties:
       Family: !Join [ "", [ !Ref "AWS::StackName", -greenlight ] ]
       ExecutionRoleArn: !Ref BBBGreenlightTaskExecutionRole
+      NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue"]
+      Memory: !Ref BBBGreenlightMemory
+      Cpu: !Ref BBBGreenlightCPU 
+      RequiresCompatibilities: 
+        !If 
+        - BBBECSFargate
+        - FARGATE
+        - !Ref "AWS::NoValue"
       ContainerDefinitions:
         - Name: greenlight
-          Cpu: !Ref BBBGreenlightContainerCPU
           Essential: true
           Image: !Ref BBBgreenlightImage
-          Memory: !Ref BBBGreenlightContainerMemory
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -634,12 +632,24 @@ Resources:
     Properties:
       Cluster: !Ref BBBECSCluster
       DesiredCount: !Ref BBBGreenlightDesiredReplicas
+      PlatformVersion: !If [ BBBECSFargate, 1.4.0, !Ref "AWS::NoValue"] 
+      NetworkConfiguration:
+        !If 
+        - BBBECSFargate
+        -
+          AwsvpcConfiguration:
+            AssignPublicIp: DISABLED
+            SecurityGroups:
+              - !Ref BBBECSTaskSecurityGroup
+            Subnets: !Ref BBBPrivateApplicationSubnets
+        - !Ref "AWS::NoValue"
       LoadBalancers:
         - ContainerName: greenlight
           ContainerPort: 80
           TargetGroupArn: !Ref BBBFrontendTG
       TaskDefinition: !Ref BBBgreenlightTaskdefinition
       HealthCheckGracePeriodSeconds: 60
+      LaunchType: !If [ BBBECSFargate, FARGATE, !Ref "AWS::NoValue"]
 
   BBBgreenlightServiceScalingTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
@@ -677,42 +687,52 @@ Resources:
     Properties:
       Family: !Join [ "", [ !Ref "AWS::StackName", -scalelite ] ]
       ExecutionRoleArn: !Ref BBBScaleliteExecutionRole
+      NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue"]
+      Memory: !Ref BBBScaleliteMemory
+      Cpu: !Ref BBBScaleliteCPU
+      RequiresCompatibilities: 
+        !If 
+        - BBBECSFargate
+        - FARGATE
+        - !Ref "AWS::NoValue"
       Volumes:
-        - Name: !Join [ "", [ scalelite-recordings-volume-published-, !Ref BBBEnvironmentStage ] ]
+        - Name: !Join [ "", [ scalelite-recordings-volume-spool, !Ref BBBEnvironmentStage ] ]
           efsVolumeConfiguration:
             fileSystemId: !Ref BBBSharedStorageFS
             transitEncryption: ENABLED
-            RootDirectory: /var/bigbluebutton/published
-        - Name: !Join [ "", [ scalelite-recordings-volume-unpublished-, !Ref BBBEnvironmentStage ] ]
+            AuthorizationConfig:
+              AccessPointId: !Ref BBBSharedStorageAPspool
+        - Name: !Join [ "", [ scalelite-recordings-volume-published, !Ref BBBEnvironmentStage ] ]
           efsVolumeConfiguration:
             fileSystemId: !Ref BBBSharedStorageFS
             transitEncryption: ENABLED
-            RootDirectory: /var/bigbluebutton/unpublished
-        - Name: !Join [ "", [ scalelite-recordings-volume-spool-, !Ref BBBEnvironmentStage ] ]
+            AuthorizationConfig:
+              AccessPointId: !Ref BBBSharedStorageAPpublished
+        - Name: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref BBBEnvironmentStage ] ]
           efsVolumeConfiguration:
             fileSystemId: !Ref BBBSharedStorageFS
             transitEncryption: ENABLED
-            RootDirectory: /var/bigbluebutton/spool
-        - Name: !Join [ "", [ scalelite-recordings-volume-recording-, !Ref BBBEnvironmentStage ] ]
+            AuthorizationConfig:
+              AccessPointId: !Ref BBBSharedStorageAPunpublished
+        - Name: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref BBBEnvironmentStage ] ]
           efsVolumeConfiguration:
             fileSystemId: !Ref BBBSharedStorageFS
             transitEncryption: ENABLED
-            RootDirectory: /var/bigbluebutton/recording
+            AuthorizationConfig:
+              AccessPointId: !Ref BBBSharedStorageAPrecordings
       ContainerDefinitions:
         - Name: scalelite-importer
-          Cpu: !Ref BBBScaleliteImporterContainerCPU
           Essential: true
           Image: !Ref BBBScaleliteImporterImage
-          Memory: !Ref BBBScaleliteImporterContainerMemory
           MountPoints:
-            - ContainerPath: /var/bigbluebutton/published
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-published-, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/unpublished
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished-, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/recording
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-recording-, !Ref BBBEnvironmentStage ] ]
             - ContainerPath: /var/bigbluebutton/spool
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool-, !Ref BBBEnvironmentStage ] ]
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/published
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-published, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/unpublished
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/recordings
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -742,10 +762,8 @@ Resources:
                 - BBBCacheDBAddress: !Ref BBBCacheDBAddress
                   BBBCacheDBPort: !Ref BBBCacheDBPort
         - Name: scalelite-poller
-          Cpu: !Ref BBBScalelitePollerContainerCPU
           Essential: true
           Image: !Ref BBBScalelitePollerImage
-          Memory: !Ref BBBScalelitePollerContainerMemory
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -775,21 +793,39 @@ Resources:
                 - BBBCacheDBAddress: !Ref BBBCacheDBAddress
                   BBBCacheDBPort: !Ref BBBCacheDBPort
         - Name: scalelite-nginx
-          Cpu: !Ref BBBScaleliteNginxContainerCPU
           Essential: true
+          DependsOn:
+            - ContainerName: scalelite-importer
+              Condition: START
           Image: !Ref BBBScaleliteNginxImage
-          Memory: !Ref BBBScaleliteNginxContainerMemory
+          EntryPoint:
+            !If 
+            - BBBECSFargate
+            - 
+              - "sh"
+              - "-c"
+            - !Ref "AWS::NoValue"
+          Command: 
+            !If 
+            - BBBECSFargate
+            - 
+              - "/bin/sh -c \"sed -i 's/scalelite-api/localhost/g' /etc/nginx/conf.d/scalelite.common && /etc/nginx/start -g daemon off\""
+            - !Ref "AWS::NoValue"
           Links:
-            - scalelite-api:scalelite-api
+            !If 
+            - BBBECSEC2
+            - 
+              - scalelite-api:scalelite-api
+            - !Ref "AWS::NoValue"
           MountPoints:
-            - ContainerPath: /var/bigbluebutton/published
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-published-, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/unpublished
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished-, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/recordings
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-recording-, !Ref BBBEnvironmentStage ] ]
             - ContainerPath: /var/bigbluebutton/spool
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool-, !Ref BBBEnvironmentStage ] ]
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/published
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-published, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/unpublished
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/recordings
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -821,19 +857,17 @@ Resources:
                 - BBBCacheDBAddress: !Ref BBBCacheDBAddress
                   BBBCacheDBPort: !Ref BBBCacheDBPort
         - Name: scalelite-api
-          Cpu: !Ref BBBScaleliteApiContainerCPU
           Essential: true
           Image: !Ref BBBScaleliteApiImage
-          Memory: !Ref BBBScaleliteApiContainerMemory
           MountPoints:
-            - ContainerPath: /var/bigbluebutton/published
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-published-, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/unpublished
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished-, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/recordings
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-recording-, !Ref BBBEnvironmentStage ] ]
             - ContainerPath: /var/bigbluebutton/spool
-              SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool-, !Ref BBBEnvironmentStage ] ]
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/published
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-published, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/unpublished
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref BBBEnvironmentStage ] ]
+            - ContainerPath: /var/bigbluebutton/recordings
+              SourceVolume: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -872,12 +906,18 @@ Resources:
     Properties:
       Family: !Join [ "", [ !Ref "AWS::StackName", -scalelite-handle-server ] ]
       ExecutionRoleArn: !Ref BBBScaleliteExecutionRole
+      NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue"]
+      Memory: 256
+      Cpu: 128
+      RequiresCompatibilities: 
+        !If 
+        - BBBECSFargate
+        - FARGATE
+        - !Ref "AWS::NoValue"
       ContainerDefinitions:
         - Name: scalelite-handle-server
-          Cpu: !Ref BBBScaleliteAddServerContainerCPU
           Essential: true
           Image: !Ref BBBScaleliteApiImage
-          Memory: !Ref BBBScaleliteAddServerContainerMemory
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -914,10 +954,22 @@ Resources:
       Cluster: !Ref BBBECSCluster
       DesiredCount: !Ref BBBScaleliteDesiredReplicas
       TaskDefinition: !Ref BBBScaleliteTaskdefinition
+      PlatformVersion: !If [ BBBECSFargate, 1.4.0, !Ref "AWS::NoValue"] 
+      NetworkConfiguration:
+        !If 
+        - BBBECSFargate
+        -
+          AwsvpcConfiguration:
+            AssignPublicIp: DISABLED
+            SecurityGroups:
+              - !Ref BBBECSTaskSecurityGroup
+            Subnets: !Ref BBBPrivateApplicationSubnets
+        - !Ref "AWS::NoValue"
       LoadBalancers:
         - ContainerName: scalelite-nginx
           ContainerPort: 80
           TargetGroupArn: !Ref BBBScaleliteTG
+      LaunchType: !If [ BBBECSFargate, FARGATE, !Ref "AWS::NoValue"]
 
   BBBScaleliteServiceScalingTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget

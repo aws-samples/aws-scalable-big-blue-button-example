@@ -21,6 +21,12 @@ Parameters:
   BBBPublicApplicationSubnets:
     Description: Comma separated list of the appserver's subnets
     Type: CommaDelimitedList
+  BBBPrivateApplicationSubnets:
+    Description: Comma separated list of the private EC2 instance subnets
+    Type: String
+  BBBECSTaskSecurityGroup:
+    Description: Security Group that should be assigned for the Task Instances
+    Type: String
   BBBApplicationInstanceType:
     Description: Instance type for the appserver
     Type: String
@@ -112,6 +118,9 @@ Parameters:
   BBBSharedStorageFS:
     Description: File system id for the Amazon EFS volume to be mounted
     Type: String
+  BBBSharedStorageAPspool:
+    Description: Access Point id for the Amazon EFS volume to be mounted
+    Type: String
   BBBApplicationSecurityGroup:
     Description: Security Group that should be assigned for the appserver
     Type: String
@@ -146,6 +155,9 @@ Parameters:
     Description: AMI id that should be used for the appserver instaces
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
     Default: 'bbbapplicationimageid'
+  BBBECSInstanceType:
+    Description: EC2 instance type for ECS Cluster worker nodes
+    Type: String
 
 Conditions:
   BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
@@ -172,7 +184,7 @@ Resources:
           - autoscaling:EC2_INSTANCE_TERMINATE_ERROR
     CreationPolicy:
       ResourceSignal:
-        Timeout: PT15M
+        Timeout: PT30M
     UpdatePolicy:
       AutoScalingReplacingUpdate:
         WillReplace: true
@@ -348,12 +360,17 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -xe
-          apt update -y && DEBIAN_FRONTEND='noninteractive' apt -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' full-upgrade
+          apt update -y 
+          
+          while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
+
+          DEBIAN_FRONTEND='noninteractive' apt -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' full-upgrade
 
           apt autoremove -y
-          apt clean
           apt autoclean
-
+           
+          while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
+          
           apt install -y git binutils python3-pip python-pip build-essential python-dev python-setuptools jq
 
           pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
@@ -388,7 +405,7 @@ Resources:
           systemctl start route53-handler
 
           mkdir -p /mnt/bbb-recordings
-          echo "${BBBSharedStorageFS}:/ /mnt/bbb-recordings efs defaults,tls,rw 0 0" >> /etc/fstab
+          echo "${BBBSharedStorageFS}: /mnt/bbb-recordings efs defaults,tls,accesspoint=${BBBSharedStorageAPspool},rw 0 0" >> /etc/fstab
 
           mkdir -p /var/bigbluebutton
 
@@ -423,8 +440,6 @@ Resources:
             x=$(( $x + 1 ))
           done
 
-          /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBApplicationAutoScaling --region ${AWS::Region} || true
-
           wget -qO- https://ubuntu.bigbluebutton.org/bbb-install.sh | bash -s -- -v xenial-220 -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret
 
           groupadd -g 2000 scalelite-spool
@@ -446,6 +461,9 @@ Resources:
           sed -i "s|SERVER_PLACEHOLDER|$SERVER|g" /etc/systemd/system/scalelite-handler.service
           sed -i "s/AWSREGION_PLACEHOLDER/${AWS::Region}/g" /etc/systemd/system/scalelite-handler.service
           sed -i "s/ECSCLUSTER_PLACEHOLDER/${BBBECSCluster}/g" /etc/systemd/system/scalelite-handler.service
+          sed -i "s/ECSMODE_PLACEHOLDER/${BBBECSInstanceType}/g" /etc/systemd/system/scalelite-handler.service
+          sed -i "s/TASKSUBNETS_PLACEHOLDER/${BBBPrivateApplicationSubnets}/g" /etc/systemd/system/scalelite-handler.service
+          sed -i "s/TASKSGS_PLACEHOLDER/${BBBECSTaskSecurityGroup}/g" /etc/systemd/system/scalelite-handler.service
 
           systemctl daemon-reload
           systemctl enable scalelite-handler
@@ -468,6 +486,8 @@ Resources:
           chmod +x ./awslogs-agent-setup.py
           ./awslogs-agent-setup.py -n -r ${AWS::Region} -c s3://${BBBStackBucketStack}/bbb-cwagent.config
           systemctl enable awslogs
+
+          /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBApplicationAutoScaling --region ${AWS::Region} || true
 
 Outputs:
   BBBAkkaLogGroup:

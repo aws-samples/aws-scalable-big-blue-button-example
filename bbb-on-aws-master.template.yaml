@@ -28,7 +28,7 @@ Parameters:
   BBBECSMaxInstances:
     Type: Number
     Description: Maximum number of ECS Worker Instances
-    Default: 10
+    Default: 3
   BBBECSMinInstances:
     Type: Number
     Description: Minimum number of ECS Worker Instances
@@ -36,11 +36,11 @@ Parameters:
   BBBECSDesiredInstances:
     Type: Number
     Description: Desired number of ECS Worker Instances
-    Default: 3
+    Default: 1
   BBBApplicationMaxInstances:
     Type: Number
     Description: Maximum number of appserver instances
-    Default: 3
+    Default: 1
   BBBApplicationMinInstances:
     Type: Number
     Description: Minimum number of appserver instances
@@ -79,10 +79,11 @@ Parameters:
     Type: String
     Default: 10.7
   BBBECSInstanceType:
-    Description: EC2 instance type for ECS Cluster worker nodes
+    Description: Instance type for ECS Cluster worker nodes
     Type: String
     Default: t3a.large
     AllowedValues:
+      - fargate
       - t3a.small
       - t3a.medium
       - t3a.large
@@ -207,7 +208,7 @@ Parameters:
   BBBApplicationDataVolumeSize: 
     Description: Size of the application instance data volume
     Type: Number
-    Default: 20
+    Default: 50
   BBBTurnInstanceType:
     Description: Instance type for the turn server
     Type: String
@@ -371,53 +372,22 @@ Parameters:
   BBBDomainName:
     Description: Base domain name used for the instance
     Type: String
-  BBBGreenlightContainerMemory:
+  BBBGreenlightMemory:
     Description: Memory constraints for Greenlight container
     Type: Number
     Default: 1024
-  BBBGreenlightContainerCPU:
+  BBBGreenlightCPU:
     Description: CPU constraints for Greenlight container
     Type: Number
     Default: 512
-  BBBScaleliteImporterContainerMemory:
-    Description: Memory constraints for Scalelite importer container
+  BBBScaleliteMemory: 
+    Description: Memory constraints for Scalelite Fargate Task
     Type: Number
-    Default: 256
-  BBBScaleliteImporterContainerCPU:
-    Description: CPU constraints for Scalelite importer container
+    Default: 2048
+  BBBScaleliteCPU:
+    Description: CPU constraints for Scalelite Fargate Task
     Type: Number
-    Default: 128
-  BBBScalelitePollerContainerMemory:
-    Description: Memory constraints for Scalelite poller container
-    Type: Number
-    Default: 256
-  BBBScalelitePollerContainerCPU:
-    Description: CPU constraints for Scalelite poller container
-    Type: Number
-    Default: 128
-  BBBScaleliteNginxContainerMemory:
-    Description: Memory constraints for Scalelite NGINX container
-    Type: Number
-    Default: 512
-  BBBScaleliteNginxContainerCPU:
-    Description: CPU constraints for Scalelite NGINX container
-    Type: Number
-    Default: 512
-  BBBScaleliteApiContainerMemory:
-    Description: Memory constraints for Scalelite API container
-    Type: Number
-  BBBScaleliteApiContainerCPU:
-    Description: CPU constraints for Scalelite API container
-    Type: Number
-    Default: 512
-  BBBScaleliteAddServerContainerMemory:
-    Description: Memory constraints for Scalelite add server container
-    Type: Number
-    Default: 256
-  BBBScaleliteAddServerContainerCPU:
-    Description: CPU constraints for Scalelite add server container
-    Type: Number
-    Default: 128
+    Default: 1024
   BBBGreenlightMinReplicas:
     Description: Minimum amount of greenlight containers available
     Type: Number
@@ -425,11 +395,11 @@ Parameters:
   BBBGreenlightMaxReplicas:
     Description: Maximum amount of greenlight containers available
     Type: Number
-    Default: 10
+    Default: 3
   BBBGreenlightDesiredReplicas:
     Description: Desired amount of greenlight containers available
     Type: Number
-    Default: 3
+    Default: 1
   BBBScaleliteMinReplicas:
     Description: Minimum amount of Scalelite containers available
     Type: Number
@@ -437,11 +407,11 @@ Parameters:
   BBBScaleliteMaxReplicas:
     Description: Maximum amount of Scalelite containers available
     Type: Number
-    Default: 10
+    Default: 3
   BBBScaleliteDesiredReplicas:
     Description: Desired amount of Scalelite containers available
     Type: Number
-    Default: 3
+    Default: 1
   BBBSesRegion:
     Description: Set the Region for the SES Service if deployment in a non-SES Region
     Type: String
@@ -603,6 +573,8 @@ Resources:
           Ref: BBBEnvironmentStage
         BBBEnvironmentType:
           Ref: BBBEnvironmentType
+        BBBECSInstanceType:
+          Ref: BBBECSInstanceType
       Tags:
         - Key: Name
           Value:
@@ -751,20 +723,16 @@ Resources:
           Ref: BBBEnvironmentStage
         BBBECSInstanceType:
           Ref: BBBECSInstanceType
-        BBBECSInstanceSecurityGroup:
+        BBBECSTaskSecurityGroup:
           Fn::GetAtt:
             - BBBSecurityGroupStack
-            - Outputs.BBBECSInstanceSecurityGroup
+            - Outputs.BBBECSTaskSecurityGroup
         BBBECSMaxInstances:
           Ref: BBBECSMaxInstances
         BBBECSMinInstances:
           Ref: BBBECSMinInstances
         BBBECSDesiredInstances:
           Ref: BBBECSDesiredInstances
-        BBBSharedStorageFS:
-          Fn::GetAtt:
-            - BBBStorageStack
-            - Outputs.BBBSharedStorageFS
       Tags:
         - Key: Name
           Value:
@@ -824,7 +792,8 @@ Resources:
           Ref: BBBTurnMinInstances
         BBBTurnDesiredInstances:
           Ref: BBBTurnDesiredInstances
-        BBBHostedZone: !Ref BBBHostedZone
+        BBBHostedZone:
+          Ref: BBBHostedZone
         BBBDomainName:
           Ref: BBBDomainName
       Tags:
@@ -873,10 +842,18 @@ Resources:
           Fn::GetAtt:
             - BBBSecurityGroupStack
             - Outputs.BBBApplicationSecurityGroup
+        BBBECSTaskSecurityGroup:
+          Fn::GetAtt:
+            - BBBSecurityGroupStack
+            - Outputs.BBBECSTaskSecurityGroup
         BBBPublicApplicationSubnets:
           Fn::GetAtt:
             - BBBNetworkStack
             - Outputs.BBBPublicApplicationSubnets
+        BBBPrivateApplicationSubnets:
+          Fn::GetAtt:
+            - BBBNetworkStack
+            - Outputs.BBBPrivateApplicationSubnets
         BBBTurnHostnameParameter:
           Fn::GetAtt:
             - BBBTurnStack
@@ -901,7 +878,12 @@ Resources:
           Fn::GetAtt:
             - BBBStorageStack
             - Outputs.BBBSharedStorageFS
-        BBBHostedZone: !Ref BBBHostedZone
+        BBBSharedStorageAPspool:
+          Fn::GetAtt:
+            - BBBStorageStack
+            - Outputs.BBBSharedStorageAPspool
+        BBBHostedZone: 
+          Ref: BBBHostedZone
         BBBDomainName:
           Ref: BBBDomainName
         BBBECSCluster:
@@ -912,6 +894,8 @@ Resources:
           Fn::GetAtt:
             - BBBFontendAppsStack
             - Outputs.BBBScaleliteTaskExecutionRole
+        BBBECSInstanceType:
+          Ref: BBBECSInstanceType
       Tags:
         - Key: Name
           Value:
@@ -978,7 +962,8 @@ Resources:
           Ref: BBBApplicationMinInstances
         BBBApplicationDesiredInstances:
           Ref: BBBApplicationDesiredInstances
-        BBBHostedZone: !Ref BBBHostedZone
+        BBBHostedZone: 
+          Ref: BBBHostedZone
         BBBDomainName:
           Ref: BBBDomainName
       Tags:
@@ -1069,37 +1054,22 @@ Resources:
           Fn::GetAtt:
             - BBBCacheDBStack
             - Outputs.BBBCacheDBPort
-        BBBHostedZone: !Ref BBBHostedZone
+        BBBHostedZone: 
+          Ref: BBBHostedZone
         BBBDomainName:
           Ref: BBBDomainName
         BBBTurnSecret:
           Fn::GetAtt:
             - BBBTurnStack
             - Outputs.BBBTurnSecret
-        BBBGreenlightContainerMemory:
-          Ref: BBBGreenlightContainerMemory
-        BBBGreenlightContainerCPU:
-          Ref: BBBGreenlightContainerCPU
-        BBBScaleliteImporterContainerMemory:
-          Ref: BBBScaleliteImporterContainerMemory
-        BBBScaleliteImporterContainerCPU:
-          Ref: BBBScaleliteImporterContainerCPU
-        BBBScalelitePollerContainerMemory:
-          Ref: BBBScalelitePollerContainerMemory
-        BBBScalelitePollerContainerCPU:
-          Ref: BBBScalelitePollerContainerCPU
-        BBBScaleliteNginxContainerMemory:
-          Ref: BBBScaleliteNginxContainerMemory
-        BBBScaleliteNginxContainerCPU:
-          Ref: BBBScaleliteNginxContainerCPU
-        BBBScaleliteApiContainerMemory:
-          Ref: BBBScaleliteApiContainerMemory
-        BBBScaleliteApiContainerCPU:
-          Ref: BBBScaleliteApiContainerCPU
-        BBBScaleliteAddServerContainerMemory:
-          Ref: BBBScaleliteAddServerContainerMemory
-        BBBScaleliteAddServerContainerCPU:
-          Ref: BBBScaleliteAddServerContainerCPU
+        BBBGreenlightMemory:
+          Ref: BBBGreenlightMemory
+        BBBGreenlightCPU:
+          Ref: BBBGreenlightCPU
+        BBBScaleliteMemory: 
+          Ref: BBBScaleliteMemory
+        BBBScaleliteCPU:
+          Ref: BBBScaleliteCPU
         BBBGreenlightMinReplicas:
           Ref: BBBGreenlightMinReplicas
         BBBGreenlightMaxReplicas:
@@ -1116,10 +1086,36 @@ Resources:
           Fn::GetAtt:
             - BBBStorageStack
             - Outputs.BBBSharedStorageFS
+        BBBSharedStorageAPspool:
+          Fn::GetAtt:
+            - BBBStorageStack
+            - Outputs.BBBSharedStorageAPspool
+        BBBSharedStorageAPpublished:
+          Fn::GetAtt:
+            - BBBStorageStack
+            - Outputs.BBBSharedStorageAPpublished
+        BBBSharedStorageAPunpublished:
+          Fn::GetAtt:
+            - BBBStorageStack
+            - Outputs.BBBSharedStorageAPunpublished
+        BBBSharedStorageAPrecordings:
+          Fn::GetAtt:
+            - BBBStorageStack
+            - Outputs.BBBSharedStorageAPrecordings
         BBBSesRegion:
           Ref: BBBSesRegion
         BBBOperatorEMail: 
           Ref: BBBOperatorEMail
+        BBBECSInstanceType:
+          Ref: BBBECSInstanceType
+        BBBPrivateApplicationSubnets:
+          Fn::GetAtt:
+            - BBBNetworkStack
+            - Outputs.BBBPrivateApplicationSubnets
+        BBBECSTaskSecurityGroup:
+          Fn::GetAtt:
+            - BBBSecurityGroupStack
+            - Outputs.BBBECSTaskSecurityGroup
       Tags:
         - Key: Name
           Value:

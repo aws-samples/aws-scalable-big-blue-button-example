@@ -62,7 +62,76 @@ Resources:
       SubnetId: !Select [2, !Ref BBBPrivateApplicationSubnets]
       SecurityGroups:
         - !Ref BBBSharedStorageSecurityGroup
+
+  BBBSharedStorageAPspool:
+    Type: 'AWS::EFS::AccessPoint'
+    Properties:
+      FileSystemId: !Ref BBBSharedStorageFS
+      PosixUser:
+        Uid: "1000"
+        Gid: "1000"
+      RootDirectory:
+        CreationInfo:
+          OwnerGid: "1000"
+          OwnerUid: "1000"
+          Permissions: "0775"
+        Path: "/spool"
+
+  BBBSharedStorageAPpublished:
+    Type: 'AWS::EFS::AccessPoint'
+    Properties:
+      FileSystemId: !Ref BBBSharedStorageFS
+      PosixUser:
+        Uid: "1000"
+        Gid: "1000"
+      RootDirectory:
+        CreationInfo:
+          OwnerGid: "1000"
+          OwnerUid: "1000"
+          Permissions: "0775"
+        Path: "/published"
+
+  BBBSharedStorageAPunpublished:
+    Type: 'AWS::EFS::AccessPoint'
+    Properties:
+      FileSystemId: !Ref BBBSharedStorageFS
+      PosixUser:
+        Uid: "1000"
+        Gid: "1000"
+      RootDirectory:
+        CreationInfo:
+          OwnerGid: "1000"
+          OwnerUid: "1000"
+          Permissions: "0775"
+        Path: "/unpublished"
+
+  BBBSharedStorageAPrecordings:
+    Type: 'AWS::EFS::AccessPoint'
+    Properties:
+      FileSystemId: !Ref BBBSharedStorageFS
+      PosixUser:
+        Uid: "1000"
+        Gid: "1000"
+      RootDirectory:
+        CreationInfo:
+          OwnerGid: "1000"
+          OwnerUid: "1000"
+          Permissions: "0775"
+        Path: "/recordings"
+
 Outputs:
   BBBSharedStorageFS:
     Value: !Ref BBBSharedStorageFS
     Description: Reference to the created Amazon EFS Volume
+  BBBSharedStorageAPspool:
+    Value: !Ref BBBSharedStorageAPspool
+    Description: Reference to the created Amazon EFS Access Point
+  BBBSharedStorageAPpublished:
+    Value: !Ref BBBSharedStorageAPpublished
+    Description: Reference to the created Amazon EFS Access Point
+  BBBSharedStorageAPunpublished:
+    Value: !Ref BBBSharedStorageAPunpublished
+    Description: Reference to the created Amazon EFS Access Point
+  BBBSharedStorageAPrecordings:
+    Value: !Ref BBBSharedStorageAPrecordings
+    Description: Reference to the created Amazon EFS Access Point

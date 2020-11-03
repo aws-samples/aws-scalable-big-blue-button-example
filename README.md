@@ -6,9 +6,13 @@ Example deployment of a scalable Video Conference System
 ## Summary
 This project demonstrates the deployment of a scalable Video Conference Setup jointly using open-source software components and AWS Services. 
 
-## High-Level Architecture
+## High-Level architecture
 
-![Architecture](./documentation/BBBArchitectureDiagram.png)
+### EC2 based deployment - architecture
+![Architecture](./documentation/BBBArchitectureDiagramEC2.png)
+
+### Serverless based deployment - architecture
+![Architecture](./documentation/BBBArchitectureDiagramServerless.png)
 
 ## Disclaimer
 This project is an example of an deployment and meant to be used for testing and learning purposes only. Do not use in production.
@@ -75,7 +79,7 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 
 | Parameter Name | Default Value | Description | Comment |
 | ---- | ---- | ---- | ---- |
-| BBBECSInstanceType| t3a.large| Instance size of the ECS Cluster worker nodes | should be aligned with the size VCPU and Memory limits of the to be deployed tasks below |
+| BBBECSInstanceType| t3a.large| Instance size of the ECS Cluster worker nodes or "fargate" for serverless deployment | EC2 instance sizes should be aligned with the size VCPU and Memory limits of the to be deployed tasks. setting this parameter to fargate will cause a Serverless Setup using AWS Fargate |
 | BBBApplicationInstanceType| t3a.xlarge| Instance size of the Big Blue Button Application node(s) | please refer to the Big Blue Button [Documentation](https://docs.bigbluebutton.org/2.2/install.html#minimum-server-requirements) for rightsizing |
 | BBBApplicationDataVolumeSize | 20 | the size of the application data volume used for recording buffer |
 | BBBTurnInstanceType| t3.micro| Instance size of the turn server | For right sizing please refer to the Big Blue Button [Documentation](https://docs.bigbluebutton.org/2.2/setup-turn-server.html)
@@ -105,18 +109,10 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 | BBBScalelitePollerImage| blindsidenetwks/scalelite:v1-poller| scalelite poller container image to be used
 | BBBScaleliteImporterImage| blindsidenetwks/scalelite:v1-recording-importer| scalelite recording importer container image to be used
 | BBBCacheAZMode| cross-az| Deploy the Redis cluster cross-az or single-az | only cross-az supported atm
-| BBBGreenlightContainerMemory| 1024| memory limit of the Greenlight container 
-| BBBGreenlightContainerCPU| 512| vCPU limit of the Greenlight container 
-| BBBScaleliteImporterContainerMemory| 256| memory limit of the Scalelite recording importer container | usually does not need much resources, watch the metrics
-| BBBScaleliteImporterContainerCPU| 128| vCPU limit of the Scalelite recording importer container | usually does not need much resources, watch the metrics
-| BBBScalelitePollerContainerMemory| 256| memory limit of the Scalelite application server poller container | usually does not need much resources, watch the metrics
-| BBBScalelitePollerContainerCPU| 128| vCPU limit of the Scalelite application server poller container | usually does not need much resources, watch the metrics
-| BBBScaleliteNginxContainerMemory| 512| memory limit of the Nginx Reverse Proxy container | check metrics for sizing
-| BBBScaleliteNginxContainerCPU| 512| vCPU limit of the Nginx Reverse Proxy container | check metrics for sizing
-| BBBScaleliteApiContainerMemory| 1024| memory limit of the Scalelite API container | check metrics for sizing
-| BBBScaleliteApiContainerCPU| 512| vCPU limit of the Scalelite API container | check metrics for sizing
-| BBBScaleliteAddServerContainerMemory| 512| memory limit of the Greenlight container | does not need many resources
-| BBBScaleliteAddServerContainerCPU| 128 | vCPU limit of the Greenlight container | does not need many resources
+| BBBGreenlightMemory| 1024 | memory limit of the Greenlight task 
+| BBBGreenlightCPU| 512| vCPU limit of the Greenlight task 
+| BBBScaleliteMemory | 2048 | Memory limit for the Scalelite tasks | setting per task for all inheritated containers
+| BBBScaleliteCPU | 1024 | vCPU limit for the Scalelite tasks if deployed | setting once per task for all containers
 | BBBSesRegion| - | Region of the SES Service to be used | if the setup is planned to be deployed in a Region w/o Amazon SES, choose a proper region here. 
 
 # Deployment
@@ -224,7 +220,7 @@ The Deployment consists of 2 main templates and 13 nested templates.
 --- 
 - Fire up the ECS Cluster: [bbb-on-aws-ecs.template.yaml](./templates/bbb-on-aws-ecs.template.yaml)
 
-    *The template deploys the ECS cluster and EC2 Autoscaling Group with the Launch Configuration for the Amazon EC2 worker nodes.*
+    *The template deploys the ECS cluster and EC2 Autoscaling Group with the Launch Configuration for the Amazon EC2 worker nodes. If the parameter BBBECSInstanceType is set to "fargate" the ECS Cluster will be utilizing AWS Fargate for the tasks and EC2 worker instances as well as Autoscaling Groups will not be created*
 ---
 - Add a turnserver to the stack: [bbb-on-aws-bbbturn.template.yaml](./templates/bbb-on-aws-bbbturn.template.yaml)
 
@@ -261,6 +257,44 @@ During the deployment the EC2 instances will be bootstrapped using UserData. To 
 - Cloudwatch Agent for [application](./scripts/bbb-cwagent.config) and [turn](./scripts/turn-cwagent.config) instances
     *the agent is automatically setup via UserData on bootstrap. To sent valid data to the Amazon Cloudwatch Service a custom agent config is used for application and turn servers* 
 
+## Customizing your Big Blue Button deployment
+
+There are several ways how you can further customize your deployment. Apart from the infrastructure components you can customize using the parameters mentioned earlier at the documentation you can also adjust the bootstrap of the Big Blue Button or Greenlight deployment according to your needs. A good starting point is to take a look at the UserData Section of the nested stack for the application instances like: [bbb-on-aws-bbbappscalable.template.yaml](./templates/bbb-on-aws-bbbappscalable.template.yaml) (for single server deployments [bbb-on-aws-bbbappsingle.template.yaml](./templates/bbb-on-aws-bbbappsingle.template.yaml)) 
+
+Our recommendation is to hook into the bootstrap and alter/extend the Scripts and/or code there. this makes sure your customization will be persistent for all of your deployments and also if you decide to scale-out the application servers. Basically the [customization section of the Big Blue Button documentation](https://docs.bigbluebutton.org/2.2/customize.html) does content all steps you need. 
+
+When it comes to Greenlight there is also a part at the [official documentation](https://docs.bigbluebutton.org/greenlight/gl-customize.html) covering this. As we do use the containerized version of the Greenlight deployment at the scalable option the best way to approach it is to customize and extend the related Greenlight container, push it into your private container registy. [Amazon ECR](https://aws.amazon.com/ecr/) or any docker compatible registry of your choise. And continue with your customized container image setting the related parameter. 
+
+# Code updates
+
+to update an already deployed stack just pull the current version of the IaC code repository. Afterwards you can start the upgrade process the same way as you would do the initial setup. 
+
+# Versioning
+
+We're using the [Semantic Versioning](https://semver.org/) for this repo. Each major release will be tagged and can be pulled seperately. 
+Be sure NOT to use the main branch if you want to be sure not pulling potential huge changes to the infrastrucutre unintentionally. Use the branches regarding to the major Version you want to stick to. 
+
+---
+# Troubleshooting common errors
+
+- Failed to create: [BBBTurnAutoScaling] Issue: 
+
+    One of the most common errors is, that the Hosted Zone metioned at the Prerequisites is not setup properly or you're at the state of DNS delay. Use the following commands on your command line to evaluate if your DNS Setup is working: 
+
+    ```nslookup thedomain.setupashosted.zone```
+
+    This should reply with some basic domain information like assigned DNS Servers. If you get a domain not found error wait a bit if you're sure you followed the docomentation above ( [registered](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/domain-register.html) Domain or an [external registered](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/migrate-dns-domain-in-use.html) Domain (at the target account) ) and try like 10min later. If still no results, check your hosted zone and DNS setup. 
+    If you use an external Registar (and did not buy a domain using Route53) make sure you registered the Route53 DNS Servers with the Domain as mentioned at the related [documentation](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/migrate-dns-domain-in-use.html). 
+    
+    You do need an own domain to deploy in any case. you cannot mock it using bbb.example.com or any invalid setup here. 
+
+- Failed to create: [BBBECSCapacityProvider] Issue: 
+    
+    There are some cases where the needed Service Role is non-existent at the target account. 
+    Solution: Create the missing Service Role manually using the following aws-cli command:
+
+    ```aws iam create-service-linked-role --aws-service-name ecs.amazonaws.com```
+
 ---
 # Resources
 
@@ -268,6 +302,7 @@ During the deployment the EC2 instances will be bootstrapped using UserData. To 
     - [Amazon Cloudformation](https://aws.amazon.com/cloudformation/)
     - [Amazon EC2](https://aws.amazon.com/ec2/)
     - [Amazon ECS](https://aws.amazon.com/ecs/)
+    - [AWS Fargate](https://aws.amazon.com/fargate/)
     - [Amazon Aurora](https://aws.amazon.com/rds/aurora/)
     - [Amazon Elasicache](https://aws.amazon.com/elasticache/)
     - [AWS Systems Manager](https://aws.amazon.com/systems-manager/)
