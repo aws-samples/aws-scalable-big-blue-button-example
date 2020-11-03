@@ -257,7 +257,7 @@ During the deployment the EC2 instances will be bootstrapped using UserData. To 
 - Cloudwatch Agent for [application](./scripts/bbb-cwagent.config) and [turn](./scripts/turn-cwagent.config) instances
     *the agent is automatically setup via UserData on bootstrap. To sent valid data to the Amazon Cloudwatch Service a custom agent config is used for application and turn servers* 
 
-# Code Updates
+# Code updates
 
 to update an already deployed stack just pull the current version of the IaC code repository. Afterwards you can start the upgrade process the same way as you would do the initial setup. 
 
@@ -266,7 +266,26 @@ to update an already deployed stack just pull the current version of the IaC cod
 We're using the [Semantic Versioning](https://semver.org/) for this repo. Each major release will be tagged and can be pulled seperately. 
 Be sure NOT to use the main branch if you want to be sure not pulling potential huge changes to the infrastrucutre unintentionally. Use the branches regarding to the major Version you want to stick to. 
 
-# Troubleshooting hints
+# Troubleshooting common errors
+- Failed to create: [BBBTurnAutoScaling] Issue: 
+
+    One of the most common errors is, that the Hosted Zone metioned at the Prerequisites is not setup properly or you're at the state of DNS delay. Use the following commands on your command line to evaluate if your DNS Setup is working: 
+
+    ```nslookup thedomain.setupashosted.zone```
+
+    This should reply with some basic domain information like assigned DNS Servers. If you get a domain not found error wait a bit if you're sure you followed the docomentation above ( [registered](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/domain-register.html) Domain or an [external registered](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/migrate-dns-domain-in-use.html) Domain (at the target account) ) and try like 10min later. If still no results, check your hosted zone and DNS setup. 
+    If you use an external Registar (and did not buy a domain using Route53) make sure you registered the Route53 DNS Servers with the Domain as mentioned at the related [documentation](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/migrate-dns-domain-in-use.html). 
+    
+    You do need an own domain to deploy in any case. you cannot mock it using bbb.example.com or any invalid setup here. 
+
+
+- Failed to create: [BBBECSCapacityProvider] Issue: 
+    
+    There are some cases where the needed Service Role is non-existent at the target account. 
+    Solution: Create the missing Service Role manually using the following aws-cli command:
+
+    ```aws iam create-service-linked-role --aws-service-name ecs.amazonaws.com```
+
 ---
 # Resources
 
@@ -274,6 +293,7 @@ Be sure NOT to use the main branch if you want to be sure not pulling potential 
     - [Amazon Cloudformation](https://aws.amazon.com/cloudformation/)
     - [Amazon EC2](https://aws.amazon.com/ec2/)
     - [Amazon ECS](https://aws.amazon.com/ecs/)
+    - [AWS Fargate](https://aws.amazon.com/fargate/)
     - [Amazon Aurora](https://aws.amazon.com/rds/aurora/)
     - [Amazon Elasicache](https://aws.amazon.com/elasticache/)
     - [AWS Systems Manager](https://aws.amazon.com/systems-manager/)
