@@ -257,6 +257,14 @@ During the deployment the EC2 instances will be bootstrapped using UserData. To 
 - Cloudwatch Agent for [application](./scripts/bbb-cwagent.config) and [turn](./scripts/turn-cwagent.config) instances
     *the agent is automatically setup via UserData on bootstrap. To sent valid data to the Amazon Cloudwatch Service a custom agent config is used for application and turn servers* 
 
+## Customizing your Big Blue Button deployment
+
+There are several ways how you can further customize your deployment. Apart from the infrastructure components you can customize using the parameters mentioned earlier at the documentation you can also adjust the bootstrap of the Big Blue Button or Greenlight deployment according to your needs. A good starting point is to take a look at the UserData Section of the nested stack for the application instances like: [bbb-on-aws-bbbappscalable.template.yaml](./templates/bbb-on-aws-bbbappscalable.template.yaml) (for single server deployments [bbb-on-aws-bbbappsingle.template.yaml](./templates/bbb-on-aws-bbbappsingle.template.yaml)) 
+
+Our recommendation is to hook into the bootstrap and alter/extend the Scripts and/or code there. this makes sure your customization will be persistent for all of your deployments and also if you decide to scale-out the application servers. Basically the [customization section of the Big Blue Button documentation](https://docs.bigbluebutton.org/2.2/customize.html) does content all steps you need. 
+
+When it comes to Greenlight there is also a part at the [official documentation](https://docs.bigbluebutton.org/greenlight/gl-customize.html) covering this. As we do use the containerized version of the Greenlight deployment at the scalable option the best way to approach it is to customize and extend the related Greenlight container, push it into your private container registy. [Amazon ECR](https://aws.amazon.com/ecr/) or any docker compatible registry of your choise. And continue with your customized container image setting the related parameter. 
+
 # Code updates
 
 to update an already deployed stack just pull the current version of the IaC code repository. Afterwards you can start the upgrade process the same way as you would do the initial setup. 
@@ -266,7 +274,9 @@ to update an already deployed stack just pull the current version of the IaC cod
 We're using the [Semantic Versioning](https://semver.org/) for this repo. Each major release will be tagged and can be pulled seperately. 
 Be sure NOT to use the main branch if you want to be sure not pulling potential huge changes to the infrastrucutre unintentionally. Use the branches regarding to the major Version you want to stick to. 
 
+---
 # Troubleshooting common errors
+
 - Failed to create: [BBBTurnAutoScaling] Issue: 
 
     One of the most common errors is, that the Hosted Zone metioned at the Prerequisites is not setup properly or you're at the state of DNS delay. Use the following commands on your command line to evaluate if your DNS Setup is working: 
@@ -277,7 +287,6 @@ Be sure NOT to use the main branch if you want to be sure not pulling potential 
     If you use an external Registar (and did not buy a domain using Route53) make sure you registered the Route53 DNS Servers with the Domain as mentioned at the related [documentation](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/migrate-dns-domain-in-use.html). 
     
     You do need an own domain to deploy in any case. you cannot mock it using bbb.example.com or any invalid setup here. 
-
 
 - Failed to create: [BBBECSCapacityProvider] Issue: 
     
