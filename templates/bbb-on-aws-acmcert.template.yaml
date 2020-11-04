@@ -56,7 +56,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       RetentionInDays: 7
-      LogGroupName: !Join ["", ["/aws/lambda/", !Ref BBBACMCertProvider]]
+      LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", "/", !Ref BBBACMCertProvider]]
 
   BBBACMCertProvider:
     Type: AWS::Lambda::Function

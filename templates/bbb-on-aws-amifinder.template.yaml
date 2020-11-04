@@ -47,7 +47,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       RetentionInDays: 7
-      LogGroupName: !Join ["", ["/aws/lambda/", !Ref BBBGetLatestAMI]]
+      LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", "/", !Ref BBBGetLatestAMI]]
 
   BBBGetLatestAMI:
     Type: AWS::Lambda::Function

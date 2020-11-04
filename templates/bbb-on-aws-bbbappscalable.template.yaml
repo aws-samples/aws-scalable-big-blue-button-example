@@ -142,14 +142,17 @@ Parameters:
   BBBTurnHostnameParameter:
     Description: Parameter name that is used to store the Turn server host name
     Type: String
-  BBBAuthLogLogGroup:
-    Description: Log group to be used for the auth logs
-    Type: String
-  BBBSyslogLogGroup:
+  BBBSystemLogsGroup:
     Description: Log group to be used for the system logs
     Type: String
-  BBBLetsEncryptLogGroup:
-    Description: Log group to be used for the Let's Encrypt logs
+  BBBApplicationLogsGroup:
+    Description: Log group to be used for the Application logs
+    Type: String
+  BBBSystemLogsGroupArn:
+    Description: Log group to be used for the system logs
+    Type: String
+  BBBApplicationLogsGroupArn:
+    Description: Log group to be used for the Application logs
     Type: String
   BBBLatestApplicationAmiId:
     Description: AMI id that should be used for the appserver instaces
@@ -188,66 +191,6 @@ Resources:
     UpdatePolicy:
       AutoScalingReplacingUpdate:
         WillReplace: true
-
-  BBBAkkaLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /var/log/bbb-apps-akka/bbb-apps-akka.log
-      RetentionInDays: 7
-
-  BBBfseslLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /var/log/bbb-fsesl-akka/bbb-fsesl-akka.log
-      RetentionInDays: 7
-
-  BBBTranscodeLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /var/log/bbb-transcode-akka/bbb-transcode.log
-      RetentionInDays: 7
-
-  BBBWebRTCLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /var/log/bbb-webrtc-sfu/bbb-webrtc-sfu.log
-      RetentionInDays: 7
-
-  BBBWebAppLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /var/log/bigbluebutton/bbb-web.log
-      RetentionInDays: 7
-
-  BBBKurentoLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /var/log/kurento-media-server
-      RetentionInDays: 7
-
-  BBBMongoLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /var/log/mongodb/mongod.log
-      RetentionInDays: 7
-
-  BBBRedisLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /var/log/redis/redis-server.log
-      RetentionInDays: 7
-
-  BBBRed5LogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /var/log/red5
-      RetentionInDays: 7
-
-  BBBNginxLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /var/log/nginx
-      RetentionInDays: 7
 
   BBBApplicationEC2Role:
     Type: AWS::IAM::Role
@@ -312,19 +255,8 @@ Resources:
                   - logs:CreateLogGroup
                   - logs:GetLogEvents
                 Resource:
-                  - Fn::GetAtt: [ BBBAkkaLogGroup, Arn ]
-                  - Fn::GetAtt: [ BBBfseslLogGroup, Arn ]
-                  - Fn::GetAtt: [ BBBTranscodeLogGroup, Arn ]
-                  - Fn::GetAtt: [ BBBWebRTCLogGroup, Arn ]
-                  - Fn::GetAtt: [ BBBWebAppLogGroup, Arn ]
-                  - Fn::GetAtt: [ BBBKurentoLogGroup, Arn ]
-                  - Fn::GetAtt: [ BBBMongoLogGroup, Arn ]
-                  - Fn::GetAtt: [ BBBRedisLogGroup, Arn ]
-                  - Fn::GetAtt: [ BBBRed5LogGroup, Arn ]
-                  - Fn::GetAtt: [ BBBNginxLogGroup, Arn ]
-                  - !Ref BBBAuthLogLogGroup
-                  - !Ref BBBSyslogLogGroup
-                  - !Ref BBBLetsEncryptLogGroup
+                  - !Ref BBBSystemLogsGroupArn
+                  - !Ref BBBApplicationLogsGroupArn
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
 
@@ -484,52 +416,15 @@ Resources:
 
           curl https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py -O
           chmod +x ./awslogs-agent-setup.py
-          ./awslogs-agent-setup.py -n -r ${AWS::Region} -c s3://${BBBStackBucketStack}/bbb-cwagent.config
+          aws s3 cp s3://${BBBStackBucketStack}/bbb-cwagent.config /tmp/bbb-cwagent.config
+          sed -i "s/SYSTEMLOGS_PLACEHOLDER/${BBBSystemLogsGroup}/g" /tmp/bbb-cwagent.config
+          sed -i "s/APPLICATIONLOGS_PLACEHOLDER/${BBBSystemLogsGroup}/g" /tmp/bbb-cwagent.config
+          ./awslogs-agent-setup.py -n -r ${AWS::Region} -c /tmp/bbb-cwagent.config
           systemctl enable awslogs
 
           /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBApplicationAutoScaling --region ${AWS::Region} || true
 
 Outputs:
-  BBBAkkaLogGroup:
-    Description: Big Blue Button Akka Log Group
-    Value:
-      Ref: BBBAkkaLogGroup
-  BBBfseslLogGroup:
-    Description: Big Blue Button FSESl Log Group
-    Value:
-      Ref: BBBfseslLogGroup
-  BBBTranscodeLogGroup:
-    Description: Big Blue Button Transcode Log Group
-    Value:
-      Ref: BBBTranscodeLogGroup
-  BBBWebRTCLogGroup:
-    Description: Big Blue Button WebRTC Log Group
-    Value:
-      Ref: BBBTranscodeLogGroup
-  BBBWebAppLogGroup:
-    Description: Big Blue Button WebApp Log Group
-    Value:
-      Ref: BBBWebAppLogGroup
-  BBBKurentoLogGroup:
-    Description: Big Blue Button Kurento Log Group
-    Value:
-      Ref: BBBKurentoLogGroup
-  BBBMongoLogGroup:
-    Description: Big Blue Button MongoDB Log Group
-    Value:
-      Ref: BBBMongoLogGroup
-  BBBRedisLogGroup:
-    Description: Big Blue Button Redis Log Group
-    Value:
-      Ref: BBBRedisLogGroup
-  BBBRed5LogGroup:
-    Description: Big Blue Button Red5 Log Group
-    Value:
-      Ref: BBBRed5LogGroup
-  BBBNginxLogGroup:
-    Description: Big Blue Button Nginx Log Group
-    Value:
-      Ref: BBBNginxLogGroup
   BBBApplicationEC2InstanceProfile:
     Description: Big Blue Button Application Instance Profile
     Value:

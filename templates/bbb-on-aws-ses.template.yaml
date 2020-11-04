@@ -74,7 +74,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       RetentionInDays: 7
-      LogGroupName: !Join ["", ["/aws/lambda/", !Ref BBBSESProvider]]
+      LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", , !Ref BBBSESProvider]]
 
   BBBSESProvider:
     Type: AWS::Lambda::Function
@@ -112,7 +112,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       RetentionInDays: 7
-      LogGroupName: !Join ["", ["/aws/lambda/", !Ref BBBSMTPSecretProvider]]
+      LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", , !Ref BBBSMTPSecretProvider]]
 
   BBBSMTPSecretProvider:
     Type: AWS::Lambda::Function

@@ -433,22 +433,16 @@ Resources:
           Ref: BBBOperatorEMail
         Protocol: email
 
-  BBBSyslogLogGroup:
+  BBBSystemLogsGroup:
     Type: AWS::Logs::LogGroup
     Properties: 
-      LogGroupName: /var/log/syslog
+      LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", "/systemlogs"]]
       RetentionInDays: 7
 
-  BBBAuthLogLogGroup:
+  BBBApplicationLogsGroup:
     Type: AWS::Logs::LogGroup
     Properties: 
-      LogGroupName: /var/log/auth.log
-      RetentionInDays: 7
-
-  BBBLetsEncryptLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties: 
-      LogGroupName: /var/log/letsencrypt/letsencrypt.log
+      LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", "/applicationlogs"]]
       RetentionInDays: 7
 
   BBBACMCertStack:
@@ -758,18 +752,18 @@ Resources:
           Ref: BBBOperatorEMail
         BBBNotificationTopic:
           Ref: BBBNotificationTopic
-        BBBSyslogLogGroup:
+        BBBSystemLogsGroup:
           Fn::GetAtt:
-            - BBBSyslogLogGroup
+            - BBBSystemLogsGroup
             - Arn 
-        BBBAuthLogLogGroup:
+        BBBSystemLogsGroupArn:
+          Ref: BBBSystemLogsGroup
+        BBBApplicationLogsGroupArn:
           Fn::GetAtt:
-            - BBBAuthLogLogGroup
+            - BBBApplicationLogsGroup
             - Arn 
-        BBBLetsEncryptLogGroup:
-          Fn::GetAtt:
-            - BBBLetsEncryptLogGroup
-            - Arn 
+        BBBApplicationLogsGroup:
+          Ref: BBBApplicationLogsGroup
         BBBTurnSecurityGroup:
           Fn::GetAtt:
             - BBBSecurityGroupStack
@@ -826,18 +820,18 @@ Resources:
             - Outputs.BBBTurnSecret
         BBBNotificationTopic:
           Ref: BBBNotificationTopic
-        BBBSyslogLogGroup:
+        BBBSystemLogsGroup:
           Fn::GetAtt:
-            - BBBSyslogLogGroup
+            - BBBSystemLogsGroup
             - Arn 
-        BBBAuthLogLogGroup:
+        BBBSystemLogsGroupArn:
+          Ref: BBBSystemLogsGroup
+        BBBApplicationLogsGroupArn:
           Fn::GetAtt:
-            - BBBAuthLogLogGroup
+            - BBBApplicationLogsGroup
             - Arn 
-        BBBLetsEncryptLogGroup:
-          Fn::GetAtt:
-            - BBBLetsEncryptLogGroup
-            - Arn 
+        BBBApplicationLogsGroup:
+          Ref: BBBApplicationLogsGroup
         BBBApplicationSecurityGroup:
           Fn::GetAtt:
             - BBBSecurityGroupStack
@@ -926,18 +920,18 @@ Resources:
             - Outputs.BBBTurnSecret
         BBBNotificationTopic:
           Ref: BBBNotificationTopic
-        BBBSyslogLogGroup:
+        BBBSystemLogsGroup:
           Fn::GetAtt:
-            - BBBSyslogLogGroup
+            - BBBSystemLogsGroup
             - Arn 
-        BBBAuthLogLogGroup:
+        BBBSystemLogsGroupArn:
+          Ref: BBBSystemLogsGroup
+        BBBApplicationLogsGroupArn:
           Fn::GetAtt:
-            - BBBAuthLogLogGroup
+            - BBBApplicationLogsGroup
             - Arn 
-        BBBLetsEncryptLogGroup:
-          Fn::GetAtt:
-            - BBBLetsEncryptLogGroup
-            - Arn 
+        BBBApplicationLogsGroup:
+          Ref: BBBApplicationLogsGroup
         BBBApplicationSecurityGroup:
           Fn::GetAtt:
             - BBBSecurityGroupStack
@@ -1116,6 +1110,8 @@ Resources:
           Fn::GetAtt:
             - BBBSecurityGroupStack
             - Outputs.BBBECSTaskSecurityGroup
+        BBBApplicationLogsGroup:
+          Ref: BBBApplicationLogsGroup
       Tags:
         - Key: Name
           Value:
@@ -1130,15 +1126,11 @@ Outputs:
     Description: The SNS Topic for Operational Messages
     Value: 
       Ref: BBBNotificationTopic
-  BBBSyslogLogGroup:
-    Description: The Syslog LogGroup for Cloudwatch
+  BBBSystemLogsGroup:
+    Description: The System LogGroup for Cloudwatch
     Value: 
-      Ref: BBBSyslogLogGroup
-  BBBAuthLogLogGroup:
-    Description: The auth.log LogGroup for Cloudwatch
+      Ref: BBBSystemLogsGroup
+  BBBApplicationLogsGroup:
+    Description: The Application LogGroup for Cloudwatch
     Value: 
-      Ref: BBBAuthLogLogGroup
-  BBBLetsEncryptLogGroup:
-    Description: The Let's Encrypt LogGroup for Cloudwatch
-    Value: 
-      Ref: BBBLetsEncryptLogGroup
+      Ref: BBBApplicationLogsGroup
