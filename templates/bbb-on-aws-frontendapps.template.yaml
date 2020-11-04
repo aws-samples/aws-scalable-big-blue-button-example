@@ -163,6 +163,9 @@ Parameters:
   BBBECSTaskSecurityGroup:
     Description: Security Group that should be assigned for the EC2 Instances
     Type: String
+  BBBApplicationLogsGroup:
+    Description: Log group to be used for the Application logs
+    Type: String
 
 Conditions:
   BBBProdEnvironment: !Equals [ !Ref BBBEnvironmentStage, prod ]
@@ -292,12 +295,6 @@ Resources:
         GenerateStringKey: 'password'
         PasswordLength: 16
         ExcludePunctuation: true
-
-  BBBFrontendAppsLogsGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Join [ "", [ "/aws/ecs/", !Ref BBBECSCluster ] ]
-      RetentionInDays: 7
 
   BBBScaleliteExecutionRole:
     Type: AWS::IAM::Role
@@ -564,7 +561,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Ref BBBFrontendAppsLogsGroup
+              awslogs-group: !Ref BBBApplicationLogsGroup
               awslogs-region: !Ref "AWS::Region"
               awslogs-stream-prefix: greenlight
           PortMappings:
@@ -736,7 +733,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Ref BBBFrontendAppsLogsGroup
+              awslogs-group: !Ref BBBApplicationLogsGroup
               awslogs-region: !Ref "AWS::Region"
               awslogs-stream-prefix: scalelite-importer
           HealthCheck:
@@ -767,7 +764,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Ref BBBFrontendAppsLogsGroup
+              awslogs-group: !Ref BBBApplicationLogsGroup
               awslogs-region: !Ref "AWS::Region"
               awslogs-stream-prefix: scalelite-poller
           HealthCheck:
@@ -829,7 +826,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Ref BBBFrontendAppsLogsGroup
+              awslogs-group: !Ref BBBApplicationLogsGroup
               awslogs-region: !Ref "AWS::Region"
               awslogs-stream-prefix: scalelite-nginx
           PortMappings:
@@ -871,7 +868,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Ref BBBFrontendAppsLogsGroup
+              awslogs-group: !Ref BBBApplicationLogsGroup
               awslogs-region: !Ref "AWS::Region"
               awslogs-stream-prefix: scalelite-api
           Command:
@@ -921,7 +918,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Ref BBBFrontendAppsLogsGroup
+              awslogs-group: !Ref BBBApplicationLogsGroup
               awslogs-region: !Ref "AWS::Region"
               awslogs-stream-prefix: scalelite-api
           HealthCheck:
@@ -1026,9 +1023,6 @@ Outputs:
   BBBLoadbalancerSecret:
     Description: The Big Blue Button Load Balancer Secret
     Value: !Ref BBBLoadbalancerSecret
-  BBBFrontendAppsLogsGroup:
-    Description: Log Group for the Frontend
-    Value: !Ref BBBFrontendAppsLogsGroup
   BBBAutoscalingRole:
     Description: Role for the Autoscaling Instances
     Value: !Ref BBBAutoscalingRole

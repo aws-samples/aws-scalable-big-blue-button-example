@@ -56,7 +56,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       RetentionInDays: 7
-      LogGroupName: !Join ["", ["/aws/lambda/", !Ref BBBACMCertProvider]]
+      LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", "/", !Ref BBBACMCertProvider]]
 
   BBBACMCertProvider:
     Type: AWS::Lambda::Function
@@ -65,7 +65,7 @@ Resources:
       Description: CFN Certificate Domain Resource Record Provider
       Code:
         S3Bucket: !Sub "binxio-public-${AWS::Region}"
-        S3Key: lambdas/cfn-certificate-provider-0.2.4.zip
+        S3Key: lambdas/cfn-certificate-provider-0.2.5.zip
       Handler: provider.handler
       MemorySize: 128
       Role: !Sub ${BBBACMCertLambdaRole.Arn}

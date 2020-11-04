@@ -27,10 +27,12 @@ Please note that running this code will cause software that is licensed under [A
 2. [Prerequisites](#Prerequisites)
 3. [Parameters](#Parameters)
 4. [Templates](#Templates)
-5. [Todo](#Todo)
-5. [Resources](#Resources)
-6. [Security](#Security)
-7. [License](#License)
+5. [Code updates](#Code-updates)
+6. [Versioning](#Versioning)
+7. [Troubleshooting common errors](#Troubleshooting-common-errors)
+8. [Resources](#Resources)
+9. [Security](#Security)
+10. [License](#License)
 
 # Getting started
 

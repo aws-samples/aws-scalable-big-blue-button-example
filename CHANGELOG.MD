@@ -1,7 +1,20 @@
 
 # Change Log
 All notable changes to this project will be documented in this file.
- 
+
+## [2.1.0] - 2020-11-04
+
+### Upgrade Notes: 
+- Be sure to backup persistent storages if you use the single instance deplyoment mode before running the upgrade via setup.sh. The setup is backward compatible and will only adjust log group namings and streams. If you need or want to keep the already collected logs, export the data to S3 before running the upgrade process. 
+
+### Changed
+- #35: Log groups names are now more dynamic, allowing multble stacks in the same account as well as make it easier to locate related logs in Cloudwatch. Also the LogGroup strucure is simlified for better usability. 
+- bump cfn-certificate-provider version to 0.2.5
+
+### Fixes
+- minor adjustments at the readme.md
+- #42: Bump cfn-ses-provider version to 0.6.5
+
 ## [2.0.0] - 2020-11-03
 
 ### Upgrade Notes: 
@@ -27,6 +40,14 @@ To Upgrade, simply run the setup.sh with your parameters. Be sure to test and ev
 - Container Health Checks adjusted for more reliable service startups.
 - #32
 - #28
+
+## [1.0.1] - 2020-11-04
+
+### Changed
+- bump cfn-certificate-provider version to 0.2.5
+
+### Fixes
+- #42: Bump cfn-ses-provider version to 0.6.5
 
 ## [1.0.0] - inital release
 

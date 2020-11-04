@@ -74,7 +74,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       RetentionInDays: 7
-      LogGroupName: !Join ["", ["/aws/lambda/", !Ref BBBSESProvider]]
+      LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", !Ref BBBSESProvider]]
 
   BBBSESProvider:
     Type: AWS::Lambda::Function
@@ -86,7 +86,7 @@ Resources:
       Code:
       Code:
         S3Bucket: !Sub "binxio-public-${AWS::Region}"
-        S3Key: lambdas/cfn-ses-provider-0.6.4.zip
+        S3Key: lambdas/cfn-ses-provider-0.6.5.zip
       Handler: ses.handler
       MemorySize: 128
       Role: !GetAtt 'BBBSESProviderLambdaRole.Arn'
@@ -112,7 +112,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       RetentionInDays: 7
-      LogGroupName: !Join ["", ["/aws/lambda/", !Ref BBBSMTPSecretProvider]]
+      LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", !Ref BBBSMTPSecretProvider]]
 
   BBBSMTPSecretProvider:
     Type: AWS::Lambda::Function
