@@ -9,9 +9,11 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - #35: Log groups names are now more dynamic, allowing multble stacks in the same account as well as make it easier to locate related logs in Cloudwatch. Also the LogGroup strucure is simlified for better usability. 
+- bump cfn-certificate-provider version to 0.2.5
 
 ### Fixes
 - minor adjustments at the readme.md
+- #42: Bump cfn-ses-provider version to 0.6.5
 
 ## [2.0.0] - 2020-11-03
 
