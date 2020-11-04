@@ -41,6 +41,14 @@ To Upgrade, simply run the setup.sh with your parameters. Be sure to test and ev
 - #32
 - #28
 
+## [1.0.1] - 2020-11-04
+
+### Changed
+- bump cfn-certificate-provider version to 0.2.5
+
+### Fixes
+- #42: Bump cfn-ses-provider version to 0.6.5
+
 ## [1.0.0] - inital release
 
 ### inital version

@@ -417,8 +417,8 @@ Resources:
           curl https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py -O
           chmod +x ./awslogs-agent-setup.py
           aws s3 cp s3://${BBBStackBucketStack}/bbb-cwagent.config /tmp/bbb-cwagent.config
-          sed -i "s/SYSTEMLOGS_PLACEHOLDER/${BBBSystemLogsGroup}/g" /tmp/bbb-cwagent.config
-          sed -i "s/APPLICATIONLOGS_PLACEHOLDER/${BBBSystemLogsGroup}/g" /tmp/bbb-cwagent.config
+          sed -i "s|SYSTEMLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/bbb-cwagent.config
+          sed -i "s|APPLICATIONLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/bbb-cwagent.config
           ./awslogs-agent-setup.py -n -r ${AWS::Region} -c /tmp/bbb-cwagent.config
           systemctl enable awslogs
 
