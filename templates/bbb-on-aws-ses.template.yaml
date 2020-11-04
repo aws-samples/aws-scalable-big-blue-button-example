@@ -112,7 +112,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       RetentionInDays: 7
-      LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", , !Ref BBBSMTPSecretProvider]]
+      LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", !Ref BBBSMTPSecretProvider]]
 
   BBBSMTPSecretProvider:
     Type: AWS::Lambda::Function

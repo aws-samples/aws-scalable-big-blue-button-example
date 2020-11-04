@@ -752,11 +752,11 @@ Resources:
           Ref: BBBOperatorEMail
         BBBNotificationTopic:
           Ref: BBBNotificationTopic
-        BBBSystemLogsGroup:
+        BBBSystemLogsGroupArn:
           Fn::GetAtt:
             - BBBSystemLogsGroup
             - Arn 
-        BBBSystemLogsGroupArn:
+        BBBSystemLogsGroup:
           Ref: BBBSystemLogsGroup
         BBBApplicationLogsGroupArn:
           Fn::GetAtt:
@@ -820,11 +820,11 @@ Resources:
             - Outputs.BBBTurnSecret
         BBBNotificationTopic:
           Ref: BBBNotificationTopic
-        BBBSystemLogsGroup:
+        BBBSystemLogsGroupArn:
           Fn::GetAtt:
             - BBBSystemLogsGroup
             - Arn 
-        BBBSystemLogsGroupArn:
+        BBBSystemLogsGroup:
           Ref: BBBSystemLogsGroup
         BBBApplicationLogsGroupArn:
           Fn::GetAtt:
@@ -920,11 +920,11 @@ Resources:
             - Outputs.BBBTurnSecret
         BBBNotificationTopic:
           Ref: BBBNotificationTopic
-        BBBSystemLogsGroup:
+        BBBSystemLogsGroupArn:
           Fn::GetAtt:
             - BBBSystemLogsGroup
             - Arn 
-        BBBSystemLogsGroupArn:
+        BBBSystemLogsGroup:
           Ref: BBBSystemLogsGroup
         BBBApplicationLogsGroupArn:
           Fn::GetAtt:
