@@ -1,7 +1,18 @@
 
 # Change Log
 All notable changes to this project will be documented in this file.
- 
+
+## [2.1.0] - 2020-11-04
+
+### Upgrade Notes: 
+- Be sure to backup persistent storages if you use the single instance deplyoment mode before running the upgrade via setup.sh. The setup is backward compatible and will only adjust log group namings and streams. If you need or want to keep the already collected logs, export the data to S3 before running the upgrade process. 
+
+### Changed
+- #35: Log groups names are now more dynamic, allowing multble stacks in the same account as well as make it easier to locate related logs in Cloudwatch. Also the LogGroup strucure is simlified for better usability. 
+
+### Fixes
+- minor adjustments at the readme.md
+
 ## [2.0.0] - 2020-11-03
 
 ### Upgrade Notes: 
