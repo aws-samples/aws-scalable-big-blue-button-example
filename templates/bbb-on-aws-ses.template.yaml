@@ -74,7 +74,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       RetentionInDays: 7
-      LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", , !Ref BBBSESProvider]]
+      LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", !Ref BBBSESProvider]]
 
   BBBSESProvider:
     Type: AWS::Lambda::Function
