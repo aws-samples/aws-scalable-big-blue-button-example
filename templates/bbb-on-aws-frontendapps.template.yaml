@@ -906,8 +906,8 @@ Resources:
       Family: !Join [ "", [ !Ref "AWS::StackName", -scalelite-handle-server ] ]
       ExecutionRoleArn: !Ref BBBScaleliteExecutionRole
       NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue"]
-      Memory: 256
-      Cpu: 128
+      Memory: 512
+      Cpu: 256
       RequiresCompatibilities: 
         !If 
         - BBBECSFargate
