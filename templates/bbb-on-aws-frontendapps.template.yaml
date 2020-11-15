@@ -552,7 +552,8 @@ Resources:
       RequiresCompatibilities: 
         !If 
         - BBBECSFargate
-        - FARGATE
+        -
+          - FARGATE
         - !Ref "AWS::NoValue"
       ContainerDefinitions:
         - Name: greenlight
@@ -690,7 +691,8 @@ Resources:
       RequiresCompatibilities: 
         !If 
         - BBBECSFargate
-        - FARGATE
+        -
+          - FARGATE
         - !Ref "AWS::NoValue"
       Volumes:
         - Name: !Join [ "", [ scalelite-recordings-volume-spool, !Ref BBBEnvironmentStage ] ]
@@ -909,7 +911,8 @@ Resources:
       RequiresCompatibilities: 
         !If 
         - BBBECSFargate
-        - FARGATE
+        -
+          - FARGATE
         - !Ref "AWS::NoValue"
       ContainerDefinitions:
         - Name: scalelite-handle-server
