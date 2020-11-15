@@ -136,7 +136,6 @@ Resources:
 
   BBBApplicationSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Condition: BBBScalableEnvironment
     Properties:
       VpcId:
         Ref: BBBVPC
@@ -144,7 +143,6 @@ Resources:
 
   BBBApplicationSecurityGroupWebSSLPort:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
     Properties:
       CidrIp: 0.0.0.0/0
       IpProtocol: tcp
@@ -154,7 +152,6 @@ Resources:
 
   BBBApplicationSecurityGroupWebPlainPort:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
     Properties:
       CidrIp: 0.0.0.0/0
       IpProtocol: tcp
@@ -164,7 +161,6 @@ Resources:
 
   BBBApplicationSecurityGroupVCPorts:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
     Properties:
       CidrIp: 0.0.0.0/0
       IpProtocol: udp
@@ -174,7 +170,6 @@ Resources:
 
   BBBApplicationSecurityGroupTurnPorts:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
     Properties:
       SourceSecurityGroupId: !Ref BBBTurnSecurityGroup
       IpProtocol: udp
@@ -184,7 +179,6 @@ Resources:
 
   BBBTurnSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Condition: BBBScalableEnvironment
     Properties:
       VpcId:
         Ref: BBBVPC
@@ -192,7 +186,6 @@ Resources:
 
   BBBTurnSecurityGroupWebSSLPort:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
     Properties:
       CidrIp: 0.0.0.0/0
       IpProtocol: tcp
@@ -202,7 +195,6 @@ Resources:
 
   BBBTurnSecurityGroupWebPlainPort:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
     Properties:
       CidrIp: 0.0.0.0/0
       IpProtocol: tcp
@@ -212,7 +204,6 @@ Resources:
 
   BBBTurnSecurityGroupWebSSLUDPPort:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
     Properties:
       CidrIp: 0.0.0.0/0
       IpProtocol: udp
@@ -222,7 +213,6 @@ Resources:
 
   BBBTurnSecurityGroupWebPlainUDPPort:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
     Properties:
       CidrIp: 0.0.0.0/0
       IpProtocol: udp
@@ -232,7 +222,6 @@ Resources:
 
   BBBTurnSecurityGroupWebPlainTCPPort:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
     Properties:
       CidrIp: 0.0.0.0/0
       IpProtocol: tcp
