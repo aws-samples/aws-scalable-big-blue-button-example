@@ -918,6 +918,10 @@ Resources:
           Fn::GetAtt:
             - BBBTurnStack
             - Outputs.BBBTurnSecret
+        BBBTurnHostnameParameter:
+          Fn::GetAtt:
+            - BBBTurnStack
+            - Outputs.BBBTurnHostnameParameter
         BBBNotificationTopic:
           Ref: BBBNotificationTopic
         BBBSystemLogsGroupArn:
