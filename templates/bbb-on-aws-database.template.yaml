@@ -267,7 +267,6 @@ Resources:
       Statistic: Average
       Threshold: 20
 
-
   BBBDBBCPUCreditBalanceTooLowAlarm:
     Type: 'AWS::CloudWatch::Alarm'
     Condition: BBBProvisiondedProdAurora
