@@ -2,6 +2,19 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2021-01-07
+
+### Fixes
+- #38: fixing deployment into Regions with < 3 AZs 
+
+### Added
+- #34: Optional deployment onto Aurora Serverless (Postgresql) for cost optimization especially with smaller deployments of a scalable solution
+- #15: Optional deployment into a predefined/existing VPC containing at least Subnets in 2 AZs
+
+### Changed
+- #44: Added section to prerequisites to ensure users are heads-up for common issues incl. missing service linked roles
+- Big Blue Button Version String via parameter to make the version to be adjusted easily for upcoming Big Blue Button releases
+
 ## [2.1.0] - 2020-11-04
 
 ### Upgrade Notes: 

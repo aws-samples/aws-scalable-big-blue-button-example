@@ -25,6 +25,10 @@ Parameters:
     Description:  Comma separated list of the appserver's subnets
     Type: CommaDelimitedList
     Default: "10.1.15.0/24,10.1.16.0/24,10.1.17.0/24"
+  BBBApplicationVersion:
+    Description: Database engine version for Aurora PostgreSQL
+    Type: String
+    Default: xenial-22
   BBBECSMaxInstances:
     Type: Number
     Description: Maximum number of ECS Worker Instances
@@ -810,6 +814,8 @@ Resources:
             - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
             - "/bbb-on-aws-bbbappscalable.template.yaml"
       Parameters:
+        BBBApplicationVersion:
+          Ref: BBBApplicationVersion
         BBBStackBucketStack:
           Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
         BBBOperatorEMail:
@@ -910,6 +916,8 @@ Resources:
             - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
             - "/bbb-on-aws-bbbappsingle.template.yaml"
       Parameters:
+        BBBApplicationVersion:
+          Ref: BBBApplicationVersion
         BBBStackBucketStack:
           Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
         BBBOperatorEMail:

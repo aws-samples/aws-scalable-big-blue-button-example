@@ -1,5 +1,6 @@
 {
   "Parameters" : {
+    "BBBApplicationVersion": "xenial-22",
     "BBBECSInstanceType": "t3a.medium",
     "BBBApplicationInstanceType": "t3a.medium",
     "BBBApplicationDataVolumeSize": 50,
