@@ -1,6 +1,8 @@
 {
   "Parameters" : {
     "BBBApplicationVersion": "xenial-22",
+    "BBBApplicationInstanceOSVersion": "xenial-16.04",
+    "BBBTurnInstanceOSVersion": "bionic-18.04",
     "BBBECSInstanceType": "t3a.medium",
     "BBBApplicationInstanceType": "t3a.medium",
     "BBBApplicationDataVolumeSize": 50,

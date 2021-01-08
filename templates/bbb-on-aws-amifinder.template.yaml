@@ -9,6 +9,17 @@ Description: >
   Author: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
 
 Parameters:
+  BBBTurnInstanceOSVersion: 
+    Description: Ubuntu Version to be deployed for Turn Instances 
+    Default: bionic-18.04
+    AllowedValues:
+      - bionic-18.04
+  BBBApplicationInstanceOSVersion: 
+    Description: Ubuntu Version to be deployed for Application Instances 
+    Default: xenial-16.04
+    AllowedValues:
+      - xenial-16.04
+      - bionic-18.04
   BBBEnvironmentStage:
     Type: String
     Description: Select the appropriate environment
@@ -87,7 +98,7 @@ Resources:
     Properties:
       ServiceToken: !Sub ${BBBGetLatestAMI.Arn}
       Owner: "099720109477"
-      Name: "ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server*"
+      Name: !Sub "ubuntu/images/hvm-ssd/ubuntu-${BBBApplicationInstanceOSVersion}-amd64-server*"
       Architecture: "x86_64"
 
   BBBTurnAmiID:
@@ -95,7 +106,7 @@ Resources:
     Properties:
       ServiceToken: !Sub ${BBBGetLatestAMI.Arn}
       Owner: "099720109477"
-      Name: "ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-*"
+      Name: "ubuntu/images/hvm-ssd/ubuntu-${BBBTurnInstanceOSVersion}-amd64-server-*"
       Architecture: "x86_64"
 
   BBBTurnAMIParameter:

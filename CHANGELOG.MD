@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - #44: Added section to prerequisites to ensure users are heads-up for common issues incl. missing service linked roles
 - Big Blue Button Version String via parameter to make the version to be adjusted easily for upcoming Big Blue Button releases
+- Application and Turn Server Ubuntu Versions are now parameterized. This ensures OS Versions can allign with the Big Blue Button Version used (e.g. for 2.3-dev deployments of BBB)
 
 ## [2.1.0] - 2020-11-04
 

@@ -26,9 +26,20 @@ Parameters:
     Type: CommaDelimitedList
     Default: "10.1.15.0/24,10.1.16.0/24,10.1.17.0/24"
   BBBApplicationVersion:
-    Description: Database engine version for Aurora PostgreSQL
+    Description: Version of the Big Blue Button Application
     Type: String
     Default: xenial-22
+  BBBApplicationInstanceOSVersion: 
+    Description: Ubuntu Version to be deployed for Application Instances 
+    Default: xenial-16.04
+    AllowedValues:
+      - xenial-16.04
+      - bionic-18.04
+  BBBTurnInstanceOSVersion: 
+    Description: Ubuntu Version to be deployed for Turn Instances 
+    Default: bionic-18.04
+    AllowedValues:
+      - bionic-18.04
   BBBECSMaxInstances:
     Type: Number
     Description: Maximum number of ECS Worker Instances

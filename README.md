@@ -83,6 +83,9 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 
 | Parameter Name | Default Value | Description | Comment |
 | ---- | ---- | ---- | ---- |
+| BBBApplicationVersion | xenial-22 | Big Blue Button Version to be deployed | Refer to the Big Blue Button [documentation](https://docs.bigbluebutton.org/) to check for supported versions. |
+| BBBApplicationInstanceOSVersion | xenial-16.04 | Big Blue Button Application Instance OS Version to be deployed | Refer to the Big Blue Button [documentation](https://docs.bigbluebutton.org/) to check for supported versions of Ubuntu for the application version you set using "BBBApplicationVersion" parameter. |
+| BBBTurnInstanceOSVersion | bionic-18.04 | Big Blue Button Turn Instance OS Version to be deployed | Refer to the Big Blue Button [documentation](https://docs.bigbluebutton.org/) to check for supported versions of Ubuntu for the application version you set using "BBBApplicationVersion" parameter. |
 | BBBECSInstanceType| t3a.large| Instance size of the ECS Cluster worker nodes or "fargate" for serverless deployment | EC2 instance sizes should be aligned with the size VCPU and Memory limits of the to be deployed tasks. setting this parameter to fargate will cause a Serverless Setup using AWS Fargate |
 | BBBApplicationInstanceType| t3a.xlarge| Instance size of the Big Blue Button Application node(s) | please refer to the Big Blue Button [Documentation](https://docs.bigbluebutton.org/2.2/install.html#minimum-server-requirements) for rightsizing |
 | BBBApplicationDataVolumeSize | 20 | the size of the application data volume used for recording buffer |
