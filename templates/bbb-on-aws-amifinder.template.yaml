@@ -12,11 +12,13 @@ Parameters:
   BBBTurnInstanceOSVersion: 
     Description: Ubuntu Version to be deployed for Turn Instances 
     Default: bionic-18.04
+    Type: String
     AllowedValues:
       - bionic-18.04
   BBBApplicationInstanceOSVersion: 
     Description: Ubuntu Version to be deployed for Application Instances 
     Default: xenial-16.04
+    Type: String
     AllowedValues:
       - xenial-16.04
       - bionic-18.04

@@ -108,6 +108,8 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 | BBBDBName| frontendapp| Set a Database Name for Greenlight / Scalelite | 
 | BBBDBEngineVersion| 10.7| Set the Postgres version to be used at the Amazon Aurora setup | please refer to the Amazon Aurora [documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraPostgreSQL.Updates.20180305.html) for supported versions
 | BBBEnvironmentStage| dev | can be set to "dev","stage" or "prod" | currently stage or prod does change the Amazon Aurora Setup to a Multi-AZ Setup and adds a 2nd Nat-Gateway to the deployment. 
+| BBBServerlessAuroraMinCapacity | The minimum capacity for the Amazon Aurora Serverless Cluster. | Value has to be >= 2
+| BBBServerlessAuroraMaxCapacity | The maximum capacity for the Amazon Aurora Serverless Cluster.
 | BBBEnvironmentName| bbbonaws| the name of the environment 
 | BBBEnvironmentType| scalable| can be either "scalable" or "single" | scalable for full scalable deployments. Single does leave out the ECS cluster, scalelite inner-application load balancer and Databases and installs Big Blue Button and Greenlight on a single EC2 instance and a turn server instance. 
 | BBBgreenlightImage| bigbluebutton/greenlight:v2| greenlight container image to be used 

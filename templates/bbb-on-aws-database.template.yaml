@@ -28,6 +28,7 @@ Parameters:
     Type: String
     Default: db.t3.medium
     AllowedValues:
+      - serverless
       - db.m5.large
       - db.m5.xlarge
       - db.m5.2xlarge
@@ -45,6 +46,14 @@ Parameters:
       - db.t3.large
       - db.t3.xlarge
       - db.t3.2xlarge
+  BBBServerlessAuroraMinCapacity:
+    Description: The minimum capacity for the Amazon Aurora Serverless Cluster.
+    Type: Number
+    Default: 2 
+  BBBServerlessAuroraMaxCapacity:
+    Description: The maximum capacity for the Amazon Aurora Serverless Cluster
+    Type: Number
+    Default: 4
   BBBPrivateDBSubnets:
     Description: Comma separated list of the private database subnets
     Type: CommaDelimitedList
@@ -66,6 +75,9 @@ Parameters:
 Conditions:
   BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
   BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
+  BBBServerlessAurora: !Equals [!Ref BBBDBInstanceType, serverless]
+  BBBProvisionedAurora: !Not [!Equals [!Ref BBBDBInstanceType, serverless]]
+  BBBProvisiondedProdAurora: !And [!Equals [!Ref BBBEnvironmentStage, prod], !Not [!Equals [!Ref BBBDBInstanceType, serverless]]]
 
 Resources:
   BBBDBSubnetGroup:
@@ -96,6 +108,7 @@ Resources:
       Engine: aurora-postgresql
       EngineVersion:
         Ref: BBBDBEngineVersion
+      EngineMode: !If [ BBBServerlessAurora, serverless, provisioned ] 
       StorageEncrypted: 'true'
       DBSubnetGroupName:
         Ref: BBBDBSubnetGroup
@@ -103,9 +116,19 @@ Resources:
         Ref: BBBRDSDBClusterParameterGroup
       VpcSecurityGroupIds:
         - Ref: BBBDBSecurityGroup
+      ScalingConfiguration:
+        !If
+          - BBBServerlessAurora 
+          - 
+            AutoPause: true
+            MinCapacity: !Ref BBBServerlessAuroraMinCapacity
+            MaxCapacity: !Ref BBBServerlessAuroraMaxCapacity
+            SecondsUntilAutoPause: 300
+          - !Ref "AWS::NoValue"
 
   BBBRDSDBInstance1:
     Type: AWS::RDS::DBInstance
+    Condition: BBBProvisionedAurora
     Properties:
       AllowMajorVersionUpgrade: 'false'
       AutoMinorVersionUpgrade: 'true'
@@ -129,7 +152,7 @@ Resources:
 
   BBBRDSDBInstance2:
     Type: AWS::RDS::DBInstance
-    Condition: BBBProdEnvironment
+    Condition: BBBProvisiondedProdAurora
     Properties:
       AllowMajorVersionUpgrade: 'false'
       AutoMinorVersionUpgrade: 'true'
@@ -182,6 +205,7 @@ Resources:
 
   BBBDBACPUUtilizationTooHighAlarm:
     Type: 'AWS::CloudWatch::Alarm'
+    Condition: BBBProvisionedAurora
     Properties:
       AlarmActions:
         - Ref: BBBNotificationTopic
@@ -202,7 +226,7 @@ Resources:
 
   BBBDBBCPUUtilizationTooHighAlarm:
     Type: 'AWS::CloudWatch::Alarm'
-    Condition: BBBProdEnvironment
+    Condition: BBBProvisiondedProdAurora
     Properties:
       AlarmActions:
         - Ref: BBBNotificationTopic
@@ -224,6 +248,7 @@ Resources:
 
   BBBDBACPUCreditBalanceTooLowAlarm:
     Type: 'AWS::CloudWatch::Alarm'
+    Condition: BBBProvisionedAurora
     Properties:
       AlarmActions:
         - Ref: BBBNotificationTopic
@@ -245,7 +270,7 @@ Resources:
 
   BBBDBBCPUCreditBalanceTooLowAlarm:
     Type: 'AWS::CloudWatch::Alarm'
-    Condition: BBBProdEnvironment
+    Condition: BBBProvisiondedProdAurora
     Properties:
       AlarmActions:
         - Ref: BBBNotificationTopic
@@ -267,6 +292,7 @@ Resources:
 
   BBBDBAFreeableMemoryTooLowAlarm:
     Type: 'AWS::CloudWatch::Alarm'
+    Condition: BBBProvisionedAurora
     Properties:
       AlarmActions:
         - Ref: BBBNotificationTopic
@@ -288,7 +314,7 @@ Resources:
 
   BBBDBBFreeableMemoryTooLowAlarm:
     Type: 'AWS::CloudWatch::Alarm'
-    Condition: BBBProdEnvironment
+    Condition: BBBProvisiondedProdAurora
     Properties:
       AlarmActions:
         - Ref: BBBNotificationTopic
@@ -356,11 +382,12 @@ Outputs:
     Value:
       Ref: BBBRDSCluster
   BBBRDSDBInstance1:
+    Condition: BBBProvisionedAurora
     Description: The Big Blue Button DB Instance 1
     Value:
       Ref: BBBRDSDBInstance1
   BBBRDSDBInstance2:
-    Condition: BBBProdEnvironment
+    Condition: BBBProvisiondedProdAurora
     Description: The Big Blue Button DB Instance 2
     Value:
       Ref: BBBRDSDBInstance2

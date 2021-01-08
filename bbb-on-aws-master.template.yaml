@@ -32,12 +32,14 @@ Parameters:
   BBBApplicationInstanceOSVersion: 
     Description: Ubuntu Version to be deployed for Application Instances 
     Default: xenial-16.04
+    Type: String
     AllowedValues:
       - xenial-16.04
       - bionic-18.04
   BBBTurnInstanceOSVersion: 
     Description: Ubuntu Version to be deployed for Turn Instances 
     Default: bionic-18.04
+    Type: String
     AllowedValues:
       - bionic-18.04
   BBBECSMaxInstances:
@@ -293,6 +295,7 @@ Parameters:
     Description: DB RDS instance type
     Type: String
     AllowedValues:
+      - serverless
       - db.m5.large
       - db.m5.xlarge
       - db.m5.2xlarge
@@ -311,6 +314,14 @@ Parameters:
       - db.t3.xlarge
       - db.t3.2xlarge
     Default: db.t3.medium
+  BBBServerlessAuroraMinCapacity:
+    Description: The minimum capacity for the Amazon Aurora Serverless Cluster.
+    Type: Number
+    Default: 2 
+  BBBServerlessAuroraMaxCapacity:
+    Description: The maximum capacity for the Amazon Aurora Serverless Cluster
+    Type: Number
+    Default: 3
   BBBCACHEDBInstanceType:
     Description: Instance type for Amazon ElastiCache (Redis)
     Type: String
@@ -642,6 +653,10 @@ Resources:
           Ref: BBBNotificationTopic
         BBBDBInstanceType:
           Ref: BBBDBInstanceType
+        BBBServerlessAuroraMinCapacity:
+          Ref: BBBServerlessAuroraMinCapacity
+        BBBServerlessAuroraMaxCapacity:
+          Ref: BBBServerlessAuroraMaxCapacity
         BBBVPC:
           Fn::GetAtt:
             - BBBNetworkStack

@@ -8,6 +8,8 @@
     "BBBApplicationDataVolumeSize": 50,
     "BBBTurnInstanceType": "t3a.micro",
     "BBBDBInstanceType": "db.t3.medium",
+    "BBBServerlessAuroraMinCapacity": 2,
+    "BBBServerlessAuroraMaxCapacity": 3,
     "BBBCACHEDBInstanceType": "cache.t3.micro",
     "BBBVPCcidr": "10.1.0.0/16",
     "BBBPrivateApplicationSubnets": "10.1.5.0/24,10.1.6.0/24,10.1.7.0/24",
