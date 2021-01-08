@@ -108,7 +108,7 @@ Resources:
     Properties:
       ServiceToken: !Sub ${BBBGetLatestAMI.Arn}
       Owner: "099720109477"
-      Name: "ubuntu/images/hvm-ssd/ubuntu-${BBBTurnInstanceOSVersion}-amd64-server-*"
+      Name: !Sub "ubuntu/images/hvm-ssd/ubuntu-${BBBTurnInstanceOSVersion}-amd64-server-*"
       Architecture: "x86_64"
 
   BBBTurnAMIParameter:
