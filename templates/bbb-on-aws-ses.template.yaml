@@ -20,10 +20,6 @@ Parameters:
       - prod
       - dev
 
-Conditions:
-  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
-  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
-
 Resources:
   BBBSESProviderLambdaRole:
     Type: AWS::IAM::Role

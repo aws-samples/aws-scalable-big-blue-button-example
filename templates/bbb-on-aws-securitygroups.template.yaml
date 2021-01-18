@@ -9,7 +9,7 @@ Description: >
   Author: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
 
 Parameters:
-  BBBVPC:
+  BBBVPCs:
     Description: Reference for the VPC
     Type: String
   BBBEnvironmentType:
@@ -30,8 +30,6 @@ Parameters:
     Type: String
 
 Conditions:
-  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
-  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
   BBBScalableEnvironment: !Equals [!Ref BBBEnvironmentType, scalable]
   BBBECSFargate: !Equals [!Ref BBBECSInstanceType, fargate]
   BBBECSEC2: !Not [!Equals [!Ref BBBECSInstanceType, fargate]]
@@ -42,7 +40,7 @@ Resources:
     Condition: BBBScalableEnvironment
     Properties:
       GroupDescription: ECS Instance Security Group
-      VpcId: !Ref BBBVPC
+      VpcId: !Ref BBBVPCs
 
   BBBECSTaskSecurityGroupPorts:
     Type: AWS::EC2::SecurityGroupIngress
@@ -59,7 +57,7 @@ Resources:
     Condition: BBBScalableEnvironment
     Properties:
       GroupDescription: Scalelite Security Group
-      VpcId: !Ref BBBVPC
+      VpcId: !Ref BBBVPCs
 
   BBBScaleliteELBSecurityGroupPorts:
     Type: AWS::EC2::SecurityGroupIngress
@@ -76,7 +74,7 @@ Resources:
     Condition: BBBScalableEnvironment
     Properties:
       GroupDescription: ALB Security Group
-      VpcId: !Ref BBBVPC
+      VpcId: !Ref BBBVPCs
 
   BBBECSSecurityGroupPublicports:
     Type: AWS::EC2::SecurityGroupIngress
@@ -103,7 +101,7 @@ Resources:
     Condition: BBBScalableEnvironment
     Properties:
       VpcId:
-        Ref: BBBVPC
+        Ref: BBBVPCs
       GroupDescription: Security group for the Postgres DB
 
   BBBDBSecurityGroupPorts:
@@ -121,7 +119,7 @@ Resources:
     Condition: BBBScalableEnvironment
     Properties:
       VpcId:
-        Ref: BBBVPC
+        Ref: BBBVPCs
       GroupDescription: Security group for the Redis Cache
 
   BBBCACHEDBSecurityGroupPorts:
@@ -138,7 +136,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId:
-        Ref: BBBVPC
+        Ref: BBBVPCs
       GroupDescription: Security group for the BigBlueButton Application Host
 
   BBBApplicationSecurityGroupWebSSLPort:
@@ -181,7 +179,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId:
-        Ref: BBBVPC
+        Ref: BBBVPCs
       GroupDescription: Security group for the Turn Host
 
   BBBTurnSecurityGroupWebSSLPort:
@@ -234,7 +232,7 @@ Resources:
     Condition: BBBScalableEnvironment
     Properties:
       VpcId:
-        Ref: BBBVPC
+        Ref: BBBVPCs
       GroupDescription: Security group for the Shared Storage
 
   BBBSharedStorageSecurityGroupApplicationPort:

@@ -12,9 +12,6 @@ Parameters:
   BBBNotificationTopic:
     Description: Topic to be used for alarm notifications
     Type: String
-  BBBVPC:
-    Description: Reference for the VPC in which to deploy Amazon ElastiCache
-    Type: String
   BBBCACHEDBInstanceType:
     Description: Instance type for Amazon ElastiCache (Redis)
     Type: String
@@ -54,10 +51,6 @@ Parameters:
       - stage
       - prod
       - dev
-
-Conditions:
-  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
-  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
 
 Resources:
 

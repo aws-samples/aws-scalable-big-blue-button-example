@@ -60,6 +60,8 @@ either way you choose the following have to be in place:
 - one or more valid Email Addresses
 - Amazon Simple Email Service needs to either being [out of the Sandbox](https://docs.aws.amazon.com/ses/latest/DeveloperGuide/request-production-access.html) mode OR you need to [validate destination email adresses](https://docs.aws.amazon.com/ses/latest/DeveloperGuide/verify-email-addresses-procedure.html) piece by piece for the Invitation Emails
 
+Be sure to check the [Troubleshooting common errors](#Troubleshooting-common-errors) when deploying. 
+
 ## Parameters
 
 **Dynamic parameters**
@@ -81,16 +83,20 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 
 | Parameter Name | Default Value | Description | Comment |
 | ---- | ---- | ---- | ---- |
+| BBBApplicationVersion | xenial-22 | Big Blue Button Version to be deployed | Refer to the Big Blue Button [documentation](https://docs.bigbluebutton.org/) to check for supported versions. |
+| BBBApplicationInstanceOSVersion | xenial-16.04 | Big Blue Button Application Instance OS Version to be deployed | Refer to the Big Blue Button [documentation](https://docs.bigbluebutton.org/) to check for supported versions of Ubuntu for the application version you set using "BBBApplicationVersion" parameter. |
+| BBBTurnInstanceOSVersion | bionic-18.04 | Big Blue Button Turn Instance OS Version to be deployed | Refer to the Big Blue Button [documentation](https://docs.bigbluebutton.org/) to check for supported versions of Ubuntu for the application version you set using "BBBApplicationVersion" parameter. |
 | BBBECSInstanceType| t3a.large| Instance size of the ECS Cluster worker nodes or "fargate" for serverless deployment | EC2 instance sizes should be aligned with the size VCPU and Memory limits of the to be deployed tasks. setting this parameter to fargate will cause a Serverless Setup using AWS Fargate |
 | BBBApplicationInstanceType| t3a.xlarge| Instance size of the Big Blue Button Application node(s) | please refer to the Big Blue Button [Documentation](https://docs.bigbluebutton.org/2.2/install.html#minimum-server-requirements) for rightsizing |
 | BBBApplicationDataVolumeSize | 20 | the size of the application data volume used for recording buffer |
 | BBBTurnInstanceType| t3.micro| Instance size of the turn server | For right sizing please refer to the Big Blue Button [Documentation](https://docs.bigbluebutton.org/2.2/setup-turn-server.html)
-| BBBDBInstanceType| db.t3.medium| Instance size of the Aurora Database Instance | Heavily related to usage, collect metrics and test. 
+| BBBDBInstanceType| db.t3.medium| Instance size of the Aurora Database Instance or "serverless" for serverless deployment | Heavily related to usage, collect metrics and test. 
 | BBBCACHEDBInstanceType| cache.t3.micro| Instance size of the Redis security token and call ID handling | Depends on usage. 
-| BBBVPCcidr| 10.1.0.0/16| The Cidr block for the VPC created during the deployment | we deploy an own VPC for the deployment containing public and private subnets as well nas internet and nat gateways
-| BBBPrivateApplicationSubnets| 10.1.5.0/24,10.1.6.0/24,10.1.7.0/24 | The cidr blocks of subnets to be created within the VPC for the non-public components of the application deployment | have to be 3
-| BBBPrivateDBSubnets| 10.1.9.0/24,10.1.10.0/24,10.1.11.0/24| The cidr blocks of subnets to be created within the VPC for the database backend. | have to be 3
-| BBBPublicApplicationSubnets| 10.1.15.0/24,10.1.16.0/24,10.1.17.0/24| The cidr blocks of subnets to be created with the VPC for the direct public accessible application components | have to be 3 
+| BBBVPC| 10.1.0.0/16 | The Cidr block or ID for the VPC created during the deployment | we deploy an own VPC for the deployment containing public and private subnets as well nas internet and nat gateways. If an ID is passed over (vpc-*) the deployment will use the existing custom VPC and it's subnets. be sure to add the subnet ids into the parameters as well! 
+| BBBPrivateApplicationSubnets| 10.1.5.0/24,10.1.6.0/24,10.1.7.0/24 | The cidr blocks or IDs of subnets within the VPC for the non-public components of the application deployment | count have to be = BBBNumberOfAZs
+| BBBPrivateDBSubnets| 10.1.9.0/24,10.1.10.0/24,10.1.11.0/24| The cidr blocks or IDs of subnets within the VPC for the database backend. | count have to be = BBBNumberOfAZs
+| BBBPublicApplicationSubnets| 10.1.15.0/24,10.1.16.0/24,10.1.17.0/24| The cidr blocks or IDs of subnets within the VPC for the direct public accessible application components | count have to be = BBBNumberOfAZs
+| BBBNumberOfAZs | 3 | Number of AZs to be utilized by the deployment | valid value 1,2 or 3 
 | BBBECSMaxInstances| 10| The maximum amount of instances the ECS cluster should scale out to | set a reasonable maximum to prevent cost explosion on unexpected usage
 | BBBECSMinInstances| 1| The minimum amount of worker instances at the ECS cluster| 
 | BBBECSDesiredInstances| 3| The desired amount of instances of worker instances at the ECS cluster |
@@ -103,6 +109,8 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 | BBBDBName| frontendapp| Set a Database Name for Greenlight / Scalelite | 
 | BBBDBEngineVersion| 10.7| Set the Postgres version to be used at the Amazon Aurora setup | please refer to the Amazon Aurora [documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraPostgreSQL.Updates.20180305.html) for supported versions
 | BBBEnvironmentStage| dev | can be set to "dev","stage" or "prod" | currently stage or prod does change the Amazon Aurora Setup to a Multi-AZ Setup and adds a 2nd Nat-Gateway to the deployment. 
+| BBBServerlessAuroraMinCapacity | The minimum capacity for the Amazon Aurora Serverless Cluster. | Value has to be >= 2
+| BBBServerlessAuroraMaxCapacity | The maximum capacity for the Amazon Aurora Serverless Cluster.
 | BBBEnvironmentName| bbbonaws| the name of the environment 
 | BBBEnvironmentType| scalable| can be either "scalable" or "single" | scalable for full scalable deployments. Single does leave out the ECS cluster, scalelite inner-application load balancer and Databases and installs Big Blue Button and Greenlight on a single EC2 instance and a turn server instance. 
 | BBBgreenlightImage| bigbluebutton/greenlight:v2| greenlight container image to be used 

@@ -2,6 +2,27 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2021-01-07
+
+### Fixes
+- #38: fixing deployment into Regions with < 3 AZs 
+
+### Added
+- #34: Optional deployment onto Aurora Serverless (Postgresql) for cost optimization especially with smaller deployments of a scalable solution
+- #15: Optional deployment into a predefined/existing VPC containing at least Subnets in 2 AZs
+- Parameter "BBBNumberOfAZs" to define how many AZs the deployment should utilize (=> also defines how many Subnets are used/created)
+
+### Changed
+- #44: Added section to prerequisites to ensure users are heads-up for common issues incl. missing service linked roles
+- Big Blue Button Version String via parameter to make the version to be adjusted easily for upcoming Big Blue Button releases
+- Application and Turn Server Ubuntu Versions are now parameterized. This ensures OS Versions can allign with the Big Blue Button Version used (e.g. for 2.3-dev deployments of BBB)
+- Parameter BBBVPCcidr renamed into BBBVPCs
+- BBBVPCs and BBB*Subnets parameters now take cidr blocks to create VPCs (and subnets) or IDs to reuse existing VPCs (and its subnets )
+- Turn server Instance OS defaults to Ubuntu 20.04 LTS
+- Removal of dedicated Contributing.md
+- Restructure/Simplification of Conditions 
+- Cleanup of unused conditions and parameters. 
+
 ## [2.1.0] - 2020-11-04
 
 ### Upgrade Notes: 

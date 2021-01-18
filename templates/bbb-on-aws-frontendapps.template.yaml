@@ -30,7 +30,7 @@ Parameters:
   BBBNotificationTopic:
     Description: Topic to be used for alarm notifications
     Type: String
-  BBBVPC:
+  BBBVPCs:
     Description: Reference for the VPC
     Type: String
   BBBEnvironmentStage:
@@ -168,8 +168,6 @@ Parameters:
     Type: String
 
 Conditions:
-  BBBProdEnvironment: !Equals [ !Ref BBBEnvironmentStage, prod ]
-  BBBStageEnvironment: !Not [ !Equals [ !Ref BBBEnvironmentStage, prod ] ]
   BBBSESRegionSet: !Not [ !Equals [ !Ref BBBSesRegion, "AWS::NoValue" ] ]
   BBBECSFargate: !Equals [!Ref BBBECSInstanceType, fargate]
   BBBECSEC2: !Not [!Equals [!Ref BBBECSInstanceType, fargate]]
@@ -460,7 +458,7 @@ Resources:
       TargetType: !If [ BBBECSFargate, ip, instance]
       Protocol: HTTP
       UnhealthyThresholdCount: 3
-      VpcId: !Ref BBBVPC
+      VpcId: !Ref BBBVPCs
 
   BBBFrontendALBDNS:
     Type: AWS::Route53::RecordSetGroup
@@ -537,7 +535,7 @@ Resources:
       TargetType: !If [ BBBECSFargate, ip, instance]
       Protocol: HTTP
       UnhealthyThresholdCount: 2
-      VpcId: !Ref BBBVPC
+      VpcId: !Ref BBBVPCs
 
   BBBgreenlightTaskdefinition:
     Type: AWS::ECS::TaskDefinition

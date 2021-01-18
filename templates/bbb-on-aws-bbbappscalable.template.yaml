@@ -9,6 +9,10 @@ Description: >
   Author: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
 
 Parameters:
+  BBBApplicationVersion:
+    Description: Database engine version for Aurora PostgreSQL
+    Type: String
+    Default: xenial-22
   BBBOperatorEMail:
     Description: E-Mail address to notify if there are any operational issues
     Type: String
@@ -161,10 +165,6 @@ Parameters:
   BBBECSInstanceType:
     Description: EC2 instance type for ECS Cluster worker nodes
     Type: String
-
-Conditions:
-  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
-  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
 
 Resources:
   BBBApplicationAutoScaling:
@@ -372,7 +372,7 @@ Resources:
             x=$(( $x + 1 ))
           done
 
-          wget -qO- https://ubuntu.bigbluebutton.org/bbb-install.sh | bash -s -- -v xenial-220 -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret
+          wget -qO- https://ubuntu.bigbluebutton.org/bbb-install.sh | bash -s -- -v ${BBBApplicationVersion} -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret
 
           groupadd -g 2000 scalelite-spool
           usermod -a -G scalelite-spool bigbluebutton

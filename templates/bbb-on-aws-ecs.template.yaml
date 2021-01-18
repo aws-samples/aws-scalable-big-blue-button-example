@@ -89,9 +89,6 @@ Parameters:
   BBBPrivateApplicationSubnets:
     Description: Comma separated list of the private EC2 instance subnets
     Type: CommaDelimitedList
-  BBBVPC:
-    Description: Reference for the VPC in which to deploy the EC2 instances
-    Type: String
   BBBEnvironmentStage:
     Type: String
     Description: Select the appropriate environment
@@ -109,7 +106,7 @@ Parameters:
 
 Conditions:
   BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
-  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
+  BBBNonProdEnvironment: !Not [ Condition: BBBProdEnvironment]
   BBBECSFargate: !Equals [!Ref BBBECSInstanceType, fargate]
   BBBECSEC2: !Not [!Equals [!Ref BBBECSInstanceType, fargate]]
 

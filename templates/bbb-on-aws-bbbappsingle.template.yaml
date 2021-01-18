@@ -9,6 +9,10 @@ Description: >
   Author: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
 
 Parameters:
+  BBBApplicationVersion:
+    Description: Database engine version for Aurora PostgreSQL
+    Type: String
+    Default: xenial-22
   BBBOperatorEMail:
     Description: E-Mail address to notify if there are any operational issues
     Type: String
@@ -144,10 +148,6 @@ Parameters:
     Description: AMI id that should be used for the appserver instaces
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
     Default: 'bbbapplicationimageid'
-
-Conditions:
-  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
-  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
 
 Resources:
   BBBApplicationAutoScaling:
@@ -327,7 +327,7 @@ Resources:
             x=$(( $x + 1 ))
           done
 
-          wget -qO- https://ubuntu.bigbluebutton.org/bbb-install.sh | bash -s -- -v xenial-220 -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret -g
+          wget -qO- https://ubuntu.bigbluebutton.org/bbb-install.sh | bash -s -- -v ${BBBApplicationVersion} -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret -g
 
           # create script for turn-handler
           aws s3 cp s3://${BBBStackBucketStack}/turn-handler.service /etc/systemd/system/turn-handler.service
