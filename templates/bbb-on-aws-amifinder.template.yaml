@@ -11,10 +11,11 @@ Description: >
 Parameters:
   BBBTurnInstanceOSVersion: 
     Description: Ubuntu Version to be deployed for Turn Instances 
-    Default: bionic-18.04
+    Default: focal-20.04
     Type: String
     AllowedValues:
       - bionic-18.04
+      - focal-20.04
   BBBApplicationInstanceOSVersion: 
     Description: Ubuntu Version to be deployed for Application Instances 
     Default: xenial-16.04
@@ -29,10 +30,6 @@ Parameters:
       - stage
       - prod
       - dev
-
-Conditions:
-  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
-  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
 
 Resources:
   BBBGetLatestAMILambdaRole:

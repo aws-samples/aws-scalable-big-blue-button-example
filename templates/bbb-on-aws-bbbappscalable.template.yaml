@@ -166,10 +166,6 @@ Parameters:
     Description: EC2 instance type for ECS Cluster worker nodes
     Type: String
 
-Conditions:
-  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
-  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
-
 Resources:
   BBBApplicationAutoScaling:
     Type: AWS::AutoScaling::AutoScalingGroup

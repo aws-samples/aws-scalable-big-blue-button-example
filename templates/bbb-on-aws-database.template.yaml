@@ -12,9 +12,6 @@ Parameters:
   BBBNotificationTopic:
     Description: Topic to be used for alarm notifications
     Type: String
-  BBBVPC:
-    Description: Reference for the VPC in which to deploy Amazon RDS
-    Type: String
   BBBDBName:
     Description: Database Name
     Type: String
@@ -74,10 +71,12 @@ Parameters:
 
 Conditions:
   BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
-  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
+  BBBNonProdEnvironment: !Not [ Condition: BBBProdEnvironment]
   BBBServerlessAurora: !Equals [!Ref BBBDBInstanceType, serverless]
-  BBBProvisionedAurora: !Not [!Equals [!Ref BBBDBInstanceType, serverless]]
-  BBBProvisiondedProdAurora: !And [!Equals [!Ref BBBEnvironmentStage, prod], !Not [!Equals [!Ref BBBDBInstanceType, serverless]]]
+  BBBProvisionedAurora: !Not [ Condition: BBBServerlessAurora]
+  BBBProvisiondedProdAurora: !And 
+    - !Not [ Condition: BBBServerlessAurora]
+    - Condition: BBBProdEnvironment
 
 Resources:
   BBBDBSubnetGroup:

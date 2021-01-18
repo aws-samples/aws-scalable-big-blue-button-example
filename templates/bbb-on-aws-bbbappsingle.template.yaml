@@ -149,10 +149,6 @@ Parameters:
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
     Default: 'bbbapplicationimageid'
 
-Conditions:
-  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
-  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
-
 Resources:
   BBBApplicationAutoScaling:
     Type: AWS::AutoScaling::AutoScalingGroup

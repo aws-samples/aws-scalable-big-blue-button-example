@@ -92,10 +92,11 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 | BBBTurnInstanceType| t3.micro| Instance size of the turn server | For right sizing please refer to the Big Blue Button [Documentation](https://docs.bigbluebutton.org/2.2/setup-turn-server.html)
 | BBBDBInstanceType| db.t3.medium| Instance size of the Aurora Database Instance or "serverless" for serverless deployment | Heavily related to usage, collect metrics and test. 
 | BBBCACHEDBInstanceType| cache.t3.micro| Instance size of the Redis security token and call ID handling | Depends on usage. 
-| BBBVPCcidr| 10.1.0.0/16| The Cidr block for the VPC created during the deployment | we deploy an own VPC for the deployment containing public and private subnets as well nas internet and nat gateways
-| BBBPrivateApplicationSubnets| 10.1.5.0/24,10.1.6.0/24,10.1.7.0/24 | The cidr blocks of subnets to be created within the VPC for the non-public components of the application deployment | have to be 3
-| BBBPrivateDBSubnets| 10.1.9.0/24,10.1.10.0/24,10.1.11.0/24| The cidr blocks of subnets to be created within the VPC for the database backend. | have to be 3
-| BBBPublicApplicationSubnets| 10.1.15.0/24,10.1.16.0/24,10.1.17.0/24| The cidr blocks of subnets to be created with the VPC for the direct public accessible application components | have to be 3 
+| BBBVPC| 10.1.0.0/16 | The Cidr block or ID for the VPC created during the deployment | we deploy an own VPC for the deployment containing public and private subnets as well nas internet and nat gateways. If an ID is passed over (vpc-*) the deployment will use the existing custom VPC and it's subnets. be sure to add the subnet ids into the parameters as well! 
+| BBBPrivateApplicationSubnets| 10.1.5.0/24,10.1.6.0/24,10.1.7.0/24 | The cidr blocks or IDs of subnets within the VPC for the non-public components of the application deployment | count have to be = BBBNumberOfAZs
+| BBBPrivateDBSubnets| 10.1.9.0/24,10.1.10.0/24,10.1.11.0/24| The cidr blocks or IDs of subnets within the VPC for the database backend. | count have to be = BBBNumberOfAZs
+| BBBPublicApplicationSubnets| 10.1.15.0/24,10.1.16.0/24,10.1.17.0/24| The cidr blocks or IDs of subnets within the VPC for the direct public accessible application components | count have to be = BBBNumberOfAZs
+| BBBNumberOfAZs | 3 | Number of AZs to be utilized by the deployment | valid value 1,2 or 3 
 | BBBECSMaxInstances| 10| The maximum amount of instances the ECS cluster should scale out to | set a reasonable maximum to prevent cost explosion on unexpected usage
 | BBBECSMinInstances| 1| The minimum amount of worker instances at the ECS cluster| 
 | BBBECSDesiredInstances| 3| The desired amount of instances of worker instances at the ECS cluster |
