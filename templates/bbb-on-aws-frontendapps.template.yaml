@@ -460,6 +460,22 @@ Resources:
       UnhealthyThresholdCount: 3
       VpcId: !Ref BBBVPCs
 
+  BBBFrontendALBListenerHTTP2HTTPS:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: redirect
+        RedirectConfig:
+          Host: "#{host}"
+          Path: "/#{path}"
+          Port: "443"
+          Protocol: "HTTPS"
+          Query: "#{query}"
+          StatusCode: "HTTP_301"
+      LoadBalancerArn: !Ref BBBFrontendALB
+      Port: 80
+      Protocol: HTTP
+
   BBBFrontendALBDNS:
     Type: AWS::Route53::RecordSetGroup
     Properties:
@@ -853,6 +869,8 @@ Resources:
                 - "redis://${BBBCacheDBAddress}:${BBBCacheDBPort}"
                 - BBBCacheDBAddress: !Ref BBBCacheDBAddress
                   BBBCacheDBPort: !Ref BBBCacheDBPort
+            - Name: BEHIND_PROXY
+              Value: true
         - Name: scalelite-api
           Essential: true
           Image: !Ref BBBScaleliteApiImage
@@ -1036,6 +1054,9 @@ Outputs:
   BBBFrontendALBListener:
     Description: Frontend Application Load Balancer Listener
     Value: !Ref BBBFrontendALBListener
+  BBBFrontendALBListenerHTTP2HTTPS:
+    Description: Frontend Application Load Balancer Listener HTTP Redirect
+    Value: !Ref BBBFrontendALBListenerHTTP2HTTPS
   BBBFrontendTG:
     Description: Frontend Application Load Balancer Target Group
     Value: !Ref BBBFrontendTG
