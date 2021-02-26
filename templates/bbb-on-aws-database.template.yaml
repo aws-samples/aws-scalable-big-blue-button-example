@@ -112,7 +112,7 @@ Resources:
       DBSubnetGroupName:
         Ref: BBBDBSubnetGroup
       DBClusterParameterGroupName:
-        Ref: BBBRDSDBClusterParameterGroup
+        Ref: "BBBRDSDBClusterParameterGroupPostgres12"
       VpcSecurityGroupIds:
         - Ref: BBBDBSecurityGroup
       ScalingConfiguration:
@@ -140,7 +140,7 @@ Resources:
       DBClusterIdentifier:
         Ref: BBBRDSCluster
       DBParameterGroupName:
-        Ref: BBBRDSDBParameterGroup
+        Ref: "BBBRDSDBParameterGroupPostgres12"
       AvailabilityZone:
         Fn::Select:
           - '0'
@@ -171,11 +171,11 @@ Resources:
       DBInstanceClass:
         Ref: BBBDBInstanceType
 
-  BBBRDSDBParameterGroup:
+  BBBRDSDBParameterGroupPostgres12:
     Type: AWS::RDS::DBParameterGroup
     Properties:
-      Description: Aurora PG Database Instance Parameter Group for Cloudformation Stack
-      Family: aurora-postgresql10
+      Description: Aurora PG 12 Database Instance Parameter Group for Cloudformation Stack
+      Family: aurora-postgresql12
       Parameters:
         shared_preload_libraries: auto_explain,pg_stat_statements,pg_hint_plan,pgaudit
         log_statement: "ddl"
@@ -194,11 +194,11 @@ Resources:
         statement_timeout: 7200000
         search_path: '"$user",public'
 
-  BBBRDSDBClusterParameterGroup:
+  BBBRDSDBClusterParameterGroupPostgres12:
     Type: AWS::RDS::DBClusterParameterGroup
     Properties:
-      Description: CloudFormation Sample Aurora Cluster Parameter Group
-      Family: aurora-postgresql10
+      Description: CloudFormation Sample Aurora Cluster PG 12 Parameter Group
+      Family: aurora-postgresql12
       Parameters:
         timezone: Europe/Berlin
 
@@ -370,7 +370,7 @@ Outputs:
   BBBRDSDBClusterParameterGroup:
     Description: The Big Blue Button DB Cluster Parameter Group
     Value:
-      Ref: BBBRDSDBClusterParameterGroup
+      Ref: "BBBRDSDBClusterParameterGroupPostgres12"
   BBBDBSubnetGroup:
     Description: The Big Blue Button DB Subnet Group
     Value:
@@ -392,4 +392,4 @@ Outputs:
   BBBRDSDBParameterGroup:
     Description: The Big Blue Button DB Parameter Group
     Value:
-      Ref: BBBRDSDBParameterGroup
+      Ref: "BBBRDSDBParameterGroupPostgres12"
