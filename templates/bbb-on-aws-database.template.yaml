@@ -101,7 +101,7 @@ Resources:
     Properties:
       Description: 'This is the BBB Database cluster url secret'
       SecretString: !Sub
-        - "{'hostname': '${HOSTNAME}', 'port': ${PORT}, 'connectionString': 'postgresql://${BBBDBUser}:${BBBDBPassword}@${HOSTNAME}:${PORT}'"
+        - '{"hostname": "${HOSTNAME}", "port": ${PORT}, "connectionString": "postgresql://${BBBDBUser}:${BBBDBPassword}@${HOSTNAME}:${PORT}"}'
         - HOSTNAME:
             Fn::GetAtt:
               - BBBRDSCluster
