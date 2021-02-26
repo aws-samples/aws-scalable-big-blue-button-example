@@ -40,17 +40,14 @@ Parameters:
       - stage
       - prod
       - dev
-  BBBDBAddress:
-    Description: Database connection string
-    Type: String
-  BBBDBPort:
-    Description: Database port
-    Type: String
   BBBDBName:
     Description: Database Name
     Type: String
   BBBRDSDBSecret:
     Description: Amazon RDS Secret
+    Type: String
+  BBBRDSDBConnectionSecret:
+    Description: Amazon RDS Connection Secret
     Type: String
   BBBECSCluster:
     Description: Reference for the ECS Cluster in which to deploy the services
@@ -92,7 +89,7 @@ Parameters:
     Description: CPU constraints for Greenlight container
     Type: Number
     Default: 512
-  BBBScaleliteMemory: 
+  BBBScaleliteMemory:
     Description: Memory constraints for Scalelite Fargate Task
     Type: Number
     Default: 2048
@@ -157,7 +154,7 @@ Parameters:
     AllowedPattern: "([a-zA-Z0-9_\\-\\.]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)"
     ConstraintDescription: must be a valid email address.
     Default: johndoe@example.com
-  BBBECSInstanceType: 
+  BBBECSInstanceType:
     Description: Set the ECS Instance Type to either EC2 based or Fargate based deployments
     Type: String
   BBBECSTaskSecurityGroup:
@@ -169,8 +166,8 @@ Parameters:
 
 Conditions:
   BBBSESRegionSet: !Not [ !Equals [ !Ref BBBSesRegion, "AWS::NoValue" ] ]
-  BBBECSFargate: !Equals [!Ref BBBECSInstanceType, fargate]
-  BBBECSEC2: !Not [!Equals [!Ref BBBECSInstanceType, fargate]]
+  BBBECSFargate: !Equals [ !Ref BBBECSInstanceType, fargate ]
+  BBBECSEC2: !Not [ !Equals [ !Ref BBBECSInstanceType, fargate ] ]
 
 Resources:
   BBBSESDomainIdentity:
@@ -316,6 +313,7 @@ Resources:
                   - "secretsmanager:GetSecretValue"
                 Resource:
                   - !Ref BBBRDSDBSecret
+                  - !Ref BBBRDSDBConnectionSecret
                   - !Ref BBBApplicationBaseSecret
                   - !Ref BBBLoadbalancerSecret
 
@@ -341,6 +339,7 @@ Resources:
                   - "secretsmanager:GetSecretValue"
                 Resource:
                   - !Ref BBBRDSDBSecret
+                  - !Ref BBBRDSDBConnectionSecret
                   - !Ref BBBApplicationBaseSecret
                   - !Ref BBBSMTPAccessSecret
                   - !Ref BBBAdministratorlogin
@@ -455,7 +454,7 @@ Resources:
       HealthCheckTimeoutSeconds: 60
       HealthyThresholdCount: 3
       Port: 80
-      TargetType: !If [ BBBECSFargate, ip, instance]
+      TargetType: !If [ BBBECSFargate, ip, instance ]
       Protocol: HTTP
       UnhealthyThresholdCount: 3
       VpcId: !Ref BBBVPCs
@@ -532,7 +531,7 @@ Resources:
       HealthCheckTimeoutSeconds: 60
       HealthyThresholdCount: 2
       Port: 80
-      TargetType: !If [ BBBECSFargate, ip, instance]
+      TargetType: !If [ BBBECSFargate, ip, instance ]
       Protocol: HTTP
       UnhealthyThresholdCount: 2
       VpcId: !Ref BBBVPCs
@@ -544,14 +543,13 @@ Resources:
     Properties:
       Family: !Join [ "", [ !Ref "AWS::StackName", -greenlight ] ]
       ExecutionRoleArn: !Ref BBBGreenlightTaskExecutionRole
-      NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue"]
+      NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue" ]
       Memory: !Ref BBBGreenlightMemory
-      Cpu: !Ref BBBGreenlightCPU 
-      RequiresCompatibilities: 
-        !If 
+      Cpu: !Ref BBBGreenlightCPU
+      RequiresCompatibilities:
+        !If
         - BBBECSFargate
-        -
-          - FARGATE
+        - - FARGATE
         - !Ref "AWS::NoValue"
       ContainerDefinitions:
         - Name: greenlight
@@ -584,15 +582,15 @@ Resources:
               ValueFrom: !Sub "${BBBRDSDBSecret}:username::"
             - Name: SMTP_USERNAME
               ValueFrom: !Sub "${BBBSMTPAccessSecret}:smtpusername::"
+            - Name: DB_HOST
+              ValueFrom: !Sub "${BBBRDSDBConnectionSecret}:hostname::"
+            - Name: DB_PORT
+              ValueFrom: !Sub "${BBBRDSDBConnectionSecret}:port::"
           Environment:
             - Name: ADMIN_LOGIN
               Value: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBAdministratorlogin, ':SecretString:username}}' ] ]
             - Name: DB_ADAPTER
               Value: postgresql
-            - Name: DB_HOST
-              Value: !Ref BBBDBAddress
-            - Name: DB_PORT
-              Value: !Ref BBBDBPort
             - Name: DB_NAME
               Value: !Join [ '_', [ !Ref BBBDBName, !Ref BBBEnvironmentStage ] ]
             - Name: BIGBLUEBUTTON_ENDPOINT
@@ -628,12 +626,11 @@ Resources:
     Properties:
       Cluster: !Ref BBBECSCluster
       DesiredCount: !Ref BBBGreenlightDesiredReplicas
-      PlatformVersion: !If [ BBBECSFargate, 1.4.0, !Ref "AWS::NoValue"] 
+      PlatformVersion: !If [ BBBECSFargate, 1.4.0, !Ref "AWS::NoValue" ]
       NetworkConfiguration:
-        !If 
+        !If
         - BBBECSFargate
-        -
-          AwsvpcConfiguration:
+        - AwsvpcConfiguration:
             AssignPublicIp: DISABLED
             SecurityGroups:
               - !Ref BBBECSTaskSecurityGroup
@@ -645,7 +642,7 @@ Resources:
           TargetGroupArn: !Ref BBBFrontendTG
       TaskDefinition: !Ref BBBgreenlightTaskdefinition
       HealthCheckGracePeriodSeconds: 60
-      LaunchType: !If [ BBBECSFargate, FARGATE, !Ref "AWS::NoValue"]
+      LaunchType: !If [ BBBECSFargate, FARGATE, !Ref "AWS::NoValue" ]
 
   BBBgreenlightServiceScalingTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
@@ -676,21 +673,20 @@ Resources:
         ScaleOutCooldown: 15
         PredefinedMetricSpecification:
           PredefinedMetricType: ALBRequestCountPerTarget
-          ResourceLabel: !Join ["/", [!GetAtt BBBFrontendALB.LoadBalancerFullName, !GetAtt BBBFrontendTG.TargetGroupFullName]]
+          ResourceLabel: !Join [ "/", [ !GetAtt BBBFrontendALB.LoadBalancerFullName, !GetAtt BBBFrontendTG.TargetGroupFullName ] ]
 
   BBBScaleliteTaskdefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: !Join [ "", [ !Ref "AWS::StackName", -scalelite ] ]
       ExecutionRoleArn: !Ref BBBScaleliteExecutionRole
-      NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue"]
+      NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue" ]
       Memory: !Ref BBBScaleliteMemory
       Cpu: !Ref BBBScaleliteCPU
-      RequiresCompatibilities: 
-        !If 
+      RequiresCompatibilities:
+        !If
         - BBBECSFargate
-        -
-          - FARGATE
+        - - FARGATE
         - !Ref "AWS::NoValue"
       Volumes:
         - Name: !Join [ "", [ scalelite-recordings-volume-spool, !Ref BBBEnvironmentStage ] ]
@@ -745,14 +741,9 @@ Resources:
               ValueFrom: !Sub "${BBBApplicationBaseSecret}:basekeyvalue::"
             - Name: LOADBALANCER_SECRET
               ValueFrom: !Sub "${BBBLoadbalancerSecret}:basekeyvalue::"
-          Environment:
             - Name: DATABASE_URL
-              Value: !Sub
-                - "postgresql://${BBBDBUser}:${BBBDBPassword}@${BBBDBAddress}:${BBBDBPort}"
-                - BBBDBUser: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
-                  BBBDBPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
-                  BBBDBAddress: !Ref BBBDBAddress
-                  BBBDBPort: !Ref BBBDBPort
+              ValueFrom: !Sub "${BBBRDSDBConnectionSecret}:connectionString::"
+          Environment:
             - Name: REDIS_URL
               Value: !Sub
                 - "redis://${BBBCacheDBAddress}:${BBBCacheDBPort}"
@@ -776,14 +767,9 @@ Resources:
               ValueFrom: !Sub "${BBBApplicationBaseSecret}:basekeyvalue::"
             - Name: LOADBALANCER_SECRET
               ValueFrom: !Sub "${BBBLoadbalancerSecret}:basekeyvalue::"
-          Environment:
             - Name: DATABASE_URL
-              Value: !Sub
-                - "postgresql://${BBBDBUser}:${BBBDBPassword}@${BBBDBAddress}:${BBBDBPort}"
-                - BBBDBUser: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
-                  BBBDBPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
-                  BBBDBAddress: !Ref BBBDBAddress
-                  BBBDBPort: !Ref BBBDBPort
+              ValueFrom: !Sub "${BBBRDSDBConnectionSecret}:connectionString::"
+          Environment:
             - Name: REDIS_URL
               Value: !Sub
                 - "redis://${BBBCacheDBAddress}:${BBBCacheDBPort}"
@@ -796,23 +782,20 @@ Resources:
               Condition: START
           Image: !Ref BBBScaleliteNginxImage
           EntryPoint:
-            !If 
+            !If
             - BBBECSFargate
-            - 
-              - "sh"
+            - - "sh"
               - "-c"
             - !Ref "AWS::NoValue"
-          Command: 
-            !If 
+          Command:
+            !If
             - BBBECSFargate
-            - 
-              - "/bin/sh -c \"sed -i 's/scalelite-api/localhost/g' /etc/nginx/conf.d/scalelite.common && /etc/nginx/start -g daemon off\""
+            - - "/bin/sh -c \"sed -i 's/scalelite-api/localhost/g' /etc/nginx/conf.d/scalelite.common && /etc/nginx/start -g daemon off\""
             - !Ref "AWS::NoValue"
           Links:
-            !If 
+            !If
             - BBBECSEC2
-            - 
-              - scalelite-api:scalelite-api
+            - - scalelite-api:scalelite-api
             - !Ref "AWS::NoValue"
           MountPoints:
             - ContainerPath: /var/bigbluebutton/spool
@@ -840,14 +823,9 @@ Resources:
               ValueFrom: !Sub "${BBBApplicationBaseSecret}:basekeyvalue::"
             - Name: LOADBALANCER_SECRET
               ValueFrom: !Sub "${BBBLoadbalancerSecret}:basekeyvalue::"
-          Environment:
             - Name: DATABASE_URL
-              Value: !Sub
-                - "postgresql://${BBBDBUser}:${BBBDBPassword}@${BBBDBAddress}:${BBBDBPort}"
-                - BBBDBUser: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
-                  BBBDBPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
-                  BBBDBAddress: !Ref BBBDBAddress
-                  BBBDBPort: !Ref BBBDBPort
+              ValueFrom: !Sub "${BBBRDSDBConnectionSecret}:connectionString::"
+          Environment:
             - Name: REDIS_URL
               Value: !Sub
                 - "redis://${BBBCacheDBAddress}:${BBBCacheDBPort}"
@@ -884,14 +862,9 @@ Resources:
               ValueFrom: !Sub "${BBBApplicationBaseSecret}:basekeyvalue::"
             - Name: LOADBALANCER_SECRET
               ValueFrom: !Sub "${BBBLoadbalancerSecret}:basekeyvalue::"
-          Environment:
             - Name: DATABASE_URL
-              Value: !Sub
-                - "postgresql://${BBBDBUser}:${BBBDBPassword}@${BBBDBAddress}:${BBBDBPort}"
-                - BBBDBUser: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
-                  BBBDBPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
-                  BBBDBAddress: !Ref BBBDBAddress
-                  BBBDBPort: !Ref BBBDBPort
+              ValueFrom: !Sub "${BBBRDSDBConnectionSecret}:connectionString::"
+          Environment:
             - Name: REDIS_URL
               Value: !Sub
                 - "redis://${BBBCacheDBAddress}:${BBBCacheDBPort}"
@@ -903,14 +876,13 @@ Resources:
     Properties:
       Family: !Join [ "", [ !Ref "AWS::StackName", -scalelite-handle-server ] ]
       ExecutionRoleArn: !Ref BBBScaleliteExecutionRole
-      NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue"]
+      NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue" ]
       Memory: 512
       Cpu: 256
-      RequiresCompatibilities: 
-        !If 
+      RequiresCompatibilities:
+        !If
         - BBBECSFargate
-        -
-          - FARGATE
+        - - FARGATE
         - !Ref "AWS::NoValue"
       ContainerDefinitions:
         - Name: scalelite-handle-server
@@ -931,14 +903,9 @@ Resources:
               ValueFrom: !Sub "${BBBApplicationBaseSecret}:basekeyvalue::"
             - Name: LOADBALANCER_SECRET
               ValueFrom: !Sub "${BBBLoadbalancerSecret}:basekeyvalue::"
-          Environment:
             - Name: DATABASE_URL
-              Value: !Sub
-                - "postgresql://${BBBDBUser}:${BBBDBPassword}@${BBBDBAddress}:${BBBDBPort}"
-                - BBBDBUser: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
-                  BBBDBPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
-                  BBBDBAddress: !Ref BBBDBAddress
-                  BBBDBPort: !Ref BBBDBPort
+              ValueFrom: !Sub "${BBBRDSDBConnectionSecret}:connectionString::"
+          Environment:
             - Name: REDIS_URL
               Value: !Sub
                 - "redis://${BBBCacheDBAddress}:${BBBCacheDBPort}"
@@ -952,12 +919,11 @@ Resources:
       Cluster: !Ref BBBECSCluster
       DesiredCount: !Ref BBBScaleliteDesiredReplicas
       TaskDefinition: !Ref BBBScaleliteTaskdefinition
-      PlatformVersion: !If [ BBBECSFargate, 1.4.0, !Ref "AWS::NoValue"] 
+      PlatformVersion: !If [ BBBECSFargate, 1.4.0, !Ref "AWS::NoValue" ]
       NetworkConfiguration:
-        !If 
+        !If
         - BBBECSFargate
-        -
-          AwsvpcConfiguration:
+        - AwsvpcConfiguration:
             AssignPublicIp: DISABLED
             SecurityGroups:
               - !Ref BBBECSTaskSecurityGroup
@@ -967,7 +933,7 @@ Resources:
         - ContainerName: scalelite-nginx
           ContainerPort: 80
           TargetGroupArn: !Ref BBBScaleliteTG
-      LaunchType: !If [ BBBECSFargate, FARGATE, !Ref "AWS::NoValue"]
+      LaunchType: !If [ BBBECSFargate, FARGATE, !Ref "AWS::NoValue" ]
 
   BBBScaleliteServiceScalingTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
