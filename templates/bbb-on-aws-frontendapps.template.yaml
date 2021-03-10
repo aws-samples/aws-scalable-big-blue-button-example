@@ -765,6 +765,10 @@ Resources:
                 - "redis://${BBBCacheDBAddress}:${BBBCacheDBPort}"
                 - BBBCacheDBAddress: !Ref BBBCacheDBAddress
                   BBBCacheDBPort: !Ref BBBCacheDBPort
+            - Name: BEHIND_PROXY
+              Value: 'true'
+            - Name: NGINX_BEHIND_PROXY
+              Value: 'true'
         - Name: scalelite-poller
           Essential: true
           Image: !Ref BBBScalelitePollerImage
@@ -791,6 +795,10 @@ Resources:
                 - "redis://${BBBCacheDBAddress}:${BBBCacheDBPort}"
                 - BBBCacheDBAddress: !Ref BBBCacheDBAddress
                   BBBCacheDBPort: !Ref BBBCacheDBPort
+            - Name: BEHIND_PROXY
+              Value: true
+            - Name: NGINX_BEHIND_PROXY
+              Value: 'true'
         - Name: scalelite-nginx
           Essential: true
           DependsOn:
@@ -849,6 +857,10 @@ Resources:
                   BBBCacheDBPort: !Ref BBBCacheDBPort
             - Name: BEHIND_PROXY
               Value: true
+            - Name: NGINX_BEHIND_PROXY
+              Value: 'true'
+            - Name: URL_HOST
+              Value: !Sub scalelite.${BBBDomainName}
         - Name: scalelite-api
           Essential: true
           Image: !Ref BBBScaleliteApiImage
@@ -888,6 +900,10 @@ Resources:
                 - "redis://${BBBCacheDBAddress}:${BBBCacheDBPort}"
                 - BBBCacheDBAddress: !Ref BBBCacheDBAddress
                   BBBCacheDBPort: !Ref BBBCacheDBPort
+            - Name: BEHIND_PROXY
+              Value: true
+            - Name: NGINX_BEHIND_PROXY
+              Value: 'true'
 
   BBBScaleliteAddServerTaskdefinition:
     Type: AWS::ECS::TaskDefinition
