@@ -90,6 +90,10 @@ Parameters:
     Description: Size of the application instance data volume
     Type: Number
     Default: 20
+  BBBApplicationRootVolumeSize: 
+    Description: Size of the application instance data volume
+    Type: Number
+    Default: 20
   BBBApplicationMaxInstances:
     Type: Number
     Description: Maximum number of appserver instances
@@ -245,7 +249,7 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: "/dev/sda1"
           Ebs:
-            VolumeSize: 20
+            VolumeSize: !Ref BBBApplicationRootVolumeSize
             VolumeType: gp2
             Encrypted: true
         - DeviceName: /dev/sdf

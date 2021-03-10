@@ -6,6 +6,7 @@
     "BBBECSInstanceType": "t3a.medium",
     "BBBApplicationInstanceType": "t3a.medium",
     "BBBApplicationDataVolumeSize": 50,
+    "BBBApplicationRootVolumeSize": 20,
     "BBBTurnInstanceType": "t3a.micro",
     "BBBDBInstanceType": "db.t3.medium",
     "BBBServerlessAuroraMinCapacity": 2,

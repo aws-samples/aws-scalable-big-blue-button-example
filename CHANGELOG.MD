@@ -2,6 +2,20 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [2.3.0] - 2021-03-10
+
+### Upgrade Notes: 
+- Upgrading the Amazon Aurora Postgres Engine version via Amazon Cloudformation is not supported. Please refer to the official [upgrade documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_UpgradeDBInstance.PostgreSQL.html) if you have a already running environment using an older engine version to proceed with the upgrade before reruning the Cloudformation deployment with default parameters. 
+Alternatively you can set the parameter 'BBBDBEngineVersion' to the version you're currently using to prevent Amazon Cloudformation to try to upgrade. 
+
+### Added
+- #62: HTTP to HTTPS rewrites implemented
+- #66: Added parameters to set the Big Blue Button application server root volume size
+
+### Changed
+- #63: default Amazon Aurora Postgres engine version updated to 12.4
+- Updated Architectural Diagram for Serverless
+
 ## [2.2.0] - 2021-01-07
 
 ### Fixes

@@ -235,6 +235,10 @@ Parameters:
     Description: Size of the application instance data volume
     Type: Number
     Default: 50
+  BBBApplicationRootVolumeSize: 
+    Description: Size of the application instance data volume
+    Type: Number
+    Default: 20
   BBBTurnInstanceType:
     Description: Instance type for the turn server
     Type: String
@@ -836,6 +840,8 @@ Resources:
             - Outputs.BBBTurnAMIParameter
         BBBEnvironmentStage:
           Ref: BBBEnvironmentStage
+        BBBEnvironmentType:
+          Ref: BBBEnvironmentType
         BBBTurnInstanceType:
           Ref: BBBTurnInstanceType
         BBBTurnMaxInstances:
@@ -932,6 +938,8 @@ Resources:
           Ref: BBBApplicationInstanceType
         BBBApplicationDataVolumeSize:
           Ref: BBBApplicationDataVolumeSize
+        BBBApplicationRootVolumeSize:
+          Ref: BBBApplicationRootVolumeSize
         BBBApplicationMaxInstances:
           Ref: BBBApplicationMaxInstances
         BBBApplicationMinInstances:
@@ -1031,6 +1039,8 @@ Resources:
           Ref: BBBApplicationInstanceType
         BBBApplicationDataVolumeSize:
           Ref: BBBApplicationDataVolumeSize
+        BBBApplicationRootVolumeSize:
+          Ref: BBBApplicationRootVolumeSize
         BBBApplicationMaxInstances:
           Ref: BBBApplicationMaxInstances
         BBBApplicationMinInstances:
