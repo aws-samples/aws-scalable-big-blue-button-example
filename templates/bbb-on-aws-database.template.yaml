@@ -46,7 +46,7 @@ Parameters:
   BBBServerlessAuroraMinCapacity:
     Description: The minimum capacity for the Amazon Aurora Serverless Cluster.
     Type: Number
-    Default: 2 
+    Default: 2
   BBBServerlessAuroraMaxCapacity:
     Description: The maximum capacity for the Amazon Aurora Serverless Cluster
     Type: Number
@@ -70,12 +70,12 @@ Parameters:
       - dev
 
 Conditions:
-  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
-  BBBNonProdEnvironment: !Not [ Condition: BBBProdEnvironment]
-  BBBServerlessAurora: !Equals [!Ref BBBDBInstanceType, serverless]
-  BBBProvisionedAurora: !Not [ Condition: BBBServerlessAurora]
-  BBBProvisiondedProdAurora: !And 
-    - !Not [ Condition: BBBServerlessAurora]
+  BBBProdEnvironment: !Equals [ !Ref BBBEnvironmentStage, prod ]
+  BBBNonProdEnvironment: !Not [ Condition: BBBProdEnvironment ]
+  BBBServerlessAurora: !Equals [ !Ref BBBDBInstanceType, serverless ]
+  BBBProvisionedAurora: !Not [ Condition: BBBServerlessAurora ]
+  BBBProvisiondedProdAurora: !And
+    - !Not [ Condition: BBBServerlessAurora ]
     - Condition: BBBProdEnvironment
 
 Resources:
@@ -96,34 +96,50 @@ Resources:
         PasswordLength: 16
         ExcludePunctuation: 'true'
 
+  BBBRDSDBConnectionSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'This is the BBB Database cluster url secret'
+      SecretString: !Sub
+        - '{"hostname": "${HOSTNAME}", "port": ${PORT}, "connectionString": "postgresql://${BBBDBUser}:${BBBDBPassword}@${HOSTNAME}:${PORT}"}'
+        - HOSTNAME:
+            Fn::GetAtt:
+              - BBBRDSCluster
+              - Endpoint.Address
+          PORT:
+            Fn::GetAtt:
+              - BBBRDSCluster
+              - Endpoint.Port
+          BBBDBUser: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
+          BBBDBPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
+
   BBBRDSCluster:
     Type: AWS::RDS::DBCluster
     Properties:
-      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ]]
-      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ]]
-      DatabaseName: !Join ['_', [!Ref BBBDBName, !Ref BBBEnvironmentStage]]
+      MasterUsername: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
+      MasterUserPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
+      DatabaseName: !Join [ '_', [ !Ref BBBDBName, !Ref BBBEnvironmentStage ] ]
       Port:
         Ref: BBBDBPort
       Engine: aurora-postgresql
       EngineVersion:
         Ref: BBBDBEngineVersion
-      EngineMode: !If [ BBBServerlessAurora, serverless, provisioned ] 
+      EngineMode: !If [ BBBServerlessAurora, serverless, provisioned ]
       StorageEncrypted: 'true'
       DBSubnetGroupName:
         Ref: BBBDBSubnetGroup
       DBClusterParameterGroupName:
-        Ref: BBBRDSDBClusterParameterGroup
+        Ref: "BBBRDSDBClusterParameterGroupPostgres12"
       VpcSecurityGroupIds:
         - Ref: BBBDBSecurityGroup
       ScalingConfiguration:
         !If
-          - BBBServerlessAurora 
-          - 
-            AutoPause: true
-            MinCapacity: !Ref BBBServerlessAuroraMinCapacity
-            MaxCapacity: !Ref BBBServerlessAuroraMaxCapacity
-            SecondsUntilAutoPause: 300
-          - !Ref "AWS::NoValue"
+        - BBBServerlessAurora
+        - AutoPause: true
+          MinCapacity: !Ref BBBServerlessAuroraMinCapacity
+          MaxCapacity: !Ref BBBServerlessAuroraMaxCapacity
+          SecondsUntilAutoPause: 300
+        - !Ref "AWS::NoValue"
 
   BBBRDSDBInstance1:
     Type: AWS::RDS::DBInstance
@@ -140,7 +156,7 @@ Resources:
       DBClusterIdentifier:
         Ref: BBBRDSCluster
       DBParameterGroupName:
-        Ref: BBBRDSDBParameterGroup
+        Ref: "BBBRDSDBParameterGroupPostgres12"
       AvailabilityZone:
         Fn::Select:
           - '0'
@@ -171,11 +187,11 @@ Resources:
       DBInstanceClass:
         Ref: BBBDBInstanceType
 
-  BBBRDSDBParameterGroup:
+  BBBRDSDBParameterGroupPostgres12:
     Type: AWS::RDS::DBParameterGroup
     Properties:
-      Description: Aurora PG Database Instance Parameter Group for Cloudformation Stack
-      Family: aurora-postgresql10
+      Description: Aurora PG 12 Database Instance Parameter Group for Cloudformation Stack
+      Family: aurora-postgresql12
       Parameters:
         shared_preload_libraries: auto_explain,pg_stat_statements,pg_hint_plan,pgaudit
         log_statement: "ddl"
@@ -194,11 +210,11 @@ Resources:
         statement_timeout: 7200000
         search_path: '"$user",public'
 
-  BBBRDSDBClusterParameterGroup:
+  BBBRDSDBClusterParameterGroupPostgres12:
     Type: AWS::RDS::DBClusterParameterGroup
     Properties:
-      Description: CloudFormation Sample Aurora Cluster Parameter Group
-      Family: aurora-postgresql10
+      Description: CloudFormation Sample Aurora Cluster PG 12 Parameter Group
+      Family: aurora-postgresql12
       Parameters:
         timezone: Europe/Berlin
 
@@ -345,24 +361,15 @@ Resources:
         - Ref: BBBRDSCluster
       SourceType: 'db-cluster'
 
-
 Outputs:
   BBBDB:
     Description: The Big Blue Button Database Created
     Value:
       Ref: BBBRDSCluster
-  BBBDBAddress:
-    Description: The Big Blue Button DB Address
+  BBBRDSDBConnectionSecret:
+    Description: The Big Blue Button DB Connection Data
     Value:
-      Fn::GetAtt:
-        - BBBRDSCluster
-        - Endpoint.Address
-  BBBDBPort:
-    Description: The Big Blue Button DB Port
-    Value:
-      Fn::GetAtt:
-        - BBBRDSCluster
-        - Endpoint.Port
+      Ref: BBBRDSDBConnectionSecret
   BBBRDSDBSecret:
     Description: The Big Blue Button DB Login Data
     Value:
@@ -370,7 +377,7 @@ Outputs:
   BBBRDSDBClusterParameterGroup:
     Description: The Big Blue Button DB Cluster Parameter Group
     Value:
-      Ref: BBBRDSDBClusterParameterGroup
+      Ref: "BBBRDSDBClusterParameterGroupPostgres12"
   BBBDBSubnetGroup:
     Description: The Big Blue Button DB Subnet Group
     Value:
@@ -392,4 +399,4 @@ Outputs:
   BBBRDSDBParameterGroup:
     Description: The Big Blue Button DB Parameter Group
     Value:
-      Ref: BBBRDSDBParameterGroup
+      Ref: "BBBRDSDBParameterGroupPostgres12"

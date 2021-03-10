@@ -86,6 +86,15 @@ Resources:
       ToPort: 443
       GroupId: !Ref BBBFrontendELBSecurityGroup
 
+  BBBECSSecurityGroupPublicHTTP:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      GroupId: !Ref BBBFrontendELBSecurityGroup
+
   BBBFrontendSecurityGroupALBports:
     Type: AWS::EC2::SecurityGroupIngress
     Condition: BBBScalableEnvironment
