@@ -1068,20 +1068,16 @@ Resources:
               - BBBNetworkStack
               - Outputs.BBBVPCs
             - Ref: BBBVPCs
-        BBBDBAddress:
-          Fn::GetAtt:
-            - BBBDatabaseStack
-            - Outputs.BBBDBAddress
-        BBBDBPort:
-          Fn::GetAtt:
-            - BBBDatabaseStack
-            - Outputs.BBBDBPort
         BBBDBName:
           Ref: BBBDBName
         BBBRDSDBSecret:
           Fn::GetAtt:
             - BBBDatabaseStack
             - Outputs.BBBRDSDBSecret
+        BBBRDSDBConnectionSecret:
+          Fn::GetAtt:
+            - BBBDatabaseStack
+            - Outputs.BBBRDSDBConnectionSecret
         BBBEnvironmentStage:
           Ref: BBBEnvironmentStage
         BBBECSCluster:
