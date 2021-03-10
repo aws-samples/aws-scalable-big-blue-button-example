@@ -105,6 +105,12 @@ Parameters:
       - stage
       - prod
       - dev
+  BBBEnvironmentType:
+    Description: 'Defines the environment type. Allowed values: scalable, single'
+    Type: String
+    AllowedValues:
+      - scalable
+      - single
   BBBTurnSecurityGroup:
     Description: Security Group that should be assigned for the turn server
     Type: String
