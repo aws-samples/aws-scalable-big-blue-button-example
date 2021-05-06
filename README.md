@@ -337,7 +337,6 @@ Be sure NOT to use the main branch if you want to be sure not pulling potential 
     - [Scalelite](https://github.com/blindsidenetworks/scalelite)
     - [Coturn](https://github.com/coturn/coturn)
     - [cfn-ses-provider](https://github.com/binxio/cfn-ses-provider)
-    - [cfn-certificate-provider](https://github.com/binxio/cfn-certificate-provider)
     - [cli53](https://github.com/barnybug/cli53)
 
 # Security
@@ -358,6 +357,5 @@ Please be aware of the deviating licenses of the deployed open-source software c
 - cli53: [MIT License](https://github.com/barnybug/cli53/blob/master/LICENSE)
 - Coturn: [New BSD License](https://github.com/coturn/coturn/blob/master/LICENSE)
 - cfn-ses-provider - [Apache-2.0 License](https://github.com/binxio/cfn-ses-provider/blob/master/LICENSE)
-- cfn-certificate-provider - [Apache-2.0 License](https://github.com/binxio/cfn-certificate-provider/blob/master/LICENSE)
 
 Please note that running this code will cause software that is licensed under [AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.de.html) to be deployed in the user’s account.

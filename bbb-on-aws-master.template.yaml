@@ -496,28 +496,6 @@ Resources:
       LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", "/applicationlogs"]]
       RetentionInDays: 7
 
-  BBBACMCertStack:
-    Type: AWS::CloudFormation::Stack
-    Condition: BBBScalableEnvironment
-    Properties:
-      TemplateURL:
-        Fn::Join:
-          - ""
-          - - "https://s3.amazonaws.com/"
-            - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
-            - "/bbb-on-aws-acmcert.template.yaml"
-      Parameters:
-        BBBEnvironmentStage:
-          Ref: BBBEnvironmentStage
-      Tags:
-        - Key: Name
-          Value:
-            Fn::Sub: BBBACMCertStack-${BBBEnvironmentName}
-        - Key: Environment
-          Value: !Ref BBBEnvironmentName
-        - Key: Stage
-          Value: !Ref BBBEnvironmentStage
-
   BBBAMIFinderStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -1123,10 +1101,6 @@ Resources:
           Fn::GetAtt:
             - BBBSecurityGroupStack
             - Outputs.BBBScaleliteELBSecurityGroup
-        BBBACMCertProviderArn: 
-          Fn::GetAtt:
-            - BBBACMCertStack
-            - Outputs.BBBACMCertProviderArn
         BBBACMCertArn:
           Ref: BBBACMCertArn
         BBBSESProviderArn: 

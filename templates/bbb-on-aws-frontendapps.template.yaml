@@ -97,9 +97,6 @@ Parameters:
     Description: CPU constraints for Scalelite Fargate Task
     Type: Number
     Default: 1024
-  BBBACMCertProviderArn:
-    Description: ARN of the custom certificate provider
-    Type: String
   BBBSESProviderArn:
     Description: ARN of the custom SES provider
     Type: String
@@ -389,41 +386,13 @@ Resources:
                   - !Sub "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:*"
 
   BBBPublicCertificate:
-    Type: Custom::Certificate
+    Type: AWS::CertificateManager::Certificate
     Condition: BBBACMNewCert
-    Properties:
-      DomainName: !Sub "*.${BBBDomainName}"
-      ValidationMethod: DNS
-      ServiceToken: !Ref BBBACMCertProviderArn
-
-  BBBPublicIssuedCertificate:
-    Type: Custom::IssuedCertificate
-    Condition: BBBACMNewCert
-    Properties:
-      CertificateArn: !Ref BBBPublicCertificate
-      ServiceToken: !Ref BBBACMCertProviderArn
-
-  BBBPublicCertificateDNSRecord:
-    Type: Custom::CertificateDNSRecord
-    Condition: BBBACMNewCert
-    Properties:
-      CertificateArn: !Ref BBBPublicCertificate
-      DomainName: !Sub "*.${BBBDomainName}"
-      ServiceToken: !Ref BBBACMCertProviderArn
-
-  BBBPublicDomainValidationRecord:
-    Type: AWS::Route53::RecordSetGroup
-    Condition: BBBACMNewCert
-    Properties:
-      HostedZoneId: !Ref BBBHostedZone
-      RecordSets:
-        - Name: !GetAtt BBBPublicCertificateDNSRecord.Name
-          Type: !GetAtt BBBPublicCertificateDNSRecord.Type
-          TTL: 60
-          Weight: 1
-          SetIdentifier: !Ref BBBPublicCertificate
-          ResourceRecords:
-            - !GetAtt BBBPublicCertificateDNSRecord.Value
+    DomainName: !Sub "*.${BBBDomainName}"
+    DomainValidationOptions: 
+      - !Sub "*.${BBBDomainName}"
+      - !Ref BBBHostedZone
+    ValidationMethod: DNS
 
   BBBFrontendALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
