@@ -460,6 +460,10 @@ Parameters:
     Type: String
     Default: false
     AllowedValues: [ true, false ]
+  BBBACMCertArn: 
+    Description: Set this parameter if you want to reuse an existing ACM certificate for your deployment
+    Type: String
+    Default: "AWS::NoValue"
 
 Conditions:
   BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
@@ -1123,6 +1127,8 @@ Resources:
           Fn::GetAtt:
             - BBBACMCertStack
             - Outputs.BBBACMCertProviderArn
+        BBBACMCertArn:
+          Ref: BBBACMCertArn
         BBBSESProviderArn: 
           Fn::GetAtt:
             - BBBSESProviderStack

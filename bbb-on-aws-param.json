@@ -40,7 +40,6 @@
     "BBBGreenlightMemory": 1024,
     "BBBGreenlightCPU": 512,
     "BBBScaleliteMemory": 2048,
-    "BBBScaleliteCPU": 1024,
-    "BBBSESValidated": "false"
+    "BBBScaleliteCPU": 1024
   }
 }

@@ -125,6 +125,8 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 | BBBScaleliteMemory | 2048 | Memory limit for the Scalelite tasks | setting per task for all inheritated containers
 | BBBScaleliteCPU | 1024 | vCPU limit for the Scalelite tasks if deployed | setting once per task for all containers
 | BBBSesRegion| - | Region of the SES Service to be used | if the setup is planned to be deployed in a Region w/o Amazon SES, choose a proper region here. 
+| BBBSESValidated| false | controls if a pre validated SES domain is used | set to true if you setup the SES domain outside of this deployment 
+| BBBACMCertArn | - | existing SSL/TLS Certificate ARN for HTTPS | add your Certificate ARN here. e.g. if you imported your own Cert into ACM. 
 
 # Deployment
 

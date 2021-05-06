@@ -168,12 +168,17 @@ Parameters:
     Type: String
     Default: false
     AllowedValues: [ true, false ]
+  BBBACMCertArn: 
+    Description: Set this parameter if you want to reuse an existing ACM certificate for your deployment
+    Type: String
+    Default: "AWS::NoValue"
 
 Conditions:
   BBBSESRegionSet: !Not [ !Equals [ !Ref BBBSesRegion, "AWS::NoValue" ] ]
   BBBECSFargate: !Equals [ !Ref BBBECSInstanceType, fargate ]
   BBBECSEC2: !Not [ !Equals [ !Ref BBBECSInstanceType, fargate ] ]
-  BBBSESNotValidated: !Equals [false, !Ref BBBSESValidated]
+  BBBSESNotValidated: !Equals [ false, !Ref BBBSESValidated ]
+  BBBACMNewCert: !Equals [ !Ref BBBACMCertArn, "AWS::NoValue" ]
 
 Resources:
   BBBSESDomainIdentity:
@@ -385,6 +390,7 @@ Resources:
 
   BBBPublicCertificate:
     Type: Custom::Certificate
+    Condition: BBBACMNewCert
     Properties:
       DomainName: !Sub "*.${BBBDomainName}"
       ValidationMethod: DNS
@@ -392,12 +398,14 @@ Resources:
 
   BBBPublicIssuedCertificate:
     Type: Custom::IssuedCertificate
+    Condition: BBBACMNewCert
     Properties:
       CertificateArn: !Ref BBBPublicCertificate
       ServiceToken: !Ref BBBACMCertProviderArn
 
   BBBPublicCertificateDNSRecord:
     Type: Custom::CertificateDNSRecord
+    Condition: BBBACMNewCert
     Properties:
       CertificateArn: !Ref BBBPublicCertificate
       DomainName: !Sub "*.${BBBDomainName}"
@@ -405,6 +413,7 @@ Resources:
 
   BBBPublicDomainValidationRecord:
     Type: AWS::Route53::RecordSetGroup
+    Condition: BBBACMNewCert
     Properties:
       HostedZoneId: !Ref BBBHostedZone
       RecordSets:
@@ -442,7 +451,7 @@ Resources:
       Port: 443
       Protocol: HTTPS
       Certificates:
-        - CertificateArn: !Ref BBBPublicCertificate
+        - CertificateArn: !If [ BBBACMNewCert, !Ref BBBACMCertArn, !Ref BBBPublicCertificate ]
 
   BBBFrontendALBListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
@@ -535,7 +544,7 @@ Resources:
       Port: 443
       Protocol: HTTPS
       Certificates:
-        - CertificateArn: !Ref BBBPublicCertificate
+        - CertificateArn: !If [ BBBACMNewCert, !Ref BBBACMCertArn, !Ref BBBPublicCertificate ]
 
   BBBScaleliteALBListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
