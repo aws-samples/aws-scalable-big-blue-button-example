@@ -1,7 +1,7 @@
 {
   "Parameters" : {
-    "BBBApplicationVersion": "xenial-22",
-    "BBBApplicationInstanceOSVersion": "xenial-16.04",
+    "BBBApplicationVersion": "bionic-230",
+    "BBBApplicationInstanceOSVersion": "bionic-18.04",
     "BBBTurnInstanceOSVersion": "focal-20.04",
     "BBBECSInstanceType": "t3a.medium",
     "BBBApplicationInstanceType": "t3a.medium",
