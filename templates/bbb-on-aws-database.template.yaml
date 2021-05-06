@@ -191,7 +191,7 @@ Resources:
     Type: AWS::RDS::DBParameterGroup
     Properties:
       Description: Aurora PG 12 Database Instance Parameter Group for Cloudformation Stack
-      Family: !If [ BBBServerlessAurora, aurora-postgresql12, aurora-postgresql10 ]
+      Family: !If [ BBBServerlessAurora, aurora-postgresql10, aurora-postgresql12 ]
       Parameters:
         shared_preload_libraries: auto_explain,pg_stat_statements,pg_hint_plan,pgaudit
         log_statement: "ddl"
