@@ -156,7 +156,7 @@ Resources:
       DBClusterIdentifier:
         Ref: BBBRDSCluster
       DBParameterGroupName:
-        Ref: "BBBRDSDBParameterGroupPostgres12"
+        Ref: BBBRDSDBParameterGroupPostgres12
       AvailabilityZone:
         Fn::Select:
           - '0'
@@ -191,7 +191,7 @@ Resources:
     Type: AWS::RDS::DBParameterGroup
     Properties:
       Description: Aurora PG 12 Database Instance Parameter Group for Cloudformation Stack
-      Family: aurora-postgresql12
+      Family: !If [ BBBServerlessAurora, aurora-postgresql12, aurora-postgresql10 ]
       Parameters:
         shared_preload_libraries: auto_explain,pg_stat_statements,pg_hint_plan,pgaudit
         log_statement: "ddl"
