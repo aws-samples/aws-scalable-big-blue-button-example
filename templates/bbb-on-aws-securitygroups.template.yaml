@@ -88,6 +88,7 @@ Resources:
 
   BBBECSSecurityGroupPublicHTTP:
     Type: AWS::EC2::SecurityGroupIngress
+    Condition: BBBScalableEnvironment
     Properties:
       CidrIp: 0.0.0.0/0
       IpProtocol: tcp
