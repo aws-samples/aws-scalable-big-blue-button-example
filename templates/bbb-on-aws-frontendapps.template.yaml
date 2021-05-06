@@ -163,15 +163,22 @@ Parameters:
   BBBApplicationLogsGroup:
     Description: Log group to be used for the Application logs
     Type: String
+  BBBSESValidated: 
+    Description: If the SES Domain is already validated manually we do not need the automation
+    Type: String
+    Default: false
+    AllowedValues: [ true, false ]
 
 Conditions:
   BBBSESRegionSet: !Not [ !Equals [ !Ref BBBSesRegion, "AWS::NoValue" ] ]
   BBBECSFargate: !Equals [ !Ref BBBECSInstanceType, fargate ]
   BBBECSEC2: !Not [ !Equals [ !Ref BBBECSInstanceType, fargate ] ]
+  BBBSESNotValidated: !Equals [false, !Ref BBBSESValidated]
 
 Resources:
   BBBSESDomainIdentity:
     Type: Custom::DomainIdentity
+    Condition: BBBSESNotValidated
     Properties:
       Domain: !Ref BBBDomainName
       Region: !If [ BBBSESRegionSet, !Ref BBBSesRegion, !Ref "AWS::Region" ]
@@ -183,6 +190,7 @@ Resources:
 
   BBBSESVerifiedIdentity:
     Type: Custom::VerifiedIdentity
+    Condition: BBBSESNotValidated
     DependsOn:
       - BBBSESDkimRecords
       - BBBSESVerificationRecords
@@ -194,6 +202,7 @@ Resources:
 
   BBBSESVerificationRecords:
     Type: AWS::Route53::RecordSetGroup
+    Condition: BBBSESNotValidated
     Properties:
       Comment: !Sub 'SES identity for ${BBBDomainName}'
       HostedZoneId: !Ref BBBHostedZone
@@ -201,6 +210,7 @@ Resources:
 
   BBBSESDkimTokens:
     Type: Custom::DkimTokens
+    Condition: BBBSESNotValidated
     Properties:
       Domain: !GetAtt 'BBBSESDomainIdentity.Domain'
       Region: !GetAtt 'BBBSESDomainIdentity.Region'
@@ -208,6 +218,7 @@ Resources:
 
   BBBSESDkimRecords:
     Type: AWS::Route53::RecordSetGroup
+    Condition: BBBSESNotValidated
     Properties:
       Comment: !Sub 'DKIM records for ${BBBDomainName}'
       HostedZoneId: !Ref BBBHostedZone
@@ -215,6 +226,7 @@ Resources:
 
   BBBSESIdentityNotifications:
     Type: Custom::IdentityNotifications
+    Condition: BBBSESNotValidated
     Properties:
       Identity: !GetAtt BBBSESVerifiedIdentity.Identity
       Region: !GetAtt BBBSESVerifiedIdentity.Region

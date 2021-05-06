@@ -2,6 +2,20 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2021-05-07
+
+### Upgrade Notes: 
+- the Big Blue Button version defaults now to 2.3.0. if you need to stay on 2.2.X please make sure to alter the BBB version parameter to xenial-22 and the Ubuntu version parameter to xenial-16.04. 
+
+### Fixed
+- #75: Serverless Aurora did not deploy due a missing !IF condition for the parametergroup 
+- #81: Single deployments failed due a missing condition
+
+### Changed
+- #85: Default Big Blue Button version defaults to 2.3.0 (stable since 7 Days)
+- #77: SES automation is now optional and can be overwritten by using the parameter
+- #76: Cloudformation can now validate ACM certificates natively, so we do not need the custom resource anymore. 
+
 ## [2.3.0] - 2021-03-10
 
 ### Upgrade Notes: 

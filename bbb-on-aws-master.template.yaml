@@ -455,6 +455,11 @@ Parameters:
     Description: Set the Region for the SES Service if deployment in a non-SES Region
     Type: String
     Default: "AWS::NoValue"
+  BBBSESValidated: 
+    Description: If the SES Domain is already validated manually we do not need the automation
+    Type: String
+    Default: false
+    AllowedValues: [ true, false ]
 
 Conditions:
   BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
@@ -463,6 +468,7 @@ Conditions:
   BBBSingleEnvironment: !Equals [!Ref BBBEnvironmentType, single]
   BBBExistingVPC: !And [ !Not [ !Equals [ !Ref BBBVPCs, "" ]], !Equals [ !Select [ 0, !Split [ vpc-, !Ref BBBVPCs ]], "" ]]
   BBBNewVPC: !Not [ Condition: BBBExistingVPC ]
+  BBBSESNotValidated: !Equals [false, !Ref BBBSESValidated]
 
 Resources:
 
