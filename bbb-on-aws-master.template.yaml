@@ -1096,6 +1096,8 @@ Resources:
             - Outputs.BBBRDSDBConnectionSecret
         BBBEnvironmentStage:
           Ref: BBBEnvironmentStage
+        BBBSESValidated: 
+          Ref: BBBSESValidated
         BBBECSCluster:
           Fn::GetAtt:
             - BBBECSStack
