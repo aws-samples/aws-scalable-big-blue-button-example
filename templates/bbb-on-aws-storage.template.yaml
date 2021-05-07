@@ -40,7 +40,28 @@ Resources:
     Type: AWS::EFS::FileSystem
     Properties:
       Encrypted: true
-
+      FileSystemPolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "elasticfilesystem:ClientMount"
+              - "elasticfilesystem:ClientWrite"
+            Principal:
+                AWS: "*"
+            Condition: 
+              StringEquals:
+                aws:PrincipalArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/${AWS::StackName}-BBBScaleliteExecutionRole'
+          - Effect: "Allow"
+            Action:
+              - "elasticfilesystem:ClientMount"
+              - "elasticfilesystem:ClientWrite"
+            Principal:
+                AWS: "*"
+            Condition: 
+              StringEquals:
+                aws:PrincipalArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/${AWS::StackName}-BBBApplicationEC2Role'
+                  
   BBBSharedStorageMountTarget1:
     Type: AWS::EFS::MountTarget
     Properties:

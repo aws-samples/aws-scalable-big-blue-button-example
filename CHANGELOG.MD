@@ -12,10 +12,11 @@ All notable changes to this project will be documented in this file.
 - #81: Single deployments failed due a missing condition
 
 ### Changed
-- #85: Default Big Blue Button version defaults to 2.3.0 (stable since 7 Days)
+- #84: Default Big Blue Button version defaults to 2.3.0 (stable since 7 Days)
 - #77: SES automation is now optional and can be overwritten by using the parameter
 - #77: an existing ACM Certificate ARN can be added to reuse an existing or imported SSL certificate
-- #76: Cloudformation can now validate ACM certificates natively, so we do not need the custom resource anymore. 
+- #76: Cloudformation can now validate ACM certificates natively, so we do not need the custom resource anymore.
+- #85: we're now utilizing IAM Roles when mounting the Shared Storage. Also the Storage now limits access to the APs utilizing these Roles. 
 
 ## [2.3.0] - 2021-03-10
 

@@ -199,6 +199,7 @@ Resources:
   BBBApplicationEC2Role:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: BBBApplicationEC2Role
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
@@ -341,7 +342,7 @@ Resources:
           systemctl start route53-handler
 
           mkdir -p /mnt/bbb-recordings
-          echo "${BBBSharedStorageFS}: /mnt/bbb-recordings efs defaults,tls,accesspoint=${BBBSharedStorageAPspool},rw 0 0" >> /etc/fstab
+          echo "${BBBSharedStorageFS}: /mnt/bbb-recordings efs defaults,tls,iam,accesspoint=${BBBSharedStorageAPspool},rw 0 0" >> /etc/fstab
 
           mkdir -p /var/bigbluebutton
 

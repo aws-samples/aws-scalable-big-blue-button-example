@@ -321,6 +321,7 @@ Parameters:
       - db.r4.4xlarge
       - db.r4.8xlarge
       - db.r4.16xlarge
+      - db.t3.micro
       - db.t3.small
       - db.t3.medium
       - db.t3.large

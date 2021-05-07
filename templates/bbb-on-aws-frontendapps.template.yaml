@@ -331,6 +331,16 @@ Resources:
                   - !Ref BBBApplicationBaseSecret
                   - !Ref BBBLoadbalancerSecret
 
+  BBBScaleliteRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+
   BBBGreenlightTaskExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -358,6 +368,16 @@ Resources:
                   - !Ref BBBSMTPAccessSecret
                   - !Ref BBBAdministratorlogin
                   - !Ref BBBLoadbalancerSecret
+
+  BBBGreenlightTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
 
   BBBAutoscalingRole:
     Type: AWS::IAM::Role
@@ -388,11 +408,9 @@ Resources:
   BBBPublicCertificate:
     Type: AWS::CertificateManager::Certificate
     Condition: BBBACMNewCert
-    DomainName: !Sub "*.${BBBDomainName}"
-    DomainValidationOptions: 
-      - !Sub "*.${BBBDomainName}"
-      - !Ref BBBHostedZone
-    ValidationMethod: DNS
+    Properties: 
+      DomainName: !Sub "*.${BBBDomainName}"
+      ValidationMethod: DNS
 
   BBBFrontendALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -407,9 +425,6 @@ Resources:
 
   BBBFrontendALBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
-    DependsOn:
-      - BBBPublicIssuedCertificate
-      - BBBPublicDomainValidationRecord
     Properties:
       DefaultActions:
         - Type: redirect
@@ -420,7 +435,7 @@ Resources:
       Port: 443
       Protocol: HTTPS
       Certificates:
-        - CertificateArn: !If [ BBBACMNewCert, !Ref BBBACMCertArn, !Ref BBBPublicCertificate ]
+        - CertificateArn: !If [ BBBACMNewCert, !Ref BBBPublicCertificate, !Ref BBBACMCertArn  ]
 
   BBBFrontendALBListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
@@ -502,9 +517,6 @@ Resources:
 
   BBBScaleliteALBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
-    DependsOn:
-      - BBBPublicIssuedCertificate
-      - BBBPublicDomainValidationRecord
     Properties:
       DefaultActions:
         - Type: forward
@@ -513,7 +525,7 @@ Resources:
       Port: 443
       Protocol: HTTPS
       Certificates:
-        - CertificateArn: !If [ BBBACMNewCert, !Ref BBBACMCertArn, !Ref BBBPublicCertificate ]
+        - CertificateArn: !If [ BBBACMNewCert, !Ref BBBPublicCertificate, !Ref BBBACMCertArn  ]
 
   BBBScaleliteALBListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
@@ -552,6 +564,7 @@ Resources:
       NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue" ]
       Memory: !Ref BBBGreenlightMemory
       Cpu: !Ref BBBGreenlightCPU
+      TaskRoleArn: !Ref BBBGreenlightTaskRole
       RequiresCompatibilities:
         !If
         - BBBECSFargate
@@ -689,6 +702,7 @@ Resources:
       NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue" ]
       Memory: !Ref BBBScaleliteMemory
       Cpu: !Ref BBBScaleliteCPU
+      TaskRoleArn: !Ref BBBScaleliteRole
       RequiresCompatibilities:
         !If
         - BBBECSFargate
@@ -696,29 +710,33 @@ Resources:
         - !Ref "AWS::NoValue"
       Volumes:
         - Name: !Join [ "", [ scalelite-recordings-volume-spool, !Ref BBBEnvironmentStage ] ]
-          efsVolumeConfiguration:
-            fileSystemId: !Ref BBBSharedStorageFS
-            transitEncryption: ENABLED
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref BBBSharedStorageFS
+            TransitEncryption: ENABLED
             AuthorizationConfig:
               AccessPointId: !Ref BBBSharedStorageAPspool
+              IAM: ENABLED
         - Name: !Join [ "", [ scalelite-recordings-volume-published, !Ref BBBEnvironmentStage ] ]
-          efsVolumeConfiguration:
-            fileSystemId: !Ref BBBSharedStorageFS
-            transitEncryption: ENABLED
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref BBBSharedStorageFS
+            TransitEncryption: ENABLED
             AuthorizationConfig:
               AccessPointId: !Ref BBBSharedStorageAPpublished
+              IAM: ENABLED
         - Name: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref BBBEnvironmentStage ] ]
-          efsVolumeConfiguration:
-            fileSystemId: !Ref BBBSharedStorageFS
-            transitEncryption: ENABLED
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref BBBSharedStorageFS
+            TransitEncryption: ENABLED
             AuthorizationConfig:
               AccessPointId: !Ref BBBSharedStorageAPunpublished
+              IAM: ENABLED
         - Name: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref BBBEnvironmentStage ] ]
-          efsVolumeConfiguration:
-            fileSystemId: !Ref BBBSharedStorageFS
-            transitEncryption: ENABLED
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref BBBSharedStorageFS
+            TransitEncryption: ENABLED
             AuthorizationConfig:
               AccessPointId: !Ref BBBSharedStorageAPrecordings
+              IAM: ENABLED
       ContainerDefinitions:
         - Name: scalelite-importer
           Essential: true
@@ -1019,6 +1037,7 @@ Outputs:
     Value: !Ref BBBAutoscalingRole
   BBBPublicCertificate:
     Description: SSL Cert for the Frontend
+    Condition: BBBACMNewCert
     Value: !Ref BBBPublicCertificate
   BBBFrontendALB:
     Description: Frontend Application Load Balancer
