@@ -214,7 +214,7 @@ Resources:
   BBBRDSDBClusterParameterGroupPostgres:
     Type: AWS::RDS::DBClusterParameterGroup
     Properties:
-      Description: CloudFormation Sample Aurora Cluster PG 12 Parameter Group
+      Description: CloudFormation Sample Aurora Cluster PG Parameter Group
       Family: !If [ BBBServerlessAurora, aurora-postgresql10, aurora-postgresql12 ]
       Parameters:
         timezone: Europe/Berlin
