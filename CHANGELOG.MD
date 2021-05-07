@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Upgrade Notes: 
 - the Big Blue Button version defaults now to 2.3.0. if you need to stay on 2.2.X please make sure to alter the BBB version parameter to xenial-22 and the Ubuntu version parameter to xenial-16.04. 
+- the deployment now defaults to "Serverless" deployments for ECS and Aurora. this will optimize costs especially in small/test environments. switching from instanced to serverless will resetup the database means you will have to restore the DB from a backup afterwards or start fresh with testings. to prevent this, ensure you're not just using defaults for your environment.
 
 ### Fixed
 - #75: Serverless Aurora did not deploy due a missing !IF condition for the parametergroup 

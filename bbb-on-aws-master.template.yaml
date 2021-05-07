@@ -107,7 +107,7 @@ Parameters:
   BBBECSInstanceType:
     Description: Instance type for ECS Cluster worker nodes
     Type: String
-    Default: t3a.large
+    Default: fargate
     AllowedValues:
       - fargate
       - t3a.small
@@ -327,7 +327,7 @@ Parameters:
       - db.t3.large
       - db.t3.xlarge
       - db.t3.2xlarge
-    Default: db.t3.medium
+    Default: serverless
   BBBServerlessAuroraMinCapacity:
     Description: The minimum capacity for the Amazon Aurora Serverless Cluster.
     Type: Number
