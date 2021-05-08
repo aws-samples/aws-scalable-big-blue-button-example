@@ -391,8 +391,13 @@ Resources:
           aws s3 cp s3://${BBBStackBucketStack}/scalelite-handler.sh /usr/local/bin/scalelite-handler.sh
           chmod +x /usr/local/bin/scalelite-handler.sh
 
-          SERVER="$(bbb-conf --secret | head -2 | tail -1 | sed -r 's/.*URL: //g')api"
-          SECRET=$(bbb-conf --secret | head -3 | tail -1 | sed -r 's/.*Secret: //g')
+          if [ ${BBBApplicationVersion} == "*23*" ];  then
+            SERVER="$(bbb-conf --secret | head -3 | tail -1 | sed -r 's/.*URL: //g')api"
+            SECRET=$(bbb-conf --secret | head -4 | tail -1 | sed -r 's/.*Secret: //g')
+          else
+            SERVER="$(bbb-conf --secret | head -2 | tail -1 | sed -r 's/.*URL: //g')api"
+            SECRET=$(bbb-conf --secret | head -3 | tail -1 | sed -r 's/.*Secret: //g')
+          fi
 
           sed -i "s/SECRET_PLACEHOLDER/$SECRET/g" /etc/systemd/system/scalelite-handler.service
           sed -i "s|SERVER_PLACEHOLDER|$SERVER|g" /etc/systemd/system/scalelite-handler.service

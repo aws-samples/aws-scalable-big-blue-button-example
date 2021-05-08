@@ -50,8 +50,8 @@ Resources:
             Principal:
                 AWS: "*"
             Condition: 
-              StringEquals:
-                aws:PrincipalArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/${AWS::StackName}-BBBScaleliteExecutionRole'
+              StringLike:
+                aws:PrincipalTag/Name: "*BBBFrontendApplicationStack*" 
           - Effect: "Allow"
             Action:
               - "elasticfilesystem:ClientMount"
@@ -59,9 +59,9 @@ Resources:
             Principal:
                 AWS: "*"
             Condition: 
-              StringEquals:
-                aws:PrincipalArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/${AWS::StackName}-BBBApplicationEC2Role'
-                  
+              StringLike:
+                aws:PrincipalTag/Name: "*BBBApplicationStack*"    
+                       
   BBBSharedStorageMountTarget1:
     Type: AWS::EFS::MountTarget
     Properties:

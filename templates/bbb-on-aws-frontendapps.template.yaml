@@ -405,11 +405,19 @@ Resources:
                   - !Ref BBBScaleliteService
                   - !Sub "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:*"
 
-  BBBPublicCertificate:
-    Type: AWS::CertificateManager::Certificate
+  BBBPublicCertificate:      
     Condition: BBBACMNewCert
-    Properties: 
+    Type: 'AWS::CertificateManager::Certificate'
+    Properties:
+      ValidationMethod: DNS
       DomainName: !Sub "*.${BBBDomainName}"
+      SubjectAlternativeNames:
+        - !Ref BBBDomainName
+        - !Sub "*.${BBBDomainName}"
+      DomainValidationOptions:
+        - DomainName: !Ref BBBDomainName
+          #ValidationDomain: !Ref BBBDomainName
+          HostedZoneId: !Ref BBBHostedZone
       ValidationMethod: DNS
 
   BBBFrontendALB:
