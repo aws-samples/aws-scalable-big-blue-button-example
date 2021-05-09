@@ -416,7 +416,6 @@ Resources:
         - !Sub "*.${BBBDomainName}"
       DomainValidationOptions:
         - DomainName: !Ref BBBDomainName
-          #ValidationDomain: !Ref BBBDomainName
           HostedZoneId: !Ref BBBHostedZone
       ValidationMethod: DNS
 

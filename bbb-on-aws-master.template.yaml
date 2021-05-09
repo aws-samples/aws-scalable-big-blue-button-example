@@ -873,6 +873,10 @@ Resources:
           Fn::GetAtt:
             - BBBTurnStack
             - Outputs.BBBTurnSecret
+        BBBLoadbalancerSecret:
+          Fn::GetAtt:
+            - BBBFontendAppsStack
+            - Outputs.BBBLoadbalancerSecret
         BBBNotificationTopic:
           Ref: BBBNotificationTopic
         BBBSystemLogsGroupArn:
