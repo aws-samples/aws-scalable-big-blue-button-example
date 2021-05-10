@@ -20,6 +20,8 @@ All notable changes to this project will be documented in this file.
 - #76: Cloudformation can now validate ACM certificates natively, so we do not need the custom resource anymore.
 - #85: we're now utilizing IAM Roles when mounting the Shared Storage. Also the Storage now limits access to the APs utilizing these Roles. 
 - #86: adding ECR as container registry to prevent failures due dockerhub limitations
+- Versions of Greenlight and Scalelite are now current and reflect the new default Big Blue Button Version
+- Fargate deployment version of Scalelite was broken, this is now fixed. 
 
 ## [2.3.0] - 2021-03-10
 
