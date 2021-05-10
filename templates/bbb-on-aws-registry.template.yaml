@@ -1,0 +1,31 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: > 
+
+  This Cloudformation Template deploys the registry to handle the BigBlueButton container deployment. The Template deploys an ECR
+  registry for images to be pulled. 
+
+  Disclaimer: Not for production use. Demo and testing purposes only.
+
+  Author: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
+Resources:
+
+  BBBScaleliteRegistry:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: blindsidenetwks/scalelite
+
+  BBBGreenlightRegistry:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: bigbluebutton/greenlight
+
+Outputs: 
+  BBBGreenlightRegistry:
+    Description: Registry name for the ECR registry holding Greenlight and Scalelite Images
+    Value: 
+      Ref: BBBGreenlightRegistry
+  BBBScaleliteRegistry:
+    Description: Registry name for the ECR registry holding Greenlight and Scalelite Images
+    Value: 
+      Ref: BBBScaleliteRegistry

@@ -38,6 +38,7 @@ Parameters:
       - db.r4.4xlarge
       - db.r4.8xlarge
       - db.r4.16xlarge
+      - db.t3.micro
       - db.t3.small
       - db.t3.medium
       - db.t3.large
@@ -129,7 +130,7 @@ Resources:
       DBSubnetGroupName:
         Ref: BBBDBSubnetGroup
       DBClusterParameterGroupName:
-        Ref: "BBBRDSDBClusterParameterGroupPostgres12"
+        Ref: "BBBRDSDBClusterParameterGroupPostgres"
       VpcSecurityGroupIds:
         - Ref: BBBDBSecurityGroup
       ScalingConfiguration:
@@ -156,7 +157,7 @@ Resources:
       DBClusterIdentifier:
         Ref: BBBRDSCluster
       DBParameterGroupName:
-        Ref: "BBBRDSDBParameterGroupPostgres12"
+        Ref: BBBRDSDBParameterGroupPostgres
       AvailabilityZone:
         Fn::Select:
           - '0'
@@ -187,11 +188,11 @@ Resources:
       DBInstanceClass:
         Ref: BBBDBInstanceType
 
-  BBBRDSDBParameterGroupPostgres12:
+  BBBRDSDBParameterGroupPostgres:
     Type: AWS::RDS::DBParameterGroup
     Properties:
       Description: Aurora PG 12 Database Instance Parameter Group for Cloudformation Stack
-      Family: aurora-postgresql12
+      Family: !If [ BBBServerlessAurora, aurora-postgresql10, aurora-postgresql12 ]
       Parameters:
         shared_preload_libraries: auto_explain,pg_stat_statements,pg_hint_plan,pgaudit
         log_statement: "ddl"
@@ -210,11 +211,11 @@ Resources:
         statement_timeout: 7200000
         search_path: '"$user",public'
 
-  BBBRDSDBClusterParameterGroupPostgres12:
+  BBBRDSDBClusterParameterGroupPostgres:
     Type: AWS::RDS::DBClusterParameterGroup
     Properties:
-      Description: CloudFormation Sample Aurora Cluster PG 12 Parameter Group
-      Family: aurora-postgresql12
+      Description: CloudFormation Sample Aurora Cluster PG Parameter Group
+      Family: !If [ BBBServerlessAurora, aurora-postgresql10, aurora-postgresql12 ]
       Parameters:
         timezone: Europe/Berlin
 
@@ -377,7 +378,7 @@ Outputs:
   BBBRDSDBClusterParameterGroup:
     Description: The Big Blue Button DB Cluster Parameter Group
     Value:
-      Ref: "BBBRDSDBClusterParameterGroupPostgres12"
+      Ref: "BBBRDSDBClusterParameterGroupPostgres"
   BBBDBSubnetGroup:
     Description: The Big Blue Button DB Subnet Group
     Value:
@@ -399,4 +400,4 @@ Outputs:
   BBBRDSDBParameterGroup:
     Description: The Big Blue Button DB Parameter Group
     Value:
-      Ref: "BBBRDSDBParameterGroupPostgres12"
+      Ref: "BBBRDSDBParameterGroupPostgres"

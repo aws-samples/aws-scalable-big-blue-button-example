@@ -2,6 +2,27 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2021-05-10
+
+### Upgrade Notes: 
+- the Big Blue Button version defaults now to 2.3.0. if you need to stay on 2.2.X please make sure to alter the BBB version parameter to xenial-22 and the Ubuntu version parameter to xenial-16.04. 
+- the deployment now defaults to "Serverless" deployments for ECS and Aurora. this will optimize costs especially in small/test environments. switching from instanced to serverless will resetup the database means you will have to restore the DB from a backup afterwards or start fresh with testings. to prevent this, ensure you're not just using defaults for your environment.
+- now you should have docker locally installed when planning a scalable deployment. this is due our approach to mirror the needed images to ensure availability when using scaling of the frontend and Scalelite LBs
+
+### Fixed
+- #75: Serverless Aurora did not deploy due a missing !IF condition for the parametergroup 
+- #81: Single deployments failed due a missing condition
+
+### Changed
+- #84: Default Big Blue Button version defaults to 2.3.0 (stable since 7 Days)
+- #77: SES automation is now optional and can be overwritten by using the parameter
+- #77: an existing ACM Certificate ARN can be added to reuse an existing or imported SSL certificate
+- #76: Cloudformation can now validate ACM certificates natively, so we do not need the custom resource anymore.
+- #85: we're now utilizing IAM Roles when mounting the Shared Storage. Also the Storage now limits access to the APs utilizing these Roles. 
+- #86: adding ECR as container registry to prevent failures due dockerhub limitations
+- Versions of Greenlight and Scalelite are now current and reflect the new default Big Blue Button Version
+- Fargate deployment version of Scalelite was broken, this is now fixed. 
+
 ## [2.3.0] - 2021-03-10
 
 ### Upgrade Notes: 

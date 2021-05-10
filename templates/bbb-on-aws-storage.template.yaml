@@ -40,7 +40,28 @@ Resources:
     Type: AWS::EFS::FileSystem
     Properties:
       Encrypted: true
-
+      FileSystemPolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "elasticfilesystem:ClientMount"
+              - "elasticfilesystem:ClientWrite"
+            Principal:
+                AWS: "*"
+            Condition: 
+              StringLike:
+                aws:PrincipalTag/Name: "*BBBFrontendApplicationStack*" 
+          - Effect: "Allow"
+            Action:
+              - "elasticfilesystem:ClientMount"
+              - "elasticfilesystem:ClientWrite"
+            Principal:
+                AWS: "*"
+            Condition: 
+              StringLike:
+                aws:PrincipalTag/Name: "*BBBApplicationStack*"    
+                       
   BBBSharedStorageMountTarget1:
     Type: AWS::EFS::MountTarget
     Properties:
@@ -76,12 +97,12 @@ Resources:
       FileSystemId: !Ref BBBSharedStorageFS
       PosixUser:
         Uid: "1000"
-        Gid: "1000"
+        Gid: "2000"
       RootDirectory:
         CreationInfo:
           OwnerGid: "1000"
-          OwnerUid: "1000"
-          Permissions: "0775"
+          OwnerUid: "2000"
+          Permissions: "0777"
         Path: "/spool"
 
   BBBSharedStorageAPpublished:
@@ -90,12 +111,12 @@ Resources:
       FileSystemId: !Ref BBBSharedStorageFS
       PosixUser:
         Uid: "1000"
-        Gid: "1000"
+        Gid: "2000"
       RootDirectory:
         CreationInfo:
           OwnerGid: "1000"
-          OwnerUid: "1000"
-          Permissions: "0775"
+          OwnerUid: "2000"
+          Permissions: "0777"
         Path: "/published"
 
   BBBSharedStorageAPunpublished:
@@ -104,12 +125,12 @@ Resources:
       FileSystemId: !Ref BBBSharedStorageFS
       PosixUser:
         Uid: "1000"
-        Gid: "1000"
+        Gid: "2000"
       RootDirectory:
         CreationInfo:
           OwnerGid: "1000"
-          OwnerUid: "1000"
-          Permissions: "0775"
+          OwnerUid: "2000"
+          Permissions: "0777"
         Path: "/unpublished"
 
   BBBSharedStorageAPrecordings:
@@ -118,12 +139,12 @@ Resources:
       FileSystemId: !Ref BBBSharedStorageFS
       PosixUser:
         Uid: "1000"
-        Gid: "1000"
+        Gid: "2000"
       RootDirectory:
         CreationInfo:
           OwnerGid: "1000"
-          OwnerUid: "1000"
-          Permissions: "0775"
+          OwnerUid: "2000"
+          Permissions: "0777"
         Path: "/recordings"
 
 Outputs:

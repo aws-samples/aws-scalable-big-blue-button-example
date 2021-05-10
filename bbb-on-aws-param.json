@@ -1,14 +1,14 @@
 {
   "Parameters" : {
-    "BBBApplicationVersion": "xenial-22",
-    "BBBApplicationInstanceOSVersion": "xenial-16.04",
+    "BBBApplicationVersion": "bionic-230",
+    "BBBApplicationInstanceOSVersion": "bionic-18.04",
     "BBBTurnInstanceOSVersion": "focal-20.04",
-    "BBBECSInstanceType": "t3a.medium",
+    "BBBECSInstanceType": "fargate",
     "BBBApplicationInstanceType": "t3a.medium",
     "BBBApplicationDataVolumeSize": 50,
     "BBBApplicationRootVolumeSize": 20,
     "BBBTurnInstanceType": "t3a.micro",
-    "BBBDBInstanceType": "db.t3.medium",
+    "BBBDBInstanceType": "serverless",
     "BBBServerlessAuroraMinCapacity": 2,
     "BBBServerlessAuroraMaxCapacity": 4,
     "BBBCACHEDBInstanceType": "cache.t3.micro",
@@ -27,15 +27,15 @@
     "BBBTurnMinInstances": 1,
     "BBBTurnDesiredInstances": 1,
     "BBBDBName": "frontendapp",
-    "BBBDBEngineVersion": "12.4",
+    "BBBDBEngineVersion": "10.12",
     "BBBEnvironmentStage": "dev",
     "BBBEnvironmentName": "bbbonaws",
     "BBBEnvironmentType": "scalable",
-    "BBBgreenlightImage": "bigbluebutton/greenlight:release-2.7.20",
-    "BBBScaleliteApiImage": "blindsidenetwks/scalelite:v1.0.7-api",
-    "BBBScaleliteNginxImage": "blindsidenetwks/scalelite:v1.0.7-nginx",
-    "BBBScalelitePollerImage": "blindsidenetwks/scalelite:v1.0.7-poller",
-    "BBBScaleliteImporterImage": "blindsidenetwks/scalelite:v1.0.7-recording-importer",
+    "BBBgreenlightImage": "bigbluebutton/greenlight:v2",
+    "BBBScaleliteApiImage": "blindsidenetwks/scalelite:v1.1-beta.4-api",
+    "BBBScaleliteNginxImage": "blindsidenetwks/scalelite:v1.1-beta.4-nginx",
+    "BBBScalelitePollerImage": "blindsidenetwks/scalelite:v1.1-beta.4-poller",
+    "BBBScaleliteImporterImage": "blindsidenetwks/scalelite:v1.1-beta.4-recording-importer",
     "BBBCacheAZMode": "cross-az",
     "BBBGreenlightMemory": 1024,
     "BBBGreenlightCPU": 512,
@@ -43,3 +43,5 @@
     "BBBScaleliteCPU": 1024
   }
 }
+
+

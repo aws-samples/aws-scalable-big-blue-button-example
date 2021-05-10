@@ -12,7 +12,7 @@ Parameters:
   BBBApplicationVersion:
     Description: Database engine version for Aurora PostgreSQL
     Type: String
-    Default: xenial-22
+    Default: bionic-230
   BBBOperatorEMail:
     Description: E-Mail address to notify if there are any operational issues
     Type: String
@@ -199,6 +199,7 @@ Resources:
   BBBApplicationEC2Role:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: BBBApplicationEC2Role
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
@@ -341,7 +342,7 @@ Resources:
           systemctl start route53-handler
 
           mkdir -p /mnt/bbb-recordings
-          echo "${BBBSharedStorageFS}: /mnt/bbb-recordings efs defaults,tls,accesspoint=${BBBSharedStorageAPspool},rw 0 0" >> /etc/fstab
+          echo "${BBBSharedStorageFS}: /mnt/bbb-recordings efs defaults,tls,iam,accesspoint=${BBBSharedStorageAPspool},rw 0 0" >> /etc/fstab
 
           mkdir -p /var/bigbluebutton
 
@@ -362,7 +363,6 @@ Resources:
           echo "$UUID       /var/bigbluebutton   ext4    defaults,nofail        0       2" >> /etc/fstab
           mount -a
 
-
           turn_hostname=$(aws ssm get-parameter --region ${AWS::Region} --name "${BBBTurnHostnameParameter}" --with-decryption --output text --query Parameter.Value)
           turn_fqdn=$turn_hostname.${BBBDomainName}
           turnsecret=$(aws secretsmanager get-secret-value --region ${AWS::Region} --secret-id ${BBBTurnSecret} --query SecretString --output text | jq -r .turnkeyvalue)
@@ -377,7 +377,7 @@ Resources:
           done
 
           wget -qO- https://ubuntu.bigbluebutton.org/bbb-install.sh | bash -s -- -v ${BBBApplicationVersion} -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret
-
+          
           groupadd -g 2000 scalelite-spool
           usermod -a -G scalelite-spool bigbluebutton
 
@@ -390,8 +390,13 @@ Resources:
           aws s3 cp s3://${BBBStackBucketStack}/scalelite-handler.sh /usr/local/bin/scalelite-handler.sh
           chmod +x /usr/local/bin/scalelite-handler.sh
 
-          SERVER="$(bbb-conf --secret | head -2 | tail -1 | sed -r 's/.*URL: //g')api"
-          SECRET=$(bbb-conf --secret | head -3 | tail -1 | sed -r 's/.*Secret: //g')
+          if [[ ${BBBApplicationVersion} == *"23"* ]]; then
+            SERVER="$(bbb-conf --secret | head -3 | tail -1 | sed -r 's/.*URL: //g')api"
+            SECRET=$(bbb-conf --secret | head -4 | tail -1 | sed -r 's/.*Secret: //g')
+          else
+            SERVER="$(bbb-conf --secret | head -2 | tail -1 | sed -r 's/.*URL: //g')api"
+            SECRET=$(bbb-conf --secret | head -3 | tail -1 | sed -r 's/.*Secret: //g')
+          fi
 
           sed -i "s/SECRET_PLACEHOLDER/$SECRET/g" /etc/systemd/system/scalelite-handler.service
           sed -i "s|SERVER_PLACEHOLDER|$SERVER|g" /etc/systemd/system/scalelite-handler.service

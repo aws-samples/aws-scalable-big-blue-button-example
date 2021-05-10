@@ -72,6 +72,10 @@ Parameters:
     Description: Scalelite Importer docker image identifier
     Type: String
     Default: "blindsidenetwks/scalelite:v1-recording-importer"
+  BBBECRRegistry: 
+    Description: ECR Registry to be used. 
+    Type: String
+    Default: ""
   BBBCacheDBAddress:
     Description: Amazon ElastiCache Cluster address
     Type: String
@@ -97,9 +101,6 @@ Parameters:
     Description: CPU constraints for Scalelite Fargate Task
     Type: Number
     Default: 1024
-  BBBACMCertProviderArn:
-    Description: ARN of the custom certificate provider
-    Type: String
   BBBSESProviderArn:
     Description: ARN of the custom SES provider
     Type: String
@@ -163,15 +164,27 @@ Parameters:
   BBBApplicationLogsGroup:
     Description: Log group to be used for the Application logs
     Type: String
+  BBBSESValidated: 
+    Description: If the SES Domain is already validated manually we do not need the automation
+    Type: String
+    Default: false
+    AllowedValues: [ true, false ]
+  BBBACMCertArn: 
+    Description: Set this parameter if you want to reuse an existing ACM certificate for your deployment
+    Type: String
+    Default: "AWS::NoValue"
 
 Conditions:
   BBBSESRegionSet: !Not [ !Equals [ !Ref BBBSesRegion, "AWS::NoValue" ] ]
   BBBECSFargate: !Equals [ !Ref BBBECSInstanceType, fargate ]
   BBBECSEC2: !Not [ !Equals [ !Ref BBBECSInstanceType, fargate ] ]
+  BBBSESNotValidated: !Equals [ false, !Ref BBBSESValidated ]
+  BBBACMNewCert: !Equals [ !Ref BBBACMCertArn, "AWS::NoValue" ]
 
 Resources:
   BBBSESDomainIdentity:
     Type: Custom::DomainIdentity
+    Condition: BBBSESNotValidated
     Properties:
       Domain: !Ref BBBDomainName
       Region: !If [ BBBSESRegionSet, !Ref BBBSesRegion, !Ref "AWS::Region" ]
@@ -183,6 +196,7 @@ Resources:
 
   BBBSESVerifiedIdentity:
     Type: Custom::VerifiedIdentity
+    Condition: BBBSESNotValidated
     DependsOn:
       - BBBSESDkimRecords
       - BBBSESVerificationRecords
@@ -194,6 +208,7 @@ Resources:
 
   BBBSESVerificationRecords:
     Type: AWS::Route53::RecordSetGroup
+    Condition: BBBSESNotValidated
     Properties:
       Comment: !Sub 'SES identity for ${BBBDomainName}'
       HostedZoneId: !Ref BBBHostedZone
@@ -201,6 +216,7 @@ Resources:
 
   BBBSESDkimTokens:
     Type: Custom::DkimTokens
+    Condition: BBBSESNotValidated
     Properties:
       Domain: !GetAtt 'BBBSESDomainIdentity.Domain'
       Region: !GetAtt 'BBBSESDomainIdentity.Region'
@@ -208,6 +224,7 @@ Resources:
 
   BBBSESDkimRecords:
     Type: AWS::Route53::RecordSetGroup
+    Condition: BBBSESNotValidated
     Properties:
       Comment: !Sub 'DKIM records for ${BBBDomainName}'
       HostedZoneId: !Ref BBBHostedZone
@@ -215,6 +232,7 @@ Resources:
 
   BBBSESIdentityNotifications:
     Type: Custom::IdentityNotifications
+    Condition: BBBSESNotValidated
     Properties:
       Identity: !GetAtt BBBSESVerifiedIdentity.Identity
       Region: !GetAtt BBBSESVerifiedIdentity.Region
@@ -317,6 +335,16 @@ Resources:
                   - !Ref BBBApplicationBaseSecret
                   - !Ref BBBLoadbalancerSecret
 
+  BBBScaleliteRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+
   BBBGreenlightTaskExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -345,6 +373,16 @@ Resources:
                   - !Ref BBBAdministratorlogin
                   - !Ref BBBLoadbalancerSecret
 
+  BBBGreenlightTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+
   BBBAutoscalingRole:
     Type: AWS::IAM::Role
     Properties:
@@ -371,38 +409,19 @@ Resources:
                   - !Ref BBBScaleliteService
                   - !Sub "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:*"
 
-  BBBPublicCertificate:
-    Type: Custom::Certificate
+  BBBPublicCertificate:      
+    Condition: BBBACMNewCert
+    Type: 'AWS::CertificateManager::Certificate'
     Properties:
-      DomainName: !Sub "*.${BBBDomainName}"
       ValidationMethod: DNS
-      ServiceToken: !Ref BBBACMCertProviderArn
-
-  BBBPublicIssuedCertificate:
-    Type: Custom::IssuedCertificate
-    Properties:
-      CertificateArn: !Ref BBBPublicCertificate
-      ServiceToken: !Ref BBBACMCertProviderArn
-
-  BBBPublicCertificateDNSRecord:
-    Type: Custom::CertificateDNSRecord
-    Properties:
-      CertificateArn: !Ref BBBPublicCertificate
       DomainName: !Sub "*.${BBBDomainName}"
-      ServiceToken: !Ref BBBACMCertProviderArn
-
-  BBBPublicDomainValidationRecord:
-    Type: AWS::Route53::RecordSetGroup
-    Properties:
-      HostedZoneId: !Ref BBBHostedZone
-      RecordSets:
-        - Name: !GetAtt BBBPublicCertificateDNSRecord.Name
-          Type: !GetAtt BBBPublicCertificateDNSRecord.Type
-          TTL: 60
-          Weight: 1
-          SetIdentifier: !Ref BBBPublicCertificate
-          ResourceRecords:
-            - !GetAtt BBBPublicCertificateDNSRecord.Value
+      SubjectAlternativeNames:
+        - !Ref BBBDomainName
+        - !Sub "*.${BBBDomainName}"
+      DomainValidationOptions:
+        - DomainName: !Ref BBBDomainName
+          HostedZoneId: !Ref BBBHostedZone
+      ValidationMethod: DNS
 
   BBBFrontendALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -417,9 +436,6 @@ Resources:
 
   BBBFrontendALBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
-    DependsOn:
-      - BBBPublicIssuedCertificate
-      - BBBPublicDomainValidationRecord
     Properties:
       DefaultActions:
         - Type: redirect
@@ -430,7 +446,7 @@ Resources:
       Port: 443
       Protocol: HTTPS
       Certificates:
-        - CertificateArn: !Ref BBBPublicCertificate
+        - CertificateArn: !If [ BBBACMNewCert, !Ref BBBPublicCertificate, !Ref BBBACMCertArn  ]
 
   BBBFrontendALBListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
@@ -512,9 +528,6 @@ Resources:
 
   BBBScaleliteALBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
-    DependsOn:
-      - BBBPublicIssuedCertificate
-      - BBBPublicDomainValidationRecord
     Properties:
       DefaultActions:
         - Type: forward
@@ -523,7 +536,7 @@ Resources:
       Port: 443
       Protocol: HTTPS
       Certificates:
-        - CertificateArn: !Ref BBBPublicCertificate
+        - CertificateArn: !If [ BBBACMNewCert, !Ref BBBPublicCertificate, !Ref BBBACMCertArn  ]
 
   BBBScaleliteALBListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
@@ -562,6 +575,7 @@ Resources:
       NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue" ]
       Memory: !Ref BBBGreenlightMemory
       Cpu: !Ref BBBGreenlightCPU
+      TaskRoleArn: !Ref BBBGreenlightTaskRole
       RequiresCompatibilities:
         !If
         - BBBECSFargate
@@ -570,7 +584,11 @@ Resources:
       ContainerDefinitions:
         - Name: greenlight
           Essential: true
-          Image: !Ref BBBgreenlightImage
+          Image: 
+            !Join
+              - '/'
+              - - !Ref BBBECRRegistry
+                - !Ref BBBgreenlightImage
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -699,6 +717,7 @@ Resources:
       NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue" ]
       Memory: !Ref BBBScaleliteMemory
       Cpu: !Ref BBBScaleliteCPU
+      TaskRoleArn: !Ref BBBScaleliteRole
       RequiresCompatibilities:
         !If
         - BBBECSFargate
@@ -706,33 +725,41 @@ Resources:
         - !Ref "AWS::NoValue"
       Volumes:
         - Name: !Join [ "", [ scalelite-recordings-volume-spool, !Ref BBBEnvironmentStage ] ]
-          efsVolumeConfiguration:
-            fileSystemId: !Ref BBBSharedStorageFS
-            transitEncryption: ENABLED
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref BBBSharedStorageFS
+            TransitEncryption: ENABLED
             AuthorizationConfig:
               AccessPointId: !Ref BBBSharedStorageAPspool
+              IAM: ENABLED
         - Name: !Join [ "", [ scalelite-recordings-volume-published, !Ref BBBEnvironmentStage ] ]
-          efsVolumeConfiguration:
-            fileSystemId: !Ref BBBSharedStorageFS
-            transitEncryption: ENABLED
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref BBBSharedStorageFS
+            TransitEncryption: ENABLED
             AuthorizationConfig:
               AccessPointId: !Ref BBBSharedStorageAPpublished
+              IAM: ENABLED
         - Name: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref BBBEnvironmentStage ] ]
-          efsVolumeConfiguration:
-            fileSystemId: !Ref BBBSharedStorageFS
-            transitEncryption: ENABLED
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref BBBSharedStorageFS
+            TransitEncryption: ENABLED
             AuthorizationConfig:
               AccessPointId: !Ref BBBSharedStorageAPunpublished
+              IAM: ENABLED
         - Name: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref BBBEnvironmentStage ] ]
-          efsVolumeConfiguration:
-            fileSystemId: !Ref BBBSharedStorageFS
-            transitEncryption: ENABLED
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref BBBSharedStorageFS
+            TransitEncryption: ENABLED
             AuthorizationConfig:
               AccessPointId: !Ref BBBSharedStorageAPrecordings
+              IAM: ENABLED
       ContainerDefinitions:
         - Name: scalelite-importer
           Essential: true
-          Image: !Ref BBBScaleliteImporterImage
+          Image:
+            !Join
+              - '/'
+              - - !Ref BBBECRRegistry 
+                - !Ref BBBScaleliteImporterImage
           MountPoints:
             - ContainerPath: /var/bigbluebutton/spool
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool, !Ref BBBEnvironmentStage ] ]
@@ -740,7 +767,7 @@ Resources:
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-published, !Ref BBBEnvironmentStage ] ]
             - ContainerPath: /var/bigbluebutton/unpublished
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/recordings
+            - ContainerPath: /var/bigbluebutton/recording/scalelite
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
@@ -769,9 +796,14 @@ Resources:
               Value: 'true'
             - Name: NGINX_BEHIND_PROXY
               Value: 'true'
+
         - Name: scalelite-poller
           Essential: true
-          Image: !Ref BBBScalelitePollerImage
+          Image: 
+            !Join
+              - '/'
+              - - !Ref BBBECRRegistry
+                - !Ref BBBScalelitePollerImage
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -804,7 +836,11 @@ Resources:
           DependsOn:
             - ContainerName: scalelite-importer
               Condition: START
-          Image: !Ref BBBScaleliteNginxImage
+          Image:
+            !Join
+              - '/'
+              - - !Ref BBBECRRegistry
+                - !Ref BBBScaleliteNginxImage
           EntryPoint:
             !If
             - BBBECSFargate
@@ -814,7 +850,7 @@ Resources:
           Command:
             !If
             - BBBECSFargate
-            - - "/bin/sh -c \"sed -i 's/scalelite-api/localhost/g' /etc/nginx/conf.d/scalelite.common && /etc/nginx/start -g daemon off\""
+            - - "/bin/sh -c \"sed -i 's/scalelite-api/127.0.0.1/g' /etc/nginx/conf.d/scalelite-proxy.template && /etc/nginx/start -g daemon off\""
             - !Ref "AWS::NoValue"
           Links:
             !If
@@ -828,7 +864,7 @@ Resources:
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-published, !Ref BBBEnvironmentStage ] ]
             - ContainerPath: /var/bigbluebutton/unpublished
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/recordings
+            - ContainerPath: /var/bigbluebutton/recording/scalelite
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
@@ -863,7 +899,11 @@ Resources:
               Value: !Sub scalelite.${BBBDomainName}
         - Name: scalelite-api
           Essential: true
-          Image: !Ref BBBScaleliteApiImage
+          Image: 
+            !Join
+              - '/'
+              - - !Ref BBBECRRegistry
+                - !Ref BBBScaleliteApiImage
           MountPoints:
             - ContainerPath: /var/bigbluebutton/spool
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool, !Ref BBBEnvironmentStage ] ]
@@ -871,7 +911,7 @@ Resources:
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-published, !Ref BBBEnvironmentStage ] ]
             - ContainerPath: /var/bigbluebutton/unpublished
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/recordings
+            - ContainerPath: /var/bigbluebutton/recording/scalelite
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
@@ -921,7 +961,11 @@ Resources:
       ContainerDefinitions:
         - Name: scalelite-handle-server
           Essential: true
-          Image: !Ref BBBScaleliteApiImage
+          Image:
+            !Join
+              - '/'
+              - - !Ref BBBECRRegistry
+                - !Ref BBBScaleliteApiImage
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -1029,6 +1073,7 @@ Outputs:
     Value: !Ref BBBAutoscalingRole
   BBBPublicCertificate:
     Description: SSL Cert for the Frontend
+    Condition: BBBACMNewCert
     Value: !Ref BBBPublicCertificate
   BBBFrontendALB:
     Description: Frontend Application Load Balancer

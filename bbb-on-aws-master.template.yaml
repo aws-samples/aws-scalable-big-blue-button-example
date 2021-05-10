@@ -107,7 +107,7 @@ Parameters:
   BBBECSInstanceType:
     Description: Instance type for ECS Cluster worker nodes
     Type: String
-    Default: t3a.large
+    Default: fargate
     AllowedValues:
       - fargate
       - t3a.small
@@ -321,12 +321,13 @@ Parameters:
       - db.r4.4xlarge
       - db.r4.8xlarge
       - db.r4.16xlarge
+      - db.t3.micro
       - db.t3.small
       - db.t3.medium
       - db.t3.large
       - db.t3.xlarge
       - db.t3.2xlarge
-    Default: db.t3.medium
+    Default: serverless
   BBBServerlessAuroraMinCapacity:
     Description: The minimum capacity for the Amazon Aurora Serverless Cluster.
     Type: Number
@@ -394,6 +395,10 @@ Parameters:
     Description: Scalelite Importer docker image identifier
     Type: String
     Default: "blindsidenetwks/scalelite:v1-recording-importer"
+  BBBECRRegistry: 
+    Description: ECR Registry to be used. 
+    Type: String
+    Default: ""
   BBBCacheAZMode:
     Description: Redis Cache AZ Mode
     Type: String
@@ -455,6 +460,15 @@ Parameters:
     Description: Set the Region for the SES Service if deployment in a non-SES Region
     Type: String
     Default: "AWS::NoValue"
+  BBBSESValidated: 
+    Description: If the SES Domain is already validated manually we do not need the automation
+    Type: String
+    Default: false
+    AllowedValues: [ true, false ]
+  BBBACMCertArn: 
+    Description: Set this parameter if you want to reuse an existing ACM certificate for your deployment
+    Type: String
+    Default: "AWS::NoValue"
 
 Conditions:
   BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
@@ -463,6 +477,7 @@ Conditions:
   BBBSingleEnvironment: !Equals [!Ref BBBEnvironmentType, single]
   BBBExistingVPC: !And [ !Not [ !Equals [ !Ref BBBVPCs, "" ]], !Equals [ !Select [ 0, !Split [ vpc-, !Ref BBBVPCs ]], "" ]]
   BBBNewVPC: !Not [ Condition: BBBExistingVPC ]
+  BBBSESNotValidated: !Equals [false, !Ref BBBSESValidated]
 
 Resources:
 
@@ -485,28 +500,6 @@ Resources:
     Properties: 
       LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", "/applicationlogs"]]
       RetentionInDays: 7
-
-  BBBACMCertStack:
-    Type: AWS::CloudFormation::Stack
-    Condition: BBBScalableEnvironment
-    Properties:
-      TemplateURL:
-        Fn::Join:
-          - ""
-          - - "https://s3.amazonaws.com/"
-            - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
-            - "/bbb-on-aws-acmcert.template.yaml"
-      Parameters:
-        BBBEnvironmentStage:
-          Ref: BBBEnvironmentStage
-      Tags:
-        - Key: Name
-          Value:
-            Fn::Sub: BBBACMCertStack-${BBBEnvironmentName}
-        - Key: Environment
-          Value: !Ref BBBEnvironmentName
-        - Key: Stage
-          Value: !Ref BBBEnvironmentStage
 
   BBBAMIFinderStack:
     Type: AWS::CloudFormation::Stack
@@ -1090,6 +1083,8 @@ Resources:
             - Outputs.BBBRDSDBConnectionSecret
         BBBEnvironmentStage:
           Ref: BBBEnvironmentStage
+        BBBSESValidated: 
+          Ref: BBBSESValidated
         BBBECSCluster:
           Fn::GetAtt:
             - BBBECSStack
@@ -1111,10 +1106,8 @@ Resources:
           Fn::GetAtt:
             - BBBSecurityGroupStack
             - Outputs.BBBScaleliteELBSecurityGroup
-        BBBACMCertProviderArn: 
-          Fn::GetAtt:
-            - BBBACMCertStack
-            - Outputs.BBBACMCertProviderArn
+        BBBACMCertArn:
+          Ref: BBBACMCertArn
         BBBSESProviderArn: 
           Fn::GetAtt:
             - BBBSESProviderStack
@@ -1135,6 +1128,8 @@ Resources:
           Ref: BBBScalelitePollerImage
         BBBScaleliteImporterImage:
           Ref: BBBScaleliteImporterImage
+        BBBECRRegistry: 
+          Ref: BBBECRRegistry
         BBBCacheDBAddress:
           Fn::GetAtt:
             - BBBCacheDBStack

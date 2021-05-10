@@ -12,7 +12,7 @@ Parameters:
   BBBApplicationVersion:
     Description: Database engine version for Aurora PostgreSQL
     Type: String
-    Default: xenial-22
+    Default: bionic-230
   BBBOperatorEMail:
     Description: E-Mail address to notify if there are any operational issues
     Type: String
@@ -182,6 +182,7 @@ Resources:
   BBBApplicationEC2Role:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: BBBApplicationEC2Role
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
