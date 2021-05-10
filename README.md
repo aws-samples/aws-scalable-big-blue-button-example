@@ -49,6 +49,7 @@ To run the automated, [setup script](./setup.sh) based deployment you need to ha
 - an [installed and configured ](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) aws-cli
 - [a named profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) at the aws-cli configuration reflecting the account you are planning to use for the deployment
 - [jq](https://stedolan.github.io/jq/)
+- [docker](https://www.docker.com/) 
 
 To run the step-by-step setup: 
 

@@ -62,6 +62,9 @@ echo "##################################################"
 aws cloudformation delete-stack --stack-name $BBBPREPSTACK --profile=$BBBPROFILE
 aws cloudformation wait stack-delete-complete --profile=$BBBPROFILE --stack-name $BBBPREPSTACK
 
+aws cloudformation delete-stack --stack-name $BBBECRSTACK --profile=$BBBPROFILE
+aws cloudformation wait stack-delete-complete --profile=$BBBPROFILE --stack-name $BBBECRSTACK
+
 echo "##################################################"
 echo "Deletion done"
 

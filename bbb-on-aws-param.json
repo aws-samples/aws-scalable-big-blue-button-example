@@ -3,7 +3,7 @@
     "BBBApplicationVersion": "bionic-230",
     "BBBApplicationInstanceOSVersion": "bionic-18.04",
     "BBBTurnInstanceOSVersion": "focal-20.04",
-    "BBBECSInstanceType": "t3a.medium",
+    "BBBECSInstanceType": "fargate",
     "BBBApplicationInstanceType": "t3a.medium",
     "BBBApplicationDataVolumeSize": 50,
     "BBBApplicationRootVolumeSize": 20,
@@ -32,10 +32,10 @@
     "BBBEnvironmentName": "bbbonaws",
     "BBBEnvironmentType": "scalable",
     "BBBgreenlightImage": "bigbluebutton/greenlight:v2",
-    "BBBScaleliteApiImage": "blindsidenetwks/scalelite:v1.1-beta.4-bionic230-alpine-api",
-    "BBBScaleliteNginxImage": "blindsidenetwks/scalelite:v1.1-beta.4-bionic230-alpine-nginx",
-    "BBBScalelitePollerImage": "blindsidenetwks/scalelite:v1.1-beta.4-bionic230-alpine-poller",
-    "BBBScaleliteImporterImage": "blindsidenetwks/scalelite:v1.1-beta.4-bionic230-alpine-recording-importer",
+    "BBBScaleliteApiImage": "blindsidenetwks/scalelite:v1.1-beta.4-api",
+    "BBBScaleliteNginxImage": "blindsidenetwks/scalelite:v1.1-beta.4-nginx",
+    "BBBScalelitePollerImage": "blindsidenetwks/scalelite:v1.1-beta.4-poller",
+    "BBBScaleliteImporterImage": "blindsidenetwks/scalelite:v1.1-beta.4-recording-importer",
     "BBBCacheAZMode": "cross-az",
     "BBBGreenlightMemory": 1024,
     "BBBGreenlightCPU": 512,
@@ -43,3 +43,5 @@
     "BBBScaleliteCPU": 1024
   }
 }
+
+

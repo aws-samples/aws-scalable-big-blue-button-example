@@ -395,6 +395,10 @@ Parameters:
     Description: Scalelite Importer docker image identifier
     Type: String
     Default: "blindsidenetwks/scalelite:v1-recording-importer"
+  BBBECRRegistry: 
+    Description: ECR Registry to be used. 
+    Type: String
+    Default: ""
   BBBCacheAZMode:
     Description: Redis Cache AZ Mode
     Type: String
@@ -873,10 +877,6 @@ Resources:
           Fn::GetAtt:
             - BBBTurnStack
             - Outputs.BBBTurnSecret
-        BBBLoadbalancerSecret:
-          Fn::GetAtt:
-            - BBBFontendAppsStack
-            - Outputs.BBBLoadbalancerSecret
         BBBNotificationTopic:
           Ref: BBBNotificationTopic
         BBBSystemLogsGroupArn:
@@ -1128,6 +1128,8 @@ Resources:
           Ref: BBBScalelitePollerImage
         BBBScaleliteImporterImage:
           Ref: BBBScaleliteImporterImage
+        BBBECRRegistry: 
+          Ref: BBBECRRegistry
         BBBCacheDBAddress:
           Fn::GetAtt:
             - BBBCacheDBStack

@@ -72,6 +72,10 @@ Parameters:
     Description: Scalelite Importer docker image identifier
     Type: String
     Default: "blindsidenetwks/scalelite:v1-recording-importer"
+  BBBECRRegistry: 
+    Description: ECR Registry to be used. 
+    Type: String
+    Default: ""
   BBBCacheDBAddress:
     Description: Amazon ElastiCache Cluster address
     Type: String
@@ -580,7 +584,11 @@ Resources:
       ContainerDefinitions:
         - Name: greenlight
           Essential: true
-          Image: !Ref BBBgreenlightImage
+          Image: 
+            !Join
+              - '/'
+              - - !Ref BBBECRRegistry
+                - !Ref BBBgreenlightImage
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -747,7 +755,11 @@ Resources:
       ContainerDefinitions:
         - Name: scalelite-importer
           Essential: true
-          Image: !Ref BBBScaleliteImporterImage
+          Image:
+            !Join
+              - '/'
+              - - !Ref BBBECRRegistry 
+                - !Ref BBBScaleliteImporterImage
           MountPoints:
             - ContainerPath: /var/bigbluebutton/spool
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool, !Ref BBBEnvironmentStage ] ]
@@ -755,7 +767,7 @@ Resources:
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-published, !Ref BBBEnvironmentStage ] ]
             - ContainerPath: /var/bigbluebutton/unpublished
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/recordings
+            - ContainerPath: /var/bigbluebutton/recording/scalelite
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
@@ -784,9 +796,14 @@ Resources:
               Value: 'true'
             - Name: NGINX_BEHIND_PROXY
               Value: 'true'
+
         - Name: scalelite-poller
           Essential: true
-          Image: !Ref BBBScalelitePollerImage
+          Image: 
+            !Join
+              - '/'
+              - - !Ref BBBECRRegistry
+                - !Ref BBBScalelitePollerImage
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -819,7 +836,11 @@ Resources:
           DependsOn:
             - ContainerName: scalelite-importer
               Condition: START
-          Image: !Ref BBBScaleliteNginxImage
+          Image:
+            !Join
+              - '/'
+              - - !Ref BBBECRRegistry
+                - !Ref BBBScaleliteNginxImage
           EntryPoint:
             !If
             - BBBECSFargate
@@ -829,7 +850,7 @@ Resources:
           Command:
             !If
             - BBBECSFargate
-            - - "/bin/sh -c \"sed -i 's/scalelite-api/localhost/g' /etc/nginx/conf.d/scalelite.common && /etc/nginx/start -g daemon off\""
+            - - "/bin/sh -c \"sed -i 's/scalelite-api/127.0.0.1/g' /etc/nginx/conf.d/scalelite-proxy.template && /etc/nginx/start -g daemon off\""
             - !Ref "AWS::NoValue"
           Links:
             !If
@@ -843,7 +864,7 @@ Resources:
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-published, !Ref BBBEnvironmentStage ] ]
             - ContainerPath: /var/bigbluebutton/unpublished
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/recordings
+            - ContainerPath: /var/bigbluebutton/recording/scalelite
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
@@ -878,7 +899,11 @@ Resources:
               Value: !Sub scalelite.${BBBDomainName}
         - Name: scalelite-api
           Essential: true
-          Image: !Ref BBBScaleliteApiImage
+          Image: 
+            !Join
+              - '/'
+              - - !Ref BBBECRRegistry
+                - !Ref BBBScaleliteApiImage
           MountPoints:
             - ContainerPath: /var/bigbluebutton/spool
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool, !Ref BBBEnvironmentStage ] ]
@@ -886,7 +911,7 @@ Resources:
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-published, !Ref BBBEnvironmentStage ] ]
             - ContainerPath: /var/bigbluebutton/unpublished
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref BBBEnvironmentStage ] ]
-            - ContainerPath: /var/bigbluebutton/recordings
+            - ContainerPath: /var/bigbluebutton/recording/scalelite
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref BBBEnvironmentStage ] ]
           LogConfiguration:
             LogDriver: awslogs
@@ -936,7 +961,11 @@ Resources:
       ContainerDefinitions:
         - Name: scalelite-handle-server
           Essential: true
-          Image: !Ref BBBScaleliteApiImage
+          Image:
+            !Join
+              - '/'
+              - - !Ref BBBECRRegistry
+                - !Ref BBBScaleliteApiImage
           LogConfiguration:
             LogDriver: awslogs
             Options:
