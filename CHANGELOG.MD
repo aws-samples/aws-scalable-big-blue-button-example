@@ -2,6 +2,14 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [3.0.1] - 2021-05-21
+
+### Fixed
+- fixed userdata to reflect last changes to bbb-conf and find its URL and secrets 
+
+### Changed
+- image versions set to latest 1.1 image tags
+
 ## [3.0.0] - 2021-05-10
 
 ### Upgrade Notes: 
