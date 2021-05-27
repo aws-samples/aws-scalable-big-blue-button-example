@@ -109,7 +109,7 @@ then
       --template ./templates/bbb-on-aws-registry.template.yaml
 
   GREENLIGHTREGISTRY=`aws cloudformation describe-stacks --profile=$BBBPROFILE --query "Stacks[0].Outputs[0].OutputValue" --stack-name $BBBECRStack`
-  GREENLIGHTREGISTRY=`echo "${GREENLIGHTREGISTRYREGISTRY//\"}"`
+  GREENLIGHTREGISTRY=`echo "${GREENLIGHTREGISTRY//\"}"`
   SCALEILITEREGISTRY=`aws cloudformation describe-stacks --profile=$BBBPROFILE --query "Stacks[0].Outputs[1].OutputValue" --stack-name $BBBECRStack`
   SCALEILITEREGISTRY=`echo "${SCALEILITEREGISTRY//\"}"`
 
