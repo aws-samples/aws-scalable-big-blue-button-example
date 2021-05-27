@@ -484,6 +484,7 @@ Resources:
   BBBNotificationTopic:
     Type: AWS::SNS::Topic
     Properties:
+      KmsMasterKeyId: alias/aws/sns
       Subscription:
       - Endpoint:
           Ref: BBBOperatorEMail
