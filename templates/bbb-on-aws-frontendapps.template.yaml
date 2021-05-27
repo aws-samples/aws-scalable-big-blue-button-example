@@ -230,18 +230,18 @@ Resources:
       HostedZoneId: !Ref BBBHostedZone
       RecordSets: !GetAtt 'BBBSESDkimTokens.RecordSets'
 
-  BBBSESIdentityNotifications:
-    Type: Custom::IdentityNotifications
-    Condition: BBBSESNotValidated
-    Properties:
-      Identity: !GetAtt BBBSESVerifiedIdentity.Identity
-      Region: !GetAtt BBBSESVerifiedIdentity.Region
-      BounceTopic: !Ref BBBNotificationTopic
-      ComplaintTopic: !Ref  BBBNotificationTopic
-      HeadersInBounceNotificationsEnabled: true
-      HeadersInComplaintNotificationsEnabled: true
-      ForwardingEnabled: false
-      ServiceToken: !Ref BBBSESProviderArn
+  #BBBSESIdentityNotifications:
+  #  Type: Custom::IdentityNotifications
+  #  Condition: BBBSESNotValidated
+  #  Properties:
+  #    Identity: !GetAtt BBBSESVerifiedIdentity.Identity
+  #    Region: !GetAtt BBBSESVerifiedIdentity.Region
+  #    BounceTopic: !Ref BBBNotificationTopic
+  #    ComplaintTopic: !Ref  BBBNotificationTopic
+  #    HeadersInBounceNotificationsEnabled: true
+  #    HeadersInComplaintNotificationsEnabled: true
+  #    ForwardingEnabled: false
+  #    ServiceToken: !Ref BBBSESProviderArn
 
   BBBSMTPUser:
     Type: AWS::IAM::User

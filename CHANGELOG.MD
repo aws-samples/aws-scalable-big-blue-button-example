@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - #90: Source S3 Bucket now does have encryption and versioning enabled
 - #91: SNS Topic is now encrypted by default
+- #92: cfn-ses-provider and cli53 have been updated to the current version
+- SES Identity Notifications have been (temp) disabled due incompatibility with encrypted SES topics
 
 ## [3.0.1] - 2021-05-21
 

@@ -285,7 +285,7 @@ Resources:
           instance_fqdn=$instance_publichostname.${BBBDomainName}
 
           # register in route53
-          wget --tries=10 https://github.com/barnybug/cli53/releases/download/0.8.17/cli53-linux-amd64 -O /usr/local/bin/cli53
+          wget --tries=10 https://github.com/barnybug/cli53/releases/download/0.8.18/cli53-linux-amd64 -O /usr/local/bin/cli53
           sudo chmod +x /usr/local/bin/cli53
 
           # create script for route53-handler

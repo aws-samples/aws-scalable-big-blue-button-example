@@ -82,7 +82,7 @@ Resources:
       Code:
       Code:
         S3Bucket: !Sub "binxio-public-${AWS::Region}"
-        S3Key: lambdas/cfn-ses-provider-0.6.5.zip
+        S3Key: lambdas/cfn-ses-provider-0.7.0.zip
       Handler: ses.handler
       MemorySize: 128
       Role: !GetAtt 'BBBSESProviderLambdaRole.Arn'
