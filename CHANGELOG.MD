@@ -2,6 +2,10 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [3.0.3] - 2021-05-27
+
+### Fixed
+- #98: destroy.sh does now also purge all versions of source s3 and deletes the bucket 
 ## [3.0.2] - 2021-05-27
 
 ### Fixed
