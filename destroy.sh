@@ -55,7 +55,25 @@ SOURCE=`echo "${SOURCE//\"}"`
 echo "##################################################"
 echo "Truncate the S3 Bucket"
 echo "##################################################"
-aws s3 rm --profile=$BBBPROFILE s3://$SOURCE --recursive
+#aws s3 rm --profile=$BBBPROFILE s3://$SOURCE --recursive
+
+aws s3api --profile=$BBBPROFILE list-object-versions \
+          --bucket $SOURCE \
+          --query "Versions[].Key"  \
+          --output json | jq 'unique' | jq -r '.[]' | while read key; do
+   echo "deleting versions of $key"
+   aws s3api --profile=$BBBPROFILE list-object-versions \
+          --bucket $SOURCE \
+          --prefix $key \
+          --query "Versions[].VersionId"  \
+          --output json | jq 'unique' | jq -r '.[]' | while read version; do
+     echo "deleting $version"
+     aws s3api --profile=$BBBPROFILE delete-object \
+          --bucket $SOURCE \
+          --key $key \
+          --version-id $version 
+   done
+done          
 
 aws cloudformation delete-stack --stack-name $BBBPREPSTACK --profile=$BBBPROFILE
 aws cloudformation wait stack-delete-complete --profile=$BBBPROFILE --stack-name $BBBPREPSTACK
