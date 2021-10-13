@@ -157,7 +157,7 @@ aws cloudformation deploy --profile=$BBBPROFILE --stack-name $BBBSTACK \
     --capabilities CAPABILITY_NAMED_IAM \
     --parameter-overrides $PARAMETERS \
     $(jq -r '.Parameters | to_entries | map("\(.key)=\(.value)") | join(" ")' bbb-on-aws-param.json) \
-    --template ./bbb-on-aws-master.template.yaml
+    --template ./bbb-on-aws-root.template.yaml
 
 echo "##################################################"
 echo "Deployment finished"
