@@ -342,7 +342,7 @@ Resources:
           systemctl start route53-handler
 
           mkdir -p /mnt/bbb-recordings
-          echo "${BBBSharedStorageFS}: /mnt/bbb-recordings efs defaults,tls,iam,accesspoint=${BBBSharedStorageAPspool},rw 0 0" >> /etc/fstab
+          echo "${BBBSharedStorageFS}: /mnt/bbb-recordings efs defaults,_netdev,tls,iam,accesspoint=${BBBSharedStorageAPspool},rw 0 0" >> /etc/fstab
 
           mkdir -p /var/bigbluebutton
 

@@ -32,8 +32,13 @@ while getopts ":p:e:h:s:d:" opt; do
 done
 
 if ! [ -x "$(command -v aws)" ]; then
-  echo 'Error: aws cli is not installed.' >&2
+  echo 'ERROR: aws cli is not installed.' >&2
   exit 1
+fi
+
+if ! docker ps -q 2>/dev/null; then
+ echo "ERROR: Docker is not running. Please start the docker runtime on your system and try again"
+ exit 1
 fi
 
 echo "using AWS Profile $BBBPROFILE"
@@ -154,6 +159,7 @@ PARAMETERS=" BBBOperatorEMail=$OPERATOREMAIL \
 echo "Building the BBB Environment"
 echo "##################################################"
 aws cloudformation deploy --profile=$BBBPROFILE --stack-name $BBBSTACK \
+    --disable-rollback \
     --capabilities CAPABILITY_NAMED_IAM \
     --parameter-overrides $PARAMETERS \
     $(jq -r '.Parameters | to_entries | map("\(.key)=\(.value)") | join(" ")' bbb-on-aws-param.json) \

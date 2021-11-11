@@ -1,0 +1,1232 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+
+  This Cloudformation Template deploys a scalable Big Blue Button Web Application Infrastructure. 
+
+  Disclaimber: Not for Production Use. Demo and Testing purposes only. 
+
+  Last Modified: 2nd April 2020
+  Authors: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
+
+Parameters:
+  BBBVPCs:
+    Description: Please enter the IP range (CIDR notation) for the BBB VPC
+    Type: String
+    Default: 10.1.0.0/16
+  BBBNumberOfAZs:
+    Description: Amount of Availability Zones to utilize
+    Type: Number
+    AllowedValues:
+    - 1
+    - 2
+    - 3
+    Default: 3
+  BBBPrivateApplicationSubnets:
+    Description: Comma separated list of the private subnets for instances
+    Type: CommaDelimitedList
+    Default: "10.1.5.0/24,10.1.6.0/24,10.1.7.0/24"
+  BBBPrivateDBSubnets:
+    Description: Comma separated list of the private subnets for Ddtabases
+    Type: CommaDelimitedList
+    Default: "10.1.9.0/24,10.1.10.0/24,10.1.11.0/24"
+  BBBPublicApplicationSubnets:
+    Description:  Comma separated list of the appserver's subnets
+    Type: CommaDelimitedList
+    Default: "10.1.15.0/24,10.1.16.0/24,10.1.17.0/24"
+  BBBApplicationVersion:
+    Description: Version of the Big Blue Button Application
+    Type: String
+    Default: xenial-22
+  BBBApplicationInstanceOSVersion: 
+    Description: Ubuntu Version to be deployed for Application Instances 
+    Default: xenial-16.04
+    Type: String
+    AllowedValues:
+      - xenial-16.04
+      - bionic-18.04
+  BBBTurnInstanceOSVersion: 
+    Description: Ubuntu Version to be deployed for Turn Instances 
+    Default: focal-20.04
+    Type: String
+    AllowedValues:
+      - bionic-18.04
+      - focal-20.04
+  BBBECSMaxInstances:
+    Type: Number
+    Description: Maximum number of ECS Worker Instances
+    Default: 3
+  BBBECSMinInstances:
+    Type: Number
+    Description: Minimum number of ECS Worker Instances
+    Default: 1
+  BBBECSDesiredInstances:
+    Type: Number
+    Description: Desired number of ECS Worker Instances
+    Default: 1
+  BBBApplicationMaxInstances:
+    Type: Number
+    Description: Maximum number of appserver instances
+    Default: 1
+  BBBApplicationMinInstances:
+    Type: Number
+    Description: Minimum number of appserver instances
+    Default: 1
+  BBBApplicationDesiredInstances:
+    Type: Number
+    Description: Desired number of appserver instances
+    Default: 1
+  BBBTurnMaxInstances:
+    Type: Number
+    Description: Maximum number of turn server instance
+    Default: 1
+  BBBTurnMinInstances:
+    Type: Number
+    Description: Minimum number of turn server instance
+    Default: 1
+  BBBTurnDesiredInstances:
+    Type: Number
+    Description: Desired number of turn server instance
+    Default: 1
+  BBBOperatorEMail:
+    Description: EMail address to notify if there are any operational issues
+    Type: String
+    AllowedPattern: "([a-zA-Z0-9_\\-\\.]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)"
+    ConstraintDescription: must be a valid email address.
+    Default: johndoe@example.com
+  BBBDBName:
+    Description: Database Name
+    Type: String
+    MinLength: '1'
+    MaxLength: '64'
+    AllowedPattern: "^[a-zA-Z]+[0-9a-zA-Z_]*$"
+    Default: frontendapp
+  BBBDBEngineVersion:
+    Description: Database engine version for Aurora PostgreSQL
+    Type: String
+    Default: 10.7
+  BBBECSInstanceType:
+    Description: Instance type for ECS Cluster worker nodes
+    Type: String
+    Default: fargate
+    AllowedValues:
+      - fargate
+      - t3a.small
+      - t3a.medium
+      - t3a.large
+      - t3a.xlarge
+      - t3a.2xlarge
+      - c5a.large
+      - c5a.xlarge
+      - c5a.2xlarge
+      - c5a.4xlarge
+      - c5a.8xlarge
+      - c5a.12xlarge
+      - c5a.16xlarge
+      - c5a.24xlarge
+      - m5a.large
+      - m5a.xlarge
+      - m5a.2xlarge
+      - m5a.4xlarge
+      - m5a.8xlarge
+      - m5a.12xlarge
+      - m5a.16xlarge
+      - m5a.24xlarge
+      - r5a.large
+      - r5a.xlarge
+      - r5a.2xlarge
+      - r5a.4xlarge
+      - r5a.8xlarge
+      - r5a.12xlarge
+      - r5a.16xlarge
+      - r5a.24xlarge
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.8xlarge
+      - c5.12xlarge
+      - c5.16xlarge
+      - c5.24xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - m5.12xlarge
+      - m5.16xlarge
+      - m5.24xlarge
+      - r5.large
+      - r5.xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.8xlarge
+      - r5.12xlarge
+      - r5.16xlarge
+      - r5.24xlarge
+  BBBApplicationInstanceType:
+    Description: Instance type for the appserver
+    Type: String
+    Default: t3a.xlarge
+    AllowedValues:
+      - t3a.small
+      - t3a.medium
+      - t3a.large
+      - t3a.xlarge
+      - t3a.2xlarge
+      - c5a.large
+      - c5a.xlarge
+      - c5a.2xlarge
+      - c5a.4xlarge
+      - c5a.8xlarge
+      - c5a.12xlarge
+      - c5a.16xlarge
+      - c5a.24xlarge
+      - m5a.large
+      - m5a.xlarge
+      - m5a.2xlarge
+      - m5a.4xlarge
+      - m5a.8xlarge
+      - m5a.12xlarge
+      - m5a.16xlarge
+      - m5a.24xlarge
+      - r5a.large
+      - r5a.xlarge
+      - r5a.2xlarge
+      - r5a.4xlarge
+      - r5a.8xlarge
+      - r5a.12xlarge
+      - r5a.16xlarge
+      - r5a.24xlarge
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.8xlarge
+      - c5.12xlarge
+      - c5.16xlarge
+      - c5.24xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - m5.12xlarge
+      - m5.16xlarge
+      - m5.24xlarge
+      - r5.large
+      - r5.xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.8xlarge
+      - r5.12xlarge
+      - r5.16xlarge
+      - r5.24xlarge
+  BBBApplicationDataVolumeSize: 
+    Description: Size of the application instance data volume
+    Type: Number
+    Default: 50
+  BBBApplicationRootVolumeSize: 
+    Description: Size of the application instance data volume
+    Type: Number
+    Default: 20
+  BBBTurnInstanceType:
+    Description: Instance type for the turn server
+    Type: String
+    Default: t3a.medium
+    AllowedValues:
+      - t3a.micro
+      - t3a.small
+      - t3a.medium
+      - t3a.large
+      - t3a.xlarge
+      - t3a.2xlarge
+      - c5a.large
+      - c5a.xlarge
+      - c5a.2xlarge
+      - c5a.4xlarge
+      - c5a.8xlarge
+      - c5a.12xlarge
+      - c5a.16xlarge
+      - c5a.24xlarge
+      - m5a.large
+      - m5a.xlarge
+      - m5a.2xlarge
+      - m5a.4xlarge
+      - m5a.8xlarge
+      - m5a.12xlarge
+      - m5a.16xlarge
+      - m5a.24xlarge
+      - r5a.large
+      - r5a.xlarge
+      - r5a.2xlarge
+      - r5a.4xlarge
+      - r5a.8xlarge
+      - r5a.12xlarge
+      - r5a.16xlarge
+      - r5a.24xlarge
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.8xlarge
+      - c5.12xlarge
+      - c5.16xlarge
+      - c5.24xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - m5.12xlarge
+      - m5.16xlarge
+      - m5.24xlarge
+      - r5.large
+      - r5.xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.8xlarge
+      - r5.12xlarge
+      - r5.16xlarge
+      - r5.24xlarge
+  BBBDBInstanceType:
+    Description: DB RDS instance type
+    Type: String
+    AllowedValues:
+      - serverless
+      - db.m5.large
+      - db.m5.xlarge
+      - db.m5.2xlarge
+      - db.m5.4xlarge
+      - db.m5.12xlarge
+      - db.m5.24xlarge
+      - db.r4.large
+      - db.r4.xlarge
+      - db.r4.2xlarge
+      - db.r4.4xlarge
+      - db.r4.8xlarge
+      - db.r4.16xlarge
+      - db.t3.micro
+      - db.t3.small
+      - db.t3.medium
+      - db.t3.large
+      - db.t3.xlarge
+      - db.t3.2xlarge
+    Default: serverless
+  BBBServerlessAuroraMinCapacity:
+    Description: The minimum capacity for the Amazon Aurora Serverless Cluster.
+    Type: Number
+    Default: 2 
+  BBBServerlessAuroraMaxCapacity:
+    Description: The maximum capacity for the Amazon Aurora Serverless Cluster
+    Type: Number
+    Default: 4
+  BBBCACHEDBInstanceType:
+    Description: Instance type for Amazon ElastiCache (Redis)
+    Type: String
+    AllowedValues:
+      - cache.t3.micro
+      - cache.t3.small
+      - cache.t3.medium
+      - cache.m5.large
+      - cache.m5.xlarge
+      - cache.m5.2xlarge
+      - cache.m5.4xlarge
+      - cache.m5.12xlarge
+      - cache.m5.24xlarge
+      - cache.r5.large
+      - cache.r5.xlarge
+      - cache.r5.2xlarge
+      - cache.r5.4xlarge
+      - cache.r5.12xlarge
+      - cache.r5.24xlarge
+    Default: cache.t3.medium
+  BBBEnvironmentStage:
+    Type: String
+    Description: Select the appropriate environment
+    AllowedValues:
+      - stage
+      - prod
+      - dev
+    Default: dev
+  BBBEnvironmentType: 
+    Type: String
+    Description: Scalable or single-instance Setup
+    AllowedValues:
+      - scalable 
+      - single
+    Default: scalable
+  BBBEnvironmentName:
+    Description: An environment name that is prefixed to resource names
+    Type: String
+    Default: bbbonaws
+  BBBgreenlightImage:
+    Description: Greenlight docker image identifier
+    Type: String
+    Default: "bigbluebutton/greenlight:v2"
+  BBBScaleliteApiImage:
+    Description: Scalelite API docker image identifier
+    Type: String
+    Default: "blindsidenetwks/scalelite:v1-api"
+  BBBScaleliteNginxImage:
+    Description: Scalelite NGINX docker image identifier
+    Type: String
+    Default: "blindsidenetwks/scalelite:v1-nginx"
+  BBBScalelitePollerImage:
+    Description: Scalelite Poller docker image identifier
+    Type: String
+    Default: "blindsidenetwks/scalelite:v1-poller"
+  BBBScaleliteImporterImage:
+    Description: Scalelite Importer docker image identifier
+    Type: String
+    Default: "blindsidenetwks/scalelite:v1-recording-importer"
+  BBBECRRegistry: 
+    Description: ECR Registry to be used. 
+    Type: String
+    Default: ""
+  BBBCacheAZMode:
+    Description: Redis Cache AZ Mode
+    Type: String
+    Default: single-az
+    AllowedValues:
+      - single-az
+      - cross-az
+  BBBHostedZone:
+    Description: Hosted zone in which the DNS entries should be created
+    Type: String
+    Default: ""
+  BBBStackBucketStack:
+    Description: S3 Bucket Stack that contains scripts and sources
+    Type: String
+  BBBDomainName:
+    Description: Base domain name used for the instance
+    Type: String
+  BBBGreenlightMemory:
+    Description: Memory constraints for Greenlight container
+    Type: Number
+    Default: 1024
+  BBBGreenlightCPU:
+    Description: CPU constraints for Greenlight container
+    Type: Number
+    Default: 512
+  BBBScaleliteMemory: 
+    Description: Memory constraints for Scalelite Fargate Task
+    Type: Number
+    Default: 2048
+  BBBScaleliteCPU:
+    Description: CPU constraints for Scalelite Fargate Task
+    Type: Number
+    Default: 1024
+  BBBGreenlightMinReplicas:
+    Description: Minimum amount of greenlight containers available
+    Type: Number
+    Default: 1
+  BBBGreenlightMaxReplicas:
+    Description: Maximum amount of greenlight containers available
+    Type: Number
+    Default: 3
+  BBBGreenlightDesiredReplicas:
+    Description: Desired amount of greenlight containers available
+    Type: Number
+    Default: 1
+  BBBScaleliteMinReplicas:
+    Description: Minimum amount of Scalelite containers available
+    Type: Number
+    Default: 1
+  BBBScaleliteMaxReplicas:
+    Description: Maximum amount of Scalelite containers available
+    Type: Number
+    Default: 3
+  BBBScaleliteDesiredReplicas:
+    Description: Desired amount of Scalelite containers available
+    Type: Number
+    Default: 1
+  BBBSesRegion:
+    Description: Set the Region for the SES Service if deployment in a non-SES Region
+    Type: String
+    Default: "AWS::NoValue"
+  BBBSESValidated: 
+    Description: If the SES Domain is already validated manually we do not need the automation
+    Type: String
+    Default: false
+    AllowedValues: [ true, false ]
+  BBBACMCertArn: 
+    Description: Set this parameter if you want to reuse an existing ACM certificate for your deployment
+    Type: String
+    Default: "AWS::NoValue"
+
+Conditions:
+  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
+  BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
+  BBBScalableEnvironment: !Equals [!Ref BBBEnvironmentType, scalable]
+  BBBSingleEnvironment: !Equals [!Ref BBBEnvironmentType, single]
+  BBBExistingVPC: !And [ !Not [ !Equals [ !Ref BBBVPCs, "" ]], !Equals [ !Select [ 0, !Split [ vpc-, !Ref BBBVPCs ]], "" ]]
+  BBBNewVPC: !Not [ Condition: BBBExistingVPC ]
+  BBBSESNotValidated: !Equals [false, !Ref BBBSESValidated]
+
+Resources:
+
+  BBBNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      KmsMasterKeyId: alias/aws/sns
+      Subscription:
+      - Endpoint:
+          Ref: BBBOperatorEMail
+        Protocol: email
+
+  BBBSystemLogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", "/systemlogs"]]
+      RetentionInDays: 7
+
+  BBBApplicationLogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", "/applicationlogs"]]
+      RetentionInDays: 7
+
+  BBBAMIFinderStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+        Fn::Join:
+          - ""
+          - - "https://s3.amazonaws.com/"
+            - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
+            - "/bbb-on-aws-amifinder.template.yaml"
+      Parameters:
+        BBBEnvironmentStage:
+          Ref: BBBEnvironmentStage
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: BBBAMIFinderStack-${BBBEnvironmentName}
+        - Key: Environment
+          Value: !Ref BBBEnvironmentName
+        - Key: Stage
+          Value: !Ref BBBEnvironmentStage
+
+  BBBSESProviderStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+        Fn::Join:
+          - ""
+          - - "https://s3.amazonaws.com/"
+            - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
+            - "/bbb-on-aws-ses.template.yaml"
+      Parameters:
+        BBBHostedZone: !Ref BBBHostedZone
+        BBBEnvironmentStage:
+          Ref: BBBEnvironmentStage
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: BBBSESProviderStack-${BBBEnvironmentName}
+        - Key: Environment
+          Value: !Ref BBBEnvironmentName
+        - Key: Stage
+          Value: !Ref BBBEnvironmentStage
+
+  BBBNetworkStack:
+    Type: AWS::CloudFormation::Stack
+    Condition: BBBNewVPC
+    Properties:
+      TemplateURL:
+        Fn::Join:
+          - ""
+          - - "https://s3.amazonaws.com/"
+            - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
+            - "/bbb-on-aws-network.template.yaml"
+      Parameters:
+        BBBVPCs:
+          Ref: BBBVPCs
+        BBBNumberOfAZs:
+          Ref: BBBNumberOfAZs
+        BBBPrivateApplicationSubnets:
+          Fn::Join:
+            - ","
+            - Ref: BBBPrivateApplicationSubnets
+        BBBPrivateDBSubnets:
+          Fn::Join:
+            - ","
+            - Ref: BBBPrivateDBSubnets
+        BBBPublicApplicationSubnets:
+          Fn::Join:
+            - ","
+            - Ref: BBBPublicApplicationSubnets
+        BBBEnvironmentName:
+          Ref: BBBEnvironmentName
+        BBBEnvironmentStage:
+          Ref: BBBEnvironmentStage
+        BBBEnvironmentType:
+          Ref: BBBEnvironmentType
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: BBBNetworkStack-${BBBEnvironmentName}
+        - Key: Environment
+          Value: !Ref BBBEnvironmentName
+        - Key: Stage
+          Value: !Ref BBBEnvironmentStage
+
+  BBBSecurityGroupStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+        Fn::Join:
+          - ""
+          - - "https://s3.amazonaws.com/"
+            - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
+            - "/bbb-on-aws-securitygroups.template.yaml"
+      Parameters:
+        BBBVPCs:
+          Fn::If:
+            - BBBNewVPC 
+            - Fn::GetAtt:
+              - BBBNetworkStack
+              - Outputs.BBBVPCs
+            - Ref: BBBVPCs
+        BBBEnvironmentStage:
+          Ref: BBBEnvironmentStage
+        BBBEnvironmentType:
+          Ref: BBBEnvironmentType
+        BBBECSInstanceType:
+          Ref: BBBECSInstanceType
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: BBBSecurityGroupStack-${BBBEnvironmentName}
+        - Key: Environment
+          Value: !Ref BBBEnvironmentName
+        - Key: Stage
+          Value: !Ref BBBEnvironmentStage
+
+  BBBStorageStack:
+    Type: AWS::CloudFormation::Stack
+    Condition: BBBScalableEnvironment
+    Properties:
+      TemplateURL:
+        Fn::Join:
+          - ""
+          - - "https://s3.amazonaws.com/"
+            - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
+            - "/bbb-on-aws-storage.template.yaml"
+      Parameters:
+        BBBNumberOfAZs:
+          Ref: BBBNumberOfAZs
+        BBBPrivateApplicationSubnets:
+          Fn::If:
+            - BBBNewVPC 
+            - Fn::GetAtt:
+              - BBBNetworkStack
+              - Outputs.BBBPrivateApplicationSubnets
+            - Fn::Join:
+              - ","
+              - Ref: BBBPrivateApplicationSubnets
+        BBBSharedStorageSecurityGroup:
+          Fn::GetAtt:
+            - BBBSecurityGroupStack
+            - Outputs.BBBSharedStorageSecurityGroup
+        BBBEnvironmentStage:
+          Ref: BBBEnvironmentStage
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: BBBStorageStack-${BBBEnvironmentName}
+        - Key: Environment
+          Value: !Ref BBBEnvironmentName
+        - Key: Stage
+          Value: !Ref BBBEnvironmentStage
+
+  BBBDatabaseStack:
+    Type: AWS::CloudFormation::Stack
+    Condition: BBBScalableEnvironment
+    Properties:
+      TemplateURL:
+        Fn::Join:
+          - ""
+          - - "https://s3.amazonaws.com/"
+            - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
+            - "/bbb-on-aws-database.template.yaml"
+      Parameters:
+        BBBNotificationTopic:
+          Ref: BBBNotificationTopic
+        BBBDBInstanceType:
+          Ref: BBBDBInstanceType
+        BBBServerlessAuroraMinCapacity:
+          Ref: BBBServerlessAuroraMinCapacity
+        BBBServerlessAuroraMaxCapacity:
+          Ref: BBBServerlessAuroraMaxCapacity
+        BBBDBName:
+          Ref: BBBDBName
+        BBBPrivateDBSubnets:
+          Fn::If:
+            - BBBNewVPC 
+            - Fn::GetAtt:
+              - BBBNetworkStack
+              - Outputs.BBBPrivateDBSubnets
+            - Fn::Join:
+              - ","
+              - Ref: BBBPrivateDBSubnets
+        BBBDBEngineVersion:
+          Ref: BBBDBEngineVersion
+        BBBDBSecurityGroup:
+          Fn::GetAtt:
+            - BBBSecurityGroupStack
+            - Outputs.BBBDBSecurityGroup
+        BBBEnvironmentStage:
+          Ref: BBBEnvironmentStage
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: BBBDatabaseStack-${BBBEnvironmentName}
+        - Key: Environment
+          Value: !Ref BBBEnvironmentName
+        - Key: Stage
+          Value: !Ref BBBEnvironmentStage
+
+  BBBCacheDBStack:
+    Type: AWS::CloudFormation::Stack
+    Condition: BBBScalableEnvironment
+    Properties:
+      TemplateURL:
+        Fn::Join:
+          - ""
+          - - "https://s3.amazonaws.com/"
+            - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
+            - "/bbb-on-aws-cachedb.template.yaml"
+      Parameters:
+        BBBNotificationTopic:
+          Ref: BBBNotificationTopic
+        BBBCACHEDBInstanceType:
+          Ref: BBBCACHEDBInstanceType
+        BBBPrivateDBSubnets:
+          Fn::If:
+            - BBBNewVPC 
+            - Fn::GetAtt:
+              - BBBNetworkStack
+              - Outputs.BBBPrivateDBSubnets
+            - Fn::Join:
+              - ","
+              - Ref: BBBPrivateDBSubnets
+        BBBCACHEDBSecurityGroup:
+          Fn::GetAtt:
+            - BBBSecurityGroupStack
+            - Outputs.BBBCACHEDBSecurityGroup
+        BBBEnvironmentStage:
+          Ref: BBBEnvironmentStage
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: BBBCACHEDDBStack-${BBBEnvironmentName}
+        - Key: Environment
+          Value: !Ref BBBEnvironmentName
+        - Key: Stage
+          Value: !Ref BBBEnvironmentStage
+
+  BBBECSStack:
+    Type: AWS::CloudFormation::Stack
+    Condition: BBBScalableEnvironment
+    Properties:
+      TemplateURL:
+        Fn::Join:
+          - ""
+          - - "https://s3.amazonaws.com/"
+            - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
+            - "/bbb-on-aws-ecs.template.yaml"
+      Parameters:
+        BBBNotificationTopic:
+          Ref: BBBNotificationTopic
+        BBBPrivateApplicationSubnets:
+          Fn::If:
+            - BBBNewVPC 
+            - Fn::GetAtt:
+              - BBBNetworkStack
+              - Outputs.BBBPrivateApplicationSubnets
+            - Fn::Join:
+              - ","
+              - Ref: BBBPrivateApplicationSubnets
+        BBBEnvironmentStage:
+          Ref: BBBEnvironmentStage
+        BBBECSInstanceType:
+          Ref: BBBECSInstanceType
+        BBBECSTaskSecurityGroup:
+          Fn::GetAtt:
+            - BBBSecurityGroupStack
+            - Outputs.BBBECSTaskSecurityGroup
+        BBBECSMaxInstances:
+          Ref: BBBECSMaxInstances
+        BBBECSMinInstances:
+          Ref: BBBECSMinInstances
+        BBBECSDesiredInstances:
+          Ref: BBBECSDesiredInstances
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: BBBECSStack-${BBBEnvironmentName}
+        - Key: Environment
+          Value: !Ref BBBEnvironmentName
+        - Key: Stage
+          Value: !Ref BBBEnvironmentStage
+
+  BBBTurnStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+        Fn::Join:
+          - ""
+          - - "https://s3.amazonaws.com/"
+            - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
+            - "/bbb-on-aws-bbbturn.template.yaml"
+      Parameters:
+        BBBStackBucketStack:
+          Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
+        BBBOperatorEMail: 
+          Ref: BBBOperatorEMail
+        BBBNotificationTopic:
+          Ref: BBBNotificationTopic
+        BBBSystemLogsGroupArn:
+          Fn::GetAtt:
+            - BBBSystemLogsGroup
+            - Arn 
+        BBBSystemLogsGroup:
+          Ref: BBBSystemLogsGroup
+        BBBApplicationLogsGroupArn:
+          Fn::GetAtt:
+            - BBBApplicationLogsGroup
+            - Arn 
+        BBBApplicationLogsGroup:
+          Ref: BBBApplicationLogsGroup
+        BBBTurnSecurityGroup:
+          Fn::GetAtt:
+            - BBBSecurityGroupStack
+            - Outputs.BBBTurnSecurityGroup
+        BBBPublicApplicationSubnets:
+          Fn::If:
+            - BBBNewVPC 
+            - Fn::GetAtt:
+              - BBBNetworkStack
+              - Outputs.BBBPublicApplicationSubnets
+            - Fn::Join:
+              - ","
+              - Ref: BBBPublicApplicationSubnets
+        BBBLatestTurnAmiId:
+          Fn::GetAtt:
+            - "BBBAMIFinderStack"
+            - Outputs.BBBTurnAMIParameter
+        BBBEnvironmentStage:
+          Ref: BBBEnvironmentStage
+        BBBEnvironmentType:
+          Ref: BBBEnvironmentType
+        BBBTurnInstanceType:
+          Ref: BBBTurnInstanceType
+        BBBTurnMaxInstances:
+          Ref: BBBTurnMaxInstances
+        BBBTurnMinInstances:
+          Ref: BBBTurnMinInstances
+        BBBTurnDesiredInstances:
+          Ref: BBBTurnDesiredInstances
+        BBBHostedZone:
+          Ref: BBBHostedZone
+        BBBDomainName:
+          Ref: BBBDomainName
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: BBBTurnStack-${BBBEnvironmentName}
+        - Key: Environment
+          Value: !Ref BBBEnvironmentName
+        - Key: Stage
+          Value: !Ref BBBEnvironmentStage
+
+  BBBAppStack:
+    Type: AWS::CloudFormation::Stack
+    Condition: BBBScalableEnvironment
+    Properties:
+      TemplateURL:
+        Fn::Join:
+          - ""
+          - - "https://s3.amazonaws.com/"
+            - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
+            - "/bbb-on-aws-bbbappscalable.template.yaml"
+      Parameters:
+        BBBApplicationVersion:
+          Ref: BBBApplicationVersion
+        BBBStackBucketStack:
+          Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
+        BBBOperatorEMail:
+          Ref: BBBOperatorEMail
+        BBBTurnSecret:
+          Fn::GetAtt:
+            - BBBTurnStack
+            - Outputs.BBBTurnSecret
+        BBBNotificationTopic:
+          Ref: BBBNotificationTopic
+        BBBSystemLogsGroupArn:
+          Fn::GetAtt:
+            - BBBSystemLogsGroup
+            - Arn 
+        BBBSystemLogsGroup:
+          Ref: BBBSystemLogsGroup
+        BBBApplicationLogsGroupArn:
+          Fn::GetAtt:
+            - BBBApplicationLogsGroup
+            - Arn 
+        BBBApplicationLogsGroup:
+          Ref: BBBApplicationLogsGroup
+        BBBApplicationSecurityGroup:
+          Fn::GetAtt:
+            - BBBSecurityGroupStack
+            - Outputs.BBBApplicationSecurityGroup
+        BBBECSTaskSecurityGroup:
+          Fn::GetAtt:
+            - BBBSecurityGroupStack
+            - Outputs.BBBECSTaskSecurityGroup
+        BBBPublicApplicationSubnets:
+          Fn::If:
+            - BBBNewVPC 
+            - Fn::GetAtt:
+              - BBBNetworkStack
+              - Outputs.BBBPublicApplicationSubnets
+            - Fn::Join:
+              - ","
+              - Ref: BBBPublicApplicationSubnets
+        BBBPrivateApplicationSubnets:
+          Fn::If:
+            - BBBNewVPC 
+            - Fn::GetAtt:
+              - BBBNetworkStack
+              - Outputs.BBBPrivateApplicationSubnets
+            - Fn::Join:
+              - ","
+              - Ref: BBBPrivateApplicationSubnets
+        BBBTurnHostnameParameter:
+          Fn::GetAtt:
+            - BBBTurnStack
+            - Outputs.BBBTurnHostnameParameter
+        BBBLatestApplicationAmiId:
+          Fn::GetAtt:
+            - "BBBAMIFinderStack"
+            - Outputs.BBBApplicationAMIParameter
+        BBBEnvironmentStage:
+          Ref: BBBEnvironmentStage
+        BBBApplicationInstanceType:
+          Ref: BBBApplicationInstanceType
+        BBBApplicationDataVolumeSize:
+          Ref: BBBApplicationDataVolumeSize
+        BBBApplicationRootVolumeSize:
+          Ref: BBBApplicationRootVolumeSize
+        BBBApplicationMaxInstances:
+          Ref: BBBApplicationMaxInstances
+        BBBApplicationMinInstances:
+          Ref: BBBApplicationMinInstances
+        BBBApplicationDesiredInstances:
+          Ref: BBBApplicationDesiredInstances
+        BBBSharedStorageFS:
+          Fn::GetAtt:
+            - BBBStorageStack
+            - Outputs.BBBSharedStorageFS
+        BBBSharedStorageAPspool:
+          Fn::GetAtt:
+            - BBBStorageStack
+            - Outputs.BBBSharedStorageAPspool
+        BBBHostedZone: 
+          Ref: BBBHostedZone
+        BBBDomainName:
+          Ref: BBBDomainName
+        BBBECSCluster:
+          Fn::GetAtt:
+            - BBBECSStack
+            - Outputs.BBBECSCluster
+        BBBScaleliteTaskExecutionRole:
+          Fn::GetAtt:
+            - BBBFontendAppsStack
+            - Outputs.BBBScaleliteTaskExecutionRole
+        BBBECSInstanceType:
+          Ref: BBBECSInstanceType
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: BBBApplicationStack-${BBBEnvironmentName}
+        - Key: Environment
+          Value: !Ref BBBEnvironmentName
+        - Key: Stage
+          Value: !Ref BBBEnvironmentStage
+
+  BBBAppStackSingle:
+    Type: AWS::CloudFormation::Stack
+    Condition: BBBSingleEnvironment
+    Properties:
+      TemplateURL:
+        Fn::Join:
+          - ""
+          - - "https://s3.amazonaws.com/"
+            - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
+            - "/bbb-on-aws-bbbappsingle.template.yaml"
+      Parameters:
+        BBBApplicationVersion:
+          Ref: BBBApplicationVersion
+        BBBStackBucketStack:
+          Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
+        BBBOperatorEMail:
+          Ref: BBBOperatorEMail
+        BBBTurnSecret:
+          Fn::GetAtt:
+            - BBBTurnStack
+            - Outputs.BBBTurnSecret
+        BBBTurnHostnameParameter:
+          Fn::GetAtt:
+            - BBBTurnStack
+            - Outputs.BBBTurnHostnameParameter
+        BBBNotificationTopic:
+          Ref: BBBNotificationTopic
+        BBBSystemLogsGroupArn:
+          Fn::GetAtt:
+            - BBBSystemLogsGroup
+            - Arn 
+        BBBSystemLogsGroup:
+          Ref: BBBSystemLogsGroup
+        BBBApplicationLogsGroupArn:
+          Fn::GetAtt:
+            - BBBApplicationLogsGroup
+            - Arn 
+        BBBApplicationLogsGroup:
+          Ref: BBBApplicationLogsGroup
+        BBBApplicationSecurityGroup:
+          Fn::GetAtt:
+            - BBBSecurityGroupStack
+            - Outputs.BBBApplicationSecurityGroup
+        BBBPublicApplicationSubnets:
+          Fn::If:
+            - BBBNewVPC 
+            - Fn::GetAtt:
+              - BBBNetworkStack
+              - Outputs.BBBPublicApplicationSubnets
+            - Fn::Join:
+              - ","
+              - Ref: BBBPublicApplicationSubnets
+        BBBLatestApplicationAmiId:
+          Fn::GetAtt:
+            - "BBBAMIFinderStack"
+            - Outputs.BBBApplicationAMIParameter
+        BBBEnvironmentStage:
+          Ref: BBBEnvironmentStage
+        BBBApplicationInstanceType:
+          Ref: BBBApplicationInstanceType
+        BBBApplicationDataVolumeSize:
+          Ref: BBBApplicationDataVolumeSize
+        BBBApplicationRootVolumeSize:
+          Ref: BBBApplicationRootVolumeSize
+        BBBApplicationMaxInstances:
+          Ref: BBBApplicationMaxInstances
+        BBBApplicationMinInstances:
+          Ref: BBBApplicationMinInstances
+        BBBApplicationDesiredInstances:
+          Ref: BBBApplicationDesiredInstances
+        BBBHostedZone: 
+          Ref: BBBHostedZone
+        BBBDomainName:
+          Ref: BBBDomainName
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: BBBApplicationStackSingle-${BBBEnvironmentName}
+        - Key: Environment
+          Value: !Ref BBBEnvironmentName
+        - Key: Stage
+          Value: !Ref BBBEnvironmentStage
+
+  BBBFontendAppsStack:
+    Type: AWS::CloudFormation::Stack
+    Condition: BBBScalableEnvironment
+    Properties:
+      TemplateURL:
+        Fn::Join:
+          - ""
+          - - "https://s3.amazonaws.com/"
+            - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
+            - "/bbb-on-aws-frontendapps.template.yaml"
+      Parameters:
+        BBBVPCs:
+          Fn::If:
+            - BBBNewVPC 
+            - Fn::GetAtt:
+              - BBBNetworkStack
+              - Outputs.BBBVPCs
+            - Ref: BBBVPCs
+        BBBDBName:
+          Ref: BBBDBName
+        BBBRDSDBSecret:
+          Fn::GetAtt:
+            - BBBDatabaseStack
+            - Outputs.BBBRDSDBSecret
+        BBBRDSDBConnectionSecret:
+          Fn::GetAtt:
+            - BBBDatabaseStack
+            - Outputs.BBBRDSDBConnectionSecret
+        BBBEnvironmentStage:
+          Ref: BBBEnvironmentStage
+        BBBSESValidated: 
+          Ref: BBBSESValidated
+        BBBECSCluster:
+          Fn::GetAtt:
+            - BBBECSStack
+            - Outputs.BBBECSCluster
+        BBBPublicApplicationSubnets:
+          Fn::If:
+            - BBBNewVPC 
+            - Fn::GetAtt:
+              - BBBNetworkStack
+              - Outputs.BBBPublicApplicationSubnets
+            - Fn::Join:
+              - ","
+              - Ref: BBBPublicApplicationSubnets
+        BBBFrontendELBSecurityGroup:
+          Fn::GetAtt:
+            - BBBSecurityGroupStack
+            - Outputs.BBBFrontendELBSecurityGroup
+        BBBScaleliteELBSecurityGroup:
+          Fn::GetAtt:
+            - BBBSecurityGroupStack
+            - Outputs.BBBScaleliteELBSecurityGroup
+        BBBACMCertArn:
+          Ref: BBBACMCertArn
+        BBBSESProviderArn: 
+          Fn::GetAtt:
+            - BBBSESProviderStack
+            - Outputs.BBBSESProviderArn
+        BBBSMTPSecretProviderArn:
+          Fn::GetAtt:
+            - BBBSESProviderStack
+            - Outputs.BBBSMTPSecretProviderArn        
+        BBBNotificationTopic:
+          Ref: BBBNotificationTopic    
+        BBBgreenlightImage:
+          Ref: BBBgreenlightImage
+        BBBScaleliteApiImage:
+          Ref: BBBScaleliteApiImage
+        BBBScaleliteNginxImage:
+          Ref: BBBScaleliteNginxImage
+        BBBScalelitePollerImage:
+          Ref: BBBScalelitePollerImage
+        BBBScaleliteImporterImage:
+          Ref: BBBScaleliteImporterImage
+        BBBECRRegistry: 
+          Ref: BBBECRRegistry
+        BBBCacheDBAddress:
+          Fn::GetAtt:
+            - BBBCacheDBStack
+            - Outputs.BBBCacheDBAddress
+        BBBCacheDBPort:
+          Fn::GetAtt:
+            - BBBCacheDBStack
+            - Outputs.BBBCacheDBPort
+        BBBHostedZone: 
+          Ref: BBBHostedZone
+        BBBDomainName:
+          Ref: BBBDomainName
+        BBBTurnSecret:
+          Fn::GetAtt:
+            - BBBTurnStack
+            - Outputs.BBBTurnSecret
+        BBBGreenlightMemory:
+          Ref: BBBGreenlightMemory
+        BBBGreenlightCPU:
+          Ref: BBBGreenlightCPU
+        BBBScaleliteMemory: 
+          Ref: BBBScaleliteMemory
+        BBBScaleliteCPU:
+          Ref: BBBScaleliteCPU
+        BBBGreenlightMinReplicas:
+          Ref: BBBGreenlightMinReplicas
+        BBBGreenlightMaxReplicas:
+          Ref: BBBGreenlightMaxReplicas
+        BBBGreenlightDesiredReplicas:
+          Ref: BBBGreenlightDesiredReplicas
+        BBBScaleliteMinReplicas:
+          Ref: BBBScaleliteMinReplicas
+        BBBScaleliteMaxReplicas:
+          Ref: BBBScaleliteMaxReplicas
+        BBBScaleliteDesiredReplicas:
+          Ref: BBBScaleliteDesiredReplicas
+        BBBSharedStorageFS:
+          Fn::GetAtt:
+            - BBBStorageStack
+            - Outputs.BBBSharedStorageFS
+        BBBSharedStorageAPspool:
+          Fn::GetAtt:
+            - BBBStorageStack
+            - Outputs.BBBSharedStorageAPspool
+        BBBSharedStorageAPpublished:
+          Fn::GetAtt:
+            - BBBStorageStack
+            - Outputs.BBBSharedStorageAPpublished
+        BBBSharedStorageAPunpublished:
+          Fn::GetAtt:
+            - BBBStorageStack
+            - Outputs.BBBSharedStorageAPunpublished
+        BBBSharedStorageAPrecordings:
+          Fn::GetAtt:
+            - BBBStorageStack
+            - Outputs.BBBSharedStorageAPrecordings
+        BBBSesRegion:
+          Ref: BBBSesRegion
+        BBBOperatorEMail: 
+          Ref: BBBOperatorEMail
+        BBBECSInstanceType:
+          Ref: BBBECSInstanceType
+        BBBPrivateApplicationSubnets:
+          Fn::If:
+            - BBBNewVPC 
+            - Fn::GetAtt:
+              - BBBNetworkStack
+              - Outputs.BBBPrivateApplicationSubnets
+            - Fn::Join:
+              - ","
+              - Ref: BBBPrivateApplicationSubnets
+        BBBECSTaskSecurityGroup:
+          Fn::GetAtt:
+            - BBBSecurityGroupStack
+            - Outputs.BBBECSTaskSecurityGroup
+        BBBApplicationLogsGroup:
+          Ref: BBBApplicationLogsGroup
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: BBBFrontendApplicationStack-${BBBEnvironmentName}
+        - Key: Environment
+          Value: !Ref BBBEnvironmentName
+        - Key: Stage
+          Value: !Ref BBBEnvironmentStage
+
+Outputs:
+  BBBNotificationTopic:
+    Description: The SNS Topic for Operational Messages
+    Value: 
+      Ref: BBBNotificationTopic
+  BBBSystemLogsGroup:
+    Description: The System LogGroup for Cloudwatch
+    Value: 
+      Ref: BBBSystemLogsGroup
+  BBBApplicationLogsGroup:
+    Description: The Application LogGroup for Cloudwatch
+    Value: 
+      Ref: BBBApplicationLogsGroup

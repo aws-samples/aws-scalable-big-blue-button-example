@@ -1,7 +1,15 @@
 
 # Change Log
 All notable changes to this project will be documented in this file.
+## [3.0.4] - 2021-11-11
 
+### Fixed
+- #104: setup.sh is now checking for a running docker daemon and exists if not found
+- #101: adding _netdev to fstab to prevent loss of storage mount on reboots
+
+### Changed
+- #100: --disable-rollback set now for the deployment for faster/better deployment experience and debug capabilities for customers
+- renamed the root stack yaml file
 ## [3.0.3] - 2021-05-27
 
 ### Fixed
