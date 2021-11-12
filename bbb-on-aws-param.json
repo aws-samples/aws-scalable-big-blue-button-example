@@ -31,7 +31,7 @@
     "BBBEnvironmentStage": "dev",
     "BBBEnvironmentName": "bbbonaws",
     "BBBEnvironmentType": "scalable",
-    "BBBgreenlightImage": "bigbluebutton/greenlight:v3",
+    "BBBgreenlightImage": "bigbluebutton/greenlight:v2",
     "BBBScaleliteApiImage": "blindsidenetwks/scalelite:v1.3-api",
     "BBBScaleliteNginxImage": "blindsidenetwks/scalelite:v1.3-nginx",
     "BBBScalelitePollerImage": "blindsidenetwks/scalelite:v1.3-poller",
