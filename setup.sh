@@ -159,7 +159,6 @@ PARAMETERS=" BBBOperatorEMail=$OPERATOREMAIL \
 echo "Building the BBB Environment"
 echo "##################################################"
 aws cloudformation deploy --profile=$BBBPROFILE --stack-name $BBBSTACK \
-    --disable-rollback \
     --capabilities CAPABILITY_NAMED_IAM \
     --parameter-overrides $PARAMETERS \
     $(jq -r '.Parameters | to_entries | map("\(.key)=\(.value)") | join(" ")' bbb-on-aws-param.json) \

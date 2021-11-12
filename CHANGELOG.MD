@@ -6,9 +6,9 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - #104: setup.sh is now checking for a running docker daemon and exists if not found
 - #101: adding _netdev to fstab to prevent loss of storage mount on reboots
+- #103: fixing the SNS topic encryption to allow SES notification sendout
 
 ### Changed
-- #100: --disable-rollback set now for the deployment for faster/better deployment experience and debug capabilities for customers
 - renamed the root stack yaml file
 ## [3.0.3] - 2021-05-27
 

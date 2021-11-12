@@ -484,11 +484,71 @@ Resources:
   BBBNotificationTopic:
     Type: AWS::SNS::Topic
     Properties:
-      KmsMasterKeyId: alias/aws/sns
+      KmsMasterKeyId: !Ref BBBNotificationEncKey
       Subscription:
       - Endpoint:
           Ref: BBBOperatorEMail
         Protocol: email
+
+  BBBNotificationEncKey: 
+    Type: AWS::KMS::Key
+    Properties:
+      Description: BBB-Internal-SNS Encryption Key
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: allow-root-access-to-key
+        Statement:
+          - Sid: allow-root-to-delegate-actions
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - kms:*
+            Resource: '*'
+          - Sid: allow-cloudwatch-to-use-key
+            Effect: Allow
+            Principal:
+              Service: cloudwatch.amazonaws.com
+            Action:
+              - kms:Decrypt
+              - kms:GenerateDataKey*
+            Resource: '*'
+          - Sid: allow-ses-to-use-key
+            Effect: Allow
+            Principal:
+              Service: ses.amazonaws.com
+            Action:
+              - kms:Decrypt
+              - kms:GenerateDataKey*
+            Resource: '*'
+          - Sid: Allow access through SNS for all principals in the account that are authorized
+              to use SNS
+            Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+            - kms:Decrypt
+            - kms:GenerateDataKey*
+            - kms:CreateGrant
+            - kms:ListGrants
+            - kms:DescribeKey
+            Resource: "*"
+            Condition:
+              StringEquals:
+                kms:ViaService: sns.eu-central-1.amazonaws.com
+                kms:CallerAccount: '545095046790'
+          - Sid: Allow direct access to key metadata to the account
+            Effect: Allow
+            Principal:
+              AWS: arn:aws:iam::545095046790:root
+            Action:
+            - kms:Describe*
+            - kms:Get*
+            - kms:List*
+            - kms:RevokeGrant
+            Resource: "*"
+
+
 
   BBBSystemLogsGroup:
     Type: AWS::Logs::LogGroup

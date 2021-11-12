@@ -31,11 +31,11 @@
     "BBBEnvironmentStage": "dev",
     "BBBEnvironmentName": "bbbonaws",
     "BBBEnvironmentType": "scalable",
-    "BBBgreenlightImage": "bigbluebutton/greenlight:v2",
-    "BBBScaleliteApiImage": "blindsidenetwks/scalelite:v1.1-api",
-    "BBBScaleliteNginxImage": "blindsidenetwks/scalelite:v1.1-nginx",
-    "BBBScalelitePollerImage": "blindsidenetwks/scalelite:v1.1-poller",
-    "BBBScaleliteImporterImage": "blindsidenetwks/scalelite:v1.1-recording-importer",
+    "BBBgreenlightImage": "bigbluebutton/greenlight:v3",
+    "BBBScaleliteApiImage": "blindsidenetwks/scalelite:v1.3-api",
+    "BBBScaleliteNginxImage": "blindsidenetwks/scalelite:v1.3-nginx",
+    "BBBScalelitePollerImage": "blindsidenetwks/scalelite:v1.3-poller",
+    "BBBScaleliteImporterImage": "blindsidenetwks/scalelite:v1.3-recording-importer",
     "BBBCacheAZMode": "cross-az",
     "BBBGreenlightMemory": 1024,
     "BBBGreenlightCPU": 512,
@@ -43,5 +43,3 @@
     "BBBScaleliteCPU": 1024
   }
 }
-
-
