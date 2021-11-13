@@ -7,9 +7,12 @@ All notable changes to this project will be documented in this file.
 - #104: setup.sh is now checking for a running docker daemon and exists if not found
 - #101: adding _netdev to fstab to prevent loss of storage mount on reboots
 - #103: fixing the SNS topic encryption to allow SES notification sendout
+- #99: improved the command within the greenlight task. basically extended the default /bin/start instead of the old quick and dirty hack. 
 
 ### Changed
 - renamed the root stack yaml file
+- scalelite version push to 1.3
+- Aurora Default Engine version pushed to 10.14
 ## [3.0.3] - 2021-05-27
 
 ### Fixed
