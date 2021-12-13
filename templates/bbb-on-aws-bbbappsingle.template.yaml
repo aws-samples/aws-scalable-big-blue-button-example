@@ -275,8 +275,8 @@ Resources:
           
           apt install -y git binutils python3-pip python-pip build-essential python-dev python-setuptools jq
 
-          pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
-          pip install -U awscli
+          pip3 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+          pip3 install -U awscli
 
           # Set instance Hostname
           instance_ipv4=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)

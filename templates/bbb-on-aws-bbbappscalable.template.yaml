@@ -310,8 +310,8 @@ Resources:
           
           apt install -y git binutils python3-pip python-pip build-essential python-dev python-setuptools jq
 
-          pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
-          pip install -U awscli
+          pip3 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+          pip3 install -U awscli
 
           cd /tmp
           git clone https://github.com/aws/efs-utils
