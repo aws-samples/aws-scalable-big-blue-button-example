@@ -254,11 +254,17 @@ Resources:
                   - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/turnhostname"
               - Effect: Allow
                 Action:
+                  - cloudwatch:PutMetricData
+                  - ec2:DescribeVolumes
+                  - ec2:DescribeTags
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
                   - logs:PutLogEvents
                   - logs:CreateLogStream
                   - logs:DescribeLogStreams
                   - logs:CreateLogGroup
-                  - logs:GetLogEvents
                 Resource:
                   - !Ref BBBSystemLogsGroupArn
                   - !Ref BBBApplicationLogsGroupArn
@@ -307,17 +313,17 @@ Resources:
           apt autoclean
            
           while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
-          
-          apt install -y git binutils python3-pip python-pip build-essential python-dev python-setuptools jq
+
+          apt install -y git binutils python3-pip build-essential python-dev python-setuptools jq collectd
           pip3 install -U awscli
 
-          curl https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py -O
-          chmod +x ./awslogs-agent-setup.py
-          aws s3 cp s3://${BBBStackBucketStack}/bbb-cwagent.config /tmp/bbb-cwagent.config
-          sed -i "s|SYSTEMLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/bbb-cwagent.config
-          sed -i "s|APPLICATIONLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/bbb-cwagent.config
-          ./awslogs-agent-setup.py -n -r ${AWS::Region} -c /tmp/bbb-cwagent.config
-          systemctl enable awslogs
+          wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+          dpkg -i -E ./amazon-cloudwatch-agent.deb
+
+          aws s3 cp s3://${BBBStackBucketStack}/bbb-cwagent-config.json /tmp/bbb-cwagent-config.json
+          sed -i "s|SYSTEMLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/bbb-cwagent-config.json
+          sed -i "s|APPLICATIONLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/bbb-cwagent-config.json
+          sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/tmp/bbb-cwagent-config.json
 
           pip3 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
 
