@@ -536,11 +536,11 @@ Resources:
             Condition:
               StringEquals:
                 kms:ViaService: sns.eu-central-1.amazonaws.com
-                kms:CallerAccount: '545095046790'
+                kms:CallerAccount: !Sub "${AWS::AccountId}"
           - Sid: Allow direct access to key metadata to the account
             Effect: Allow
             Principal:
-              AWS: arn:aws:iam::545095046790:root
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
             Action:
             - kms:Describe*
             - kms:Get*
