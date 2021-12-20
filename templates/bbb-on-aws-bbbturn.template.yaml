@@ -274,11 +274,16 @@ Resources:
            
           while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
 
-          apt install -y git binutils python3-pip build-essential python-dev python-setuptools jq collectd
+          apt install -y git binutils python3-pip build-essential python-dev python-setuptools jq
           pip3 install -U awscli
+
+          while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done
 
           wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
           dpkg -i -E ./amazon-cloudwatch-agent.deb
+
+          # Adding cwagent user to all required groups
+          usermod -a -G adm cwagent
 
           aws s3 cp s3://${BBBStackBucketStack}/turn-cwagent-config.json /tmp/turn-cwagent-config.json
           sed -i "s|SYSTEMLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/turn-cwagent-config.json
