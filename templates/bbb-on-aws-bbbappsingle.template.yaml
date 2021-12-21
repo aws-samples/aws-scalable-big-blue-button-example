@@ -218,13 +218,6 @@ Resources:
                   - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/turnhostname"
               - Effect: Allow
                 Action:
-                  - cloudwatch:PutMetricData
-                  - ec2:DescribeVolumes
-                  - ec2:DescribeTags
-                Resource:
-                  - "*"
-              - Effect: Allow
-                Action:
                   - logs:PutLogEvents
                   - logs:CreateLogStream
                   - logs:DescribeLogStreams
