@@ -1,0 +1,49 @@
+{
+        "agent": {
+                "metrics_collection_interval": 60,
+                "run_as_user": "cwagent"
+        },
+        "logs": {
+                "logs_collected": {
+                        "files": {
+                                "collect_list": [
+                                        {
+                                                "file_path": "/var/log/auth.log",
+                                                "log_group_name": "SYSTEMLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-auth.log",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/cloud-init.log",
+                                                "log_group_name": "SYSTEMLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-cloud-init",
+                                                "timestamp_format": "%Y-%m-%d %H:%M:%S,%f"
+                                        },
+                                        {
+                                                "file_path": "/var/log/cloud-init-output.log",
+                                                "log_group_name": "SYSTEMLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-cloud-init-output"
+                                        },
+                                        {
+                                                "file_path": "/var/log/coturn.log",
+                                                "log_group_name": "APPLICATIONLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-coturn.log",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/letsencrypt/letsencrypt.log",
+                                                "log_group_name": "SYSTEMLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-letsencrypt.log",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/syslog",
+                                                "log_group_name": "SYSTEMLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-syslog",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        }
+                                ]
+                        }
+                }
+        }
+}

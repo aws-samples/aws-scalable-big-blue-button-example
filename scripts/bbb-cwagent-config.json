@@ -1,0 +1,121 @@
+{
+        "agent": {
+                "metrics_collection_interval": 60,
+                "run_as_user": "cwagent"
+        },
+        "logs": {
+                "logs_collected": {
+                        "files": {
+                                "collect_list": [
+                                        {
+                                                "file_path": "/var/log/auth.log",
+                                                "log_group_name": "SYSTEMLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-auth.log",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/bbb-apps-akka/bbb-apps-akka.log",
+                                                "log_group_name": "APPLICATIONLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-bbb-apps-akka.log",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/bbb-fsesl-akka/bbb-fsesl-akka.log",
+                                                "log_group_name": "APPLICATIONLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-bbb-fsesl-akka.log",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/bbb-transcode-akka/bbb-transcode.log",
+                                                "log_group_name": "APPLICATIONLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-bbb-transcode.log",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/bbb-webrtc-sfu/bbb-webrtc-sfu.log",
+                                                "log_group_name": "APPLICATIONLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-bbb-webrtc-sfu.log",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/bigbluebutton/bbb-rap-worker.log",
+                                                "log_group_name": "APPLICATIONLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-bbb-rap-worker.log",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/bigbluebutton/bbb-web.log",
+                                                "log_group_name": "APPLICATIONLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-bbb-web.log",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/bigbluebutton/post_publish.log",
+                                                "log_group_name": "APPLICATIONLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-post_publish.log",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/bigbluebutton/sanity.log",
+                                                "log_group_name": "APPLICATIONLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-sanity.log",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/cloud-init.log",
+                                                "log_group_name": "SYSTEMLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-cloud-init",
+                                                "timestamp_format": "%Y-%m-%d %H:%M:%S,%f"
+                                        },
+                                        {
+                                                "file_path": "/var/log/cloud-init-output.log",
+                                                "log_group_name": "SYSTEMLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-cloud-init-output"
+                                        },
+                                        {
+                                                "file_path": "/var/log/kurento-media-server/*.log",
+                                                "log_group_name": "APPLICATIONLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-kurento-media-server",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/letsencrypt/letsencrypt.log",
+                                                "log_group_name": "APPLICATIONLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-letsencrypt.log",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/mongodb/mongod.log",
+                                                "log_group_name": "APPLICATIONLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-mongod.log",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/nginx/*.log",
+                                                "log_group_name": "APPLICATIONLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-nginx",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/red5/*.log",
+                                                "log_group_name": "APPLICATIONLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-red5",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/redis/redis-server.log",
+                                                "log_group_name": "APPLICATIONLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-redis-server.log",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        },
+                                        {
+                                                "file_path": "/var/log/syslog",
+                                                "log_group_name": "SYSTEMLOGS_PLACEHOLDER",
+                                                "log_stream_name": "{instance_id}-syslog",
+                                                "timestamp_format": "%b %d %H:%M:%S"
+                                        }
+                                ]
+                        }
+                }
+        }
+}

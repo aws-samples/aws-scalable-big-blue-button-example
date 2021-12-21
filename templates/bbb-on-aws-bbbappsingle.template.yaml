@@ -222,7 +222,6 @@ Resources:
                   - logs:CreateLogStream
                   - logs:DescribeLogStreams
                   - logs:CreateLogGroup
-                  - logs:GetLogEvents
                 Resource:
                   - !Ref BBBSystemLogsGroupArn
                   - !Ref BBBApplicationLogsGroupArn
@@ -272,11 +271,31 @@ Resources:
           apt autoclean
            
           while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
-          
-          apt install -y git binutils python3-pip python-pip build-essential python-dev python-setuptools jq
+
+          apt install -y git binutils python3-pip build-essential python-dev python-setuptools jq
+          pip3 install -U awscli
+
+          while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done
+
+          wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+          dpkg -i -E ./amazon-cloudwatch-agent.deb
+
+          # Adding cwagent user to all required groups
+          useradd mongodb
+          usermod -a -G adm cwagent
+          usermod -a -G mongodb cwagent
+          usermod -a -G mongodb mongodb
+          mkdir /var/log/mongodb
+          touch /var/log/mongodb/mongod.log
+          chown -R mongodb:mongodb /var/log/mongodb
+          chmod g+r /var/log/mongodb/mongod.log
+
+          aws s3 cp s3://${BBBStackBucketStack}/bbb-cwagent-config.json /tmp/bbb-cwagent-config.json
+          sed -i "s|SYSTEMLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/bbb-cwagent-config.json
+          sed -i "s|APPLICATIONLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/bbb-cwagent-config.json
+          sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/tmp/bbb-cwagent-config.json
 
           pip3 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
-          pip3 install -U awscli
 
           # Set instance Hostname
           instance_ipv4=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
@@ -346,14 +365,6 @@ Resources:
           systemctl daemon-reload
           systemctl enable turn-handler.timer
           systemctl start turn-handler.timer
-          
-          curl https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py -O
-          chmod +x ./awslogs-agent-setup.py
-          aws s3 cp s3://${BBBStackBucketStack}/bbb-cwagent.config /tmp/bbb-cwagent.config
-          sed -i "s|SYSTEMLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/bbb-cwagent.config
-          sed -i "s|APPLICATIONLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/bbb-cwagent.config
-          ./awslogs-agent-setup.py -n -r ${AWS::Region} -c /tmp/bbb-cwagent.config
-          systemctl enable awslogs
 
           /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBApplicationAutoScaling --region ${AWS::Region} || true
 
