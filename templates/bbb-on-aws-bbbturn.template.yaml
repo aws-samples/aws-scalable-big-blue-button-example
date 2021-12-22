@@ -188,15 +188,15 @@ Resources:
 
   BBBTurnEC2Role:
     Type: AWS::IAM::Role
-    DependsOn: 
+    DependsOn:
       - BBBTurnHostnameParameter
     Properties:
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
             Principal:
-              Service: [ec2.amazonaws.com]
-            Action: ["sts:AssumeRole"]
+              Service: [ ec2.amazonaws.com ]
+            Action: [ "sts:AssumeRole" ]
       Path: /
       Policies:
         - PolicyName: TurnEC2Role
@@ -336,19 +336,19 @@ Outputs:
     Description: The Big Blue Button Turn Secret Key
     Value:
       Ref: BBBTurnSecret
-  BBBTurnHostnameParameter: 
+  BBBTurnHostnameParameter:
     Description: The Parameter containing the Big Blue Button Turn Hostname
-    Value: 
+    Value:
       Ref: BBBTurnHostnameParameter
   BBBTurnEC2InstanceProfile:
     Description: Big Blue Button Turn Instance Profile
     Value:
       Ref: BBBTurnEC2InstanceProfile
-  BBBTurnEC2Role: 
+  BBBTurnEC2Role:
     Description: Big Blue Button Turn Instance Role
     Value:
       Ref: BBBTurnEC2Role
-  BBBTurnAutoScaling: 
+  BBBTurnAutoScaling:
     Description: Big Blue Button Turn Instance Autoscaling Group
     Value:
       Ref: BBBTurnAutoScaling

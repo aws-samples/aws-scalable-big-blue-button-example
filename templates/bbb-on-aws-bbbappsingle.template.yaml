@@ -86,11 +86,11 @@ Parameters:
       - r5.12xlarge
       - r5.16xlarge
       - r5.24xlarge
-  BBBApplicationDataVolumeSize: 
+  BBBApplicationDataVolumeSize:
     Description: Size of the application instance data volume
     Type: Number
     Default: 20
-  BBBApplicationRootVolumeSize: 
+  BBBApplicationRootVolumeSize:
     Description: Size of the application instance data volume
     Type: Number
     Default: 20
@@ -189,8 +189,8 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: [ec2.amazonaws.com]
-            Action: ["sts:AssumeRole"]
+              Service: [ ec2.amazonaws.com ]
+            Action: [ "sts:AssumeRole" ]
       Path: /
       Policies:
         - PolicyName: "root"
@@ -215,7 +215,7 @@ Resources:
                   - !Sub "arn:aws:s3:::${BBBStackBucketStack}/*"
               - Effect: Allow
                 Action:
-                  - ssm:GetParameter 
+                  - ssm:GetParameter
                 Resource:
                   - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/turnhostname"
               - Effect: Allow
@@ -242,16 +242,16 @@ Resources:
     Properties:
       LaunchTemplateData:
         BlockDeviceMappings:
-            - DeviceName: /dev/sda1
-              Ebs:
-                VolumeType: gp2
-                VolumeSize: !Ref BBBApplicationRootVolumeSize
-                Encrypted: true
-            - DeviceName: /dev/sdf
-              Ebs:
-                VolumeSize: !Ref BBBApplicationDataVolumeSize
-                VolumeType: gp2
-                Encrypted: true
+          - DeviceName: /dev/sda1
+            Ebs:
+              VolumeType: gp2
+              VolumeSize: !Ref BBBApplicationRootVolumeSize
+              Encrypted: true
+          - DeviceName: /dev/sdf
+            Ebs:
+              VolumeSize: !Ref BBBApplicationDataVolumeSize
+              VolumeType: gp2
+              Encrypted: true
         EbsOptimized: true
         IamInstanceProfile:
           Arn: !GetAtt BBBApplicationEC2InstanceProfile.Arn
@@ -382,11 +382,11 @@ Outputs:
     Description: Big Blue Button Application Instance Profile
     Value:
       Ref: BBBApplicationEC2InstanceProfile
-  BBBApplicationEC2Role: 
+  BBBApplicationEC2Role:
     Description: Big Blue Button Application Instance Role
     Value:
       Ref: BBBApplicationEC2Role
-  BBBApplicationAutoScaling: 
+  BBBApplicationAutoScaling:
     Description: Big Blue Button Application Instance Autoscaling Group
     Value:
       Ref: BBBApplicationAutoScaling
