@@ -158,7 +158,9 @@ Resources:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       VPCZoneIdentifier: !Ref BBBPublicApplicationSubnets
-      LaunchConfigurationName: !Ref BBBApplicationInstanceLaunchConfiguration
+      LaunchTemplate:
+        LaunchTemplateId: !Ref BBBApplicationInstanceLaunchTemplate
+        Version: !GetAtt BBBApplicationInstanceLaunchTemplate.LatestVersionNumber
       TerminationPolicies:
         - DEFAULT
       MaxSize: !Ref BBBApplicationMaxInstances
@@ -235,138 +237,145 @@ Resources:
       Roles:
         - !Ref BBBApplicationEC2Role
 
-  BBBApplicationInstanceLaunchConfiguration:
-    Type: AWS::AutoScaling::LaunchConfiguration
+  BBBApplicationInstanceLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
     Properties:
-      AssociatePublicIpAddress: true
-      IamInstanceProfile: !Ref BBBApplicationEC2InstanceProfile
-      ImageId: !Ref BBBLatestApplicationAmiId
-      EbsOptimized: true
-      InstanceMonitoring: true
-      InstanceType: !Ref BBBApplicationInstanceType
-      SecurityGroups:
-        - !Ref BBBApplicationSecurityGroup
-      BlockDeviceMappings:
-        - DeviceName: "/dev/sda1"
-          Ebs:
-            VolumeSize: !Ref BBBApplicationRootVolumeSize
-            VolumeType: gp2
-            Encrypted: true
-        - DeviceName: /dev/sdf
-          Ebs:
-            VolumeSize: !Ref BBBApplicationDataVolumeSize
-            VolumeType: gp2
-            Encrypted: true
-            DeleteOnTermination: "false"
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash -xe
-          apt update -y 
-          
-          while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
+      LaunchTemplateData:
+        BlockDeviceMappings:
+            - DeviceName: /dev/sda1
+              Ebs:
+                VolumeType: gp2
+                VolumeSize: !Ref BBBApplicationRootVolumeSize
+                Encrypted: true
+            - DeviceName: /dev/sdf
+              Ebs:
+                VolumeSize: !Ref BBBApplicationDataVolumeSize
+                VolumeType: gp2
+                Encrypted: true
+        EbsOptimized: true
+        IamInstanceProfile:
+          Arn: !GetAtt BBBApplicationEC2InstanceProfile.Arn
+        ImageId: !Ref BBBLatestApplicationAmiId
+        InstanceType: !Ref BBBApplicationInstanceType
+        Monitoring:
+          Enabled: true
+        NetworkInterfaces:
+          - AssociatePublicIpAddress: true
+            DeviceIndex: 0
+            Groups:
+              - !Ref BBBApplicationSecurityGroup
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash -xe
+            apt update -y
 
-          DEBIAN_FRONTEND='noninteractive' apt -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' full-upgrade
+            while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
 
-          apt autoremove -y
-          apt autoclean
-           
-          while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
+            DEBIAN_FRONTEND='noninteractive' apt -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' full-upgrade
 
-          apt install -y git binutils python3-pip build-essential python-dev python-setuptools jq
-          pip3 install -U awscli
+            apt autoremove -y
+            apt autoclean
 
-          while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done
+            while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
 
-          wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
-          dpkg -i -E ./amazon-cloudwatch-agent.deb
+            apt install -y git binutils python3-pip build-essential python-dev python-setuptools jq
+            pip3 install -U awscli
 
-          # Adding cwagent user to all required groups
-          useradd mongodb
-          usermod -a -G adm cwagent
-          usermod -a -G mongodb cwagent
-          usermod -a -G mongodb mongodb
-          mkdir /var/log/mongodb
-          touch /var/log/mongodb/mongod.log
-          chown -R mongodb:mongodb /var/log/mongodb
-          chmod g+r /var/log/mongodb/mongod.log
+            while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done
 
-          aws s3 cp s3://${BBBStackBucketStack}/bbb-cwagent-config.json /tmp/bbb-cwagent-config.json
-          sed -i "s|SYSTEMLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/bbb-cwagent-config.json
-          sed -i "s|APPLICATIONLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/bbb-cwagent-config.json
-          sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/tmp/bbb-cwagent-config.json
+            wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+            dpkg -i -E ./amazon-cloudwatch-agent.deb
 
-          pip3 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
+            # Adding cwagent user to all required groups
+            useradd mongodb
+            usermod -a -G adm cwagent
+            usermod -a -G mongodb cwagent
+            usermod -a -G mongodb mongodb
+            mkdir /var/log/mongodb
+            touch /var/log/mongodb/mongod.log
+            chown -R mongodb:mongodb /var/log/mongodb
+            chmod g+r /var/log/mongodb/mongod.log
 
-          # Set instance Hostname
-          instance_ipv4=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
-          instance_random=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 6 | head -n 1)
-          instance_publichostname=vc-$instance_random
-          instance_fqdn=$instance_publichostname.${BBBDomainName}
+            aws s3 cp s3://${BBBStackBucketStack}/bbb-cwagent-config.json /tmp/bbb-cwagent-config.json
+            sed -i "s|SYSTEMLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/bbb-cwagent-config.json
+            sed -i "s|APPLICATIONLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/bbb-cwagent-config.json
+            sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/tmp/bbb-cwagent-config.json
 
-          # register in route53
-          wget --tries=10 https://github.com/barnybug/cli53/releases/download/0.8.18/cli53-linux-amd64 -O /usr/local/bin/cli53
-          sudo chmod +x /usr/local/bin/cli53
+            pip3 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
 
-          # create script for route53-handler
-          aws s3 cp s3://${BBBStackBucketStack}/route53-handler.service /etc/systemd/system/route53-handler.service
-          aws s3 cp s3://${BBBStackBucketStack}/route53-handler.sh /usr/local/bin/route53-handler.sh
-          chmod +x /usr/local/bin/route53-handler.sh
+            # Set instance Hostname
+            instance_ipv4=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+            instance_random=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 6 | head -n 1)
+            instance_publichostname=vc-$instance_random
+            instance_fqdn=$instance_publichostname.${BBBDomainName}
 
-          sed -i "s/INSTANCE_PLACEHOLDER/$instance_publichostname/g" /etc/systemd/system/route53-handler.service
-          sed -i "s/ZONE_PLACEHOLDER/${BBBHostedZone}/g" /etc/systemd/system/route53-handler.service
+            # register in route53
+            wget --tries=10 https://github.com/barnybug/cli53/releases/download/0.8.18/cli53-linux-amd64 -O /usr/local/bin/cli53
+            sudo chmod +x /usr/local/bin/cli53
 
-          systemctl daemon-reload
-          systemctl enable route53-handler
-          systemctl start route53-handler
+            # create script for route53-handler
+            aws s3 cp s3://${BBBStackBucketStack}/route53-handler.service /etc/systemd/system/route53-handler.service
+            aws s3 cp s3://${BBBStackBucketStack}/route53-handler.sh /usr/local/bin/route53-handler.sh
+            chmod +x /usr/local/bin/route53-handler.sh
 
-          mkdir -p /var/bigbluebutton
+            sed -i "s/INSTANCE_PLACEHOLDER/$instance_publichostname/g" /etc/systemd/system/route53-handler.service
+            sed -i "s/ZONE_PLACEHOLDER/${BBBHostedZone}/g" /etc/systemd/system/route53-handler.service
 
-          if test -e "/dev/nvme1n1"; then
-            DEVICE=/dev/nvme1n1
-            parted -s -a optimal -- $DEVICE mklabel gpt mkpart primary 1MiB -2048s
-            sleep 20s
-            mkfs.ext4 -F $DEVICE\p1 
-            UUID=$(blkid |grep "$DEVICE\p1" | awk '{print $2}' |sed 's/"//g')
-          else 
-            DEVICE=/dev/sdf
-            parted -s -a optimal -- $DEVICE mklabel gpt mkpart primary 1MiB -2048s
-            sleep 20s
-            mkfs.ext4 -F $DEVICE\1 
-            UUID=$(blkid |grep "$DEVICE\1" | awk '{print $2}' |sed 's/"//g')
-          fi
+            systemctl daemon-reload
+            systemctl enable route53-handler
+            systemctl start route53-handler
 
-          echo "$UUID       /var/bigbluebutton   ext4    defaults,nofail        0       2" >> /etc/fstab
-          mount -a
+            mkdir -p /var/bigbluebutton
 
-          turn_hostname=$(aws ssm get-parameter --region ${AWS::Region} --name "${BBBTurnHostnameParameter}" --with-decryption --output text --query Parameter.Value)
-          turn_fqdn=$turn_hostname.${BBBDomainName}
-          turnsecret=$(aws secretsmanager get-secret-value --region ${AWS::Region} --secret-id ${BBBTurnSecret} --query SecretString --output text | jq -r .turnkeyvalue)
+            if test -e "/dev/nvme1n1"; then
+              DEVICE=/dev/nvme1n1
+              parted -s -a optimal -- $DEVICE mklabel gpt mkpart primary 1MiB -2048s
+              sleep 20s
+              mkfs.ext4 -F $DEVICE\p1
+              UUID=$(blkid |grep "$DEVICE\p1" | awk '{print $2}' |sed 's/"//g')
+            else
+              DEVICE=/dev/sdf
+              parted -s -a optimal -- $DEVICE mklabel gpt mkpart primary 1MiB -2048s
+              sleep 20s
+              mkfs.ext4 -F $DEVICE\1
+              UUID=$(blkid |grep "$DEVICE\1" | awk '{print $2}' |sed 's/"//g')
+            fi
 
-          sleep 1m
+            echo "$UUID       /var/bigbluebutton   ext4    defaults,nofail        0       2" >> /etc/fstab
+            mount -a
 
-          x=1
-          while [ $x -le 5 ]
-          do
-            until host $instance_fqdn  | grep -m 1 "has address $instance_ipv4"; do sleep 5 ; done
-            x=$(( $x + 1 ))
-          done
+            turn_hostname=$(aws ssm get-parameter --region ${AWS::Region} --name "${BBBTurnHostnameParameter}" --with-decryption --output text --query Parameter.Value)
+            turn_fqdn=$turn_hostname.${BBBDomainName}
+            turnsecret=$(aws secretsmanager get-secret-value --region ${AWS::Region} --secret-id ${BBBTurnSecret} --query SecretString --output text | jq -r .turnkeyvalue)
 
-          wget -qO- https://ubuntu.bigbluebutton.org/bbb-install.sh | bash -s -- -v ${BBBApplicationVersion} -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret -g
+            sleep 1m
 
-          # create script for turn-handler
-          aws s3 cp s3://${BBBStackBucketStack}/turn-handler.service /etc/systemd/system/turn-handler.service
-          aws s3 cp s3://${BBBStackBucketStack}/turn-handler.timer /etc/systemd/system/turn-handler.timer
-          aws s3 cp s3://${BBBStackBucketStack}/turn-handler.sh /usr/local/bin/turn-handler.sh
-          chmod +x /usr/local/bin/turn-handler.sh
+            x=1
+            while [ $x -le 5 ]
+            do
+              until host $instance_fqdn  | grep -m 1 "has address $instance_ipv4"; do sleep 5 ; done
+              x=$(( $x + 1 ))
+            done
 
-          sed -i "s/AWSREGION_PLACEHOLDER/${AWS::Region}/g" /etc/systemd/system/turn-handler.service
-          sed -i "s|PARAMETER_PLACEHOLDER|${BBBTurnHostnameParameter}|g" /etc/systemd/system/turn-handler.service
+            wget -qO- https://ubuntu.bigbluebutton.org/bbb-install.sh | bash -s -- -v ${BBBApplicationVersion} -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret -g
 
-          systemctl daemon-reload
-          systemctl enable turn-handler.timer
-          systemctl start turn-handler.timer
+            # create script for turn-handler
+            aws s3 cp s3://${BBBStackBucketStack}/turn-handler.service /etc/systemd/system/turn-handler.service
+            aws s3 cp s3://${BBBStackBucketStack}/turn-handler.timer /etc/systemd/system/turn-handler.timer
+            aws s3 cp s3://${BBBStackBucketStack}/turn-handler.sh /usr/local/bin/turn-handler.sh
+            chmod +x /usr/local/bin/turn-handler.sh
 
-          /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBApplicationAutoScaling --region ${AWS::Region} || true
+            sed -i "s/AWSREGION_PLACEHOLDER/${AWS::Region}/g" /etc/systemd/system/turn-handler.service
+            sed -i "s|PARAMETER_PLACEHOLDER|${BBBTurnHostnameParameter}|g" /etc/systemd/system/turn-handler.service
+
+            systemctl daemon-reload
+            systemctl enable turn-handler.timer
+            systemctl start turn-handler.timer
+
+            /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBApplicationAutoScaling --region ${AWS::Region} || true
+
+
+
 
 Outputs:
   BBBApplicationEC2InstanceProfile:
@@ -381,7 +390,7 @@ Outputs:
     Description: Big Blue Button Application Instance Autoscaling Group
     Value:
       Ref: BBBApplicationAutoScaling
-  BBBApplicationInstanceLaunchConfiguration: 
-    Description: Big Blue Button Application Instance Launch Configuration
+  BBBApplicationInstanceLaunchTemplate:
+    Description: Big Blue Button Application Instance Launch Template
     Value:
-      Ref: BBBApplicationInstanceLaunchConfiguration
+      Ref: BBBApplicationInstanceLaunchTemplate

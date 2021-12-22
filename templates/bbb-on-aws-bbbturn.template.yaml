@@ -163,7 +163,9 @@ Resources:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       VPCZoneIdentifier: !Ref BBBPublicApplicationSubnets
-      LaunchConfigurationName: !Ref BBBTurnInstanceLaunchConfiguration
+      LaunchTemplate:
+        LaunchTemplateId: !Ref BBBTurnInstanceLaunchTemplate
+        Version: !GetAtt BBBTurnInstanceLaunchTemplate.LatestVersionNumber
       TerminationPolicies:
         - DEFAULT
       MaxSize: !Ref BBBTurnMaxInstances
@@ -242,86 +244,92 @@ Resources:
       Roles:
         - !Ref BBBTurnEC2Role
 
-  BBBTurnInstanceLaunchConfiguration:
-    Type: AWS::AutoScaling::LaunchConfiguration
+  BBBTurnInstanceLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
     Properties:
-      AssociatePublicIpAddress: true
-      IamInstanceProfile: !Ref BBBTurnEC2InstanceProfile
-      ImageId: !Ref BBBLatestTurnAmiId
-      EbsOptimized: false
-      InstanceMonitoring: true
-      InstanceType: !Ref BBBTurnInstanceType
-      SecurityGroups:
-        - !Ref BBBTurnSecurityGroup
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash -xe
-          apt update -y 
-          
-          while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
+      LaunchTemplateData:
+        EbsOptimized: false
+        IamInstanceProfile:
+          Arn: !GetAtt BBBTurnEC2InstanceProfile.Arn
+        ImageId: !Ref BBBLatestTurnAmiId
+        InstanceType: !Ref BBBTurnInstanceType
+        Monitoring:
+          Enabled: true
+        NetworkInterfaces:
+          - AssociatePublicIpAddress: true
+            DeviceIndex: 0
+            Groups:
+              - !Ref BBBTurnSecurityGroup
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash -xe
+            apt update -y
 
-          DEBIAN_FRONTEND='noninteractive' apt -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' full-upgrade
+            while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
 
-          apt autoremove -y
-          apt autoclean
-           
-          while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
+            DEBIAN_FRONTEND='noninteractive' apt -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' full-upgrade
 
-          apt install -y git binutils python3-pip build-essential python-dev python-setuptools jq
-          pip3 install -U awscli
+            apt autoremove -y
+            apt autoclean
 
-          while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done
+            while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
 
-          wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
-          dpkg -i -E ./amazon-cloudwatch-agent.deb
+            apt install -y git binutils python3-pip build-essential python-dev python-setuptools jq
+            pip3 install -U awscli
 
-          # Adding cwagent user to all required groups
-          usermod -a -G adm cwagent
+            while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done
 
-          aws s3 cp s3://${BBBStackBucketStack}/turn-cwagent-config.json /tmp/turn-cwagent-config.json
-          sed -i "s|SYSTEMLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/turn-cwagent-config.json
-          sed -i "s|APPLICATIONLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/turn-cwagent-config.json
-          sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/tmp/turn-cwagent-config.json
+            wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+            dpkg -i -E ./amazon-cloudwatch-agent.deb
 
-          pip3 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
+            # Adding cwagent user to all required groups
+            usermod -a -G adm cwagent
 
-          # associate Elastic IP
-          instance_ipv4=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
-          instance_random=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 6 | head -n 1)
-          instance_publichostname=tu-$instance_random
-          instance_fqdn=$instance_publichostname.${BBBDomainName}
+            aws s3 cp s3://${BBBStackBucketStack}/turn-cwagent-config.json /tmp/turn-cwagent-config.json
+            sed -i "s|SYSTEMLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/turn-cwagent-config.json
+            sed -i "s|APPLICATIONLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/turn-cwagent-config.json
+            sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/tmp/turn-cwagent-config.json
 
-          aws ssm --region ${AWS::Region} put-parameter --name "${BBBTurnHostnameParameter}" --value "$instance_publichostname" --type String --overwrite
+            pip3 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
 
-          # register in route53
-          wget --tries=10 https://github.com/barnybug/cli53/releases/download/0.8.18/cli53-linux-amd64 -O /usr/local/bin/cli53
-          sudo chmod +x /usr/local/bin/cli53
+            # associate Elastic IP
+            instance_ipv4=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+            instance_random=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 6 | head -n 1)
+            instance_publichostname=tu-$instance_random
+            instance_fqdn=$instance_publichostname.${BBBDomainName}
 
-          # create script for route53-handler
-          aws s3 cp s3://${BBBStackBucketStack}/route53-handler.service /etc/systemd/system/route53-handler.service
-          aws s3 cp s3://${BBBStackBucketStack}/route53-handler.sh /usr/local/bin/route53-handler.sh
-          chmod +x /usr/local/bin/route53-handler.sh
+            aws ssm --region ${AWS::Region} put-parameter --name "${BBBTurnHostnameParameter}" --value "$instance_publichostname" --type String --overwrite
 
-          sed -i "s/INSTANCE_PLACEHOLDER/$instance_publichostname/g" /etc/systemd/system/route53-handler.service
-          sed -i "s/ZONE_PLACEHOLDER/${BBBHostedZone}/g" /etc/systemd/system/route53-handler.service
+            # register in route53
+            wget --tries=10 https://github.com/barnybug/cli53/releases/download/0.8.18/cli53-linux-amd64 -O /usr/local/bin/cli53
+            sudo chmod +x /usr/local/bin/cli53
 
-          systemctl daemon-reload
-          systemctl enable route53-handler
-          systemctl start route53-handler
+            # create script for route53-handler
+            aws s3 cp s3://${BBBStackBucketStack}/route53-handler.service /etc/systemd/system/route53-handler.service
+            aws s3 cp s3://${BBBStackBucketStack}/route53-handler.sh /usr/local/bin/route53-handler.sh
+            chmod +x /usr/local/bin/route53-handler.sh
 
-          turnsecret=$(aws secretsmanager get-secret-value --region ${AWS::Region} --secret-id ${BBBTurnSecret} --query SecretString --output text | jq -r .turnkeyvalue)
-          sleep 1m
+            sed -i "s/INSTANCE_PLACEHOLDER/$instance_publichostname/g" /etc/systemd/system/route53-handler.service
+            sed -i "s/ZONE_PLACEHOLDER/${BBBHostedZone}/g" /etc/systemd/system/route53-handler.service
 
-          x=1
-          while [ $x -le 5 ]
-          do
-            until host $instance_fqdn  | grep -m 1 "has address $instance_ipv4"; do sleep 5 ; done
-            x=$(( $x + 1 ))
-          done
+            systemctl daemon-reload
+            systemctl enable route53-handler
+            systemctl start route53-handler
 
-          wget -qO- https://ubuntu.bigbluebutton.org/bbb-install.sh | bash -s -- -c $instance_fqdn:$turnsecret -e ${BBBOperatorEMail}
+            turnsecret=$(aws secretsmanager get-secret-value --region ${AWS::Region} --secret-id ${BBBTurnSecret} --query SecretString --output text | jq -r .turnkeyvalue)
+            sleep 1m
 
-          /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBTurnAutoScaling --region ${AWS::Region} || true
+            x=1
+            while [ $x -le 5 ]
+            do
+              until host $instance_fqdn  | grep -m 1 "has address $instance_ipv4"; do sleep 5 ; done
+              x=$(( $x + 1 ))
+            done
+
+            wget -qO- https://ubuntu.bigbluebutton.org/bbb-install.sh | bash -s -- -c $instance_fqdn:$turnsecret -e ${BBBOperatorEMail}
+
+            /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBTurnAutoScaling --region ${AWS::Region} || true
+
 
 Outputs:
   BBBTurnSecret:
@@ -344,7 +352,7 @@ Outputs:
     Description: Big Blue Button Turn Instance Autoscaling Group
     Value:
       Ref: BBBTurnAutoScaling
-  BBBTurnInstanceLaunchConfiguration: 
-    Description: Big Blue Button Turn Instance Launch Configuration
+  BBBTurnInstanceLaunchTemplate:
+    Description: Big Blue Button Turn Instance Launch Template
     Value:
-      Ref: BBBTurnInstanceLaunchConfiguration
+      Ref: BBBTurnInstanceLaunchTemplate
