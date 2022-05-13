@@ -1,6 +1,6 @@
 {
   "Parameters" : {
-    "BBBApplicationVersion": "bionic-230",
+    "BBBApplicationVersion": "bionic-24",
     "BBBApplicationInstanceOSVersion": "bionic-18.04",
     "BBBTurnInstanceOSVersion": "focal-20.04",
     "BBBECSInstanceType": "fargate",
