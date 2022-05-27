@@ -1,6 +1,18 @@
 
 # Change Log
+
 All notable changes to this project will be documented in this file.
+
+## [4.0.0] - 2021-11-11
+
+### Fixed
+- #112: switch parameters and variables to dynamic variables which should enable multi deployments at the same AWS Account. 
+- #113: Admin Password should now meet needed complexity
+
+### Changed
+- Removed unused Parameters 
+- Randomized Database Naming utilizing the StackID of the database nested stack
+- upgraded cfn-ses-provider to v0.8.2
 ## [3.0.4] - 2021-11-11
 
 ### Fixed

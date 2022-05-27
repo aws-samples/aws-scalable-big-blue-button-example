@@ -35,10 +35,6 @@ Parameters:
       - scalable
       - single
     Type: String
-  BBBEnvironmentName:
-    Description: An environment name that is prefixed to resource names
-    Type: String
-    Default: bbbonaws
   BBBEnvironmentStage:
     Type: String
     Description: Select the appropriate environment
@@ -137,7 +133,7 @@ Resources:
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: !Sub ${BBBEnvironmentName} Private Subnet (AZ1)
+          Value: !Sub ${AWS:Region} Private Subnet (AZ1)
 
   BBBPrivateApplicationSubnet2:
     Type: AWS::EC2::Subnet
@@ -152,7 +148,7 @@ Resources:
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: !Sub ${BBBEnvironmentName} Private Subnet (AZ2)
+          Value: !Sub ${AWS:Region} Private Subnet (AZ2)
 
   BBBPrivateApplicationSubnet3:
     Type: AWS::EC2::Subnet
@@ -270,7 +266,7 @@ Resources:
       VpcId: !Ref BBBVPC
       Tags:
         - Key: Name
-          Value: !Sub ${BBBEnvironmentName} Private Routes (AZ1)
+          Value: !Sub ${AWS:Region} Private Routes (AZ1)
 
   BBBDefaultPrivateRoute1:
     Type: AWS::EC2::Route

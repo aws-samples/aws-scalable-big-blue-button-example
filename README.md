@@ -107,8 +107,7 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 | BBBApplicationDesiredInstances| 1| The desired amount of Big Blue Button Application servers | As EC2 Autoscaling is currently not aware of ongoing video conferences, i recommend set min=max=desired and not use dynamic here (planned scale out/in) | 
 | BBBTurnMaxInstances| 1| The maximum amount of Turn Servers to be deployed | at the current state leave it to 1. Multiple Turn servers will need additional configuration on the turnserver
 | BBBTurnMinInstances| 1| The minimum amount of Turn Servers to be deployed | at the current state leave it to 1. Multiple Turn servers will need additional configuration on the turnserver
-| BBBTurnDesiredInstances| 1| The desired amount of Turn Servers to be deployed | at the current state leave it to 1. Multiple Turn servers will need additional configuration on the turnserver
-| BBBDBName| frontendapp| Set a Database Name for Greenlight / Scalelite | 
+| BBBTurnDesiredInstances| 1| The desired amount of Turn Servers to be deployed | at the current state leave it to 1. Multiple Turn servers will need additional configuration on the turnserver 
 | BBBDBEngineVersion| 10.7| Set the Postgres version to be used at the Amazon Aurora setup | please refer to the Amazon Aurora [documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraPostgreSQL.Updates.20180305.html) for supported versions
 | BBBEnvironmentStage| dev | can be set to "dev","stage" or "prod" | currently stage or prod does change the Amazon Aurora Setup to a Multi-AZ Setup and adds a 2nd Nat-Gateway to the deployment. 
 | BBBServerlessAuroraMinCapacity | The minimum capacity for the Amazon Aurora Serverless Cluster. | Value has to be >= 2

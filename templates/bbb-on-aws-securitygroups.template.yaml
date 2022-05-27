@@ -18,13 +18,6 @@ Parameters:
       - scalable
       - single
     Type: String
-  BBBEnvironmentStage:
-    Type: String
-    Description: Select the appropriate environment
-    AllowedValues:
-      - stage
-      - prod
-      - dev
   BBBECSInstanceType: 
     Description: Set the ECS Cluster Type to either EC2 based or Fargate based deployments
     Type: String

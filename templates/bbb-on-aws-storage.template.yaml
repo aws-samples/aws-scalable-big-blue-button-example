@@ -23,13 +23,6 @@ Parameters:
     - 2
     - 3
     Default: 3
-  BBBEnvironmentStage:
-    Type: String
-    Description: Select the appropriate environment
-    AllowedValues:
-      - stage
-      - prod
-      - dev
 
 Conditions: 
   BBBBuild2AZs: !Not [ !Equals [ !Ref BBBNumberOfAZs, 1 ]] 

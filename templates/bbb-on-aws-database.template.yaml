@@ -12,10 +12,6 @@ Parameters:
   BBBNotificationTopic:
     Description: Topic to be used for alarm notifications
     Type: String
-  BBBDBName:
-    Description: Database Name
-    Type: String
-    Default: frontendapp
   BBBDBPort:
     Description: TCP/IP Port for the Database Instance
     Type: Number
@@ -119,7 +115,7 @@ Resources:
     Properties:
       MasterUsername: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
       MasterUserPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
-      DatabaseName: !Join [ '_', [ !Ref BBBDBName, !Ref BBBEnvironmentStage ] ]
+      DatabaseName: !Join [ '_', [ 'APPDB', !Ref AWS::StackId ] ]
       Port:
         Ref: BBBDBPort
       Engine: aurora-postgresql
@@ -219,136 +215,6 @@ Resources:
       Parameters:
         timezone: Europe/Berlin
 
-  BBBDBACPUUtilizationTooHighAlarm:
-    Type: 'AWS::CloudWatch::Alarm'
-    Condition: BBBProvisionedAurora
-    Properties:
-      AlarmActions:
-        - Ref: BBBNotificationTopic
-      AlarmDescription: 'Average database CPU utilization over last 10 minutes too high.'
-      ComparisonOperator: GreaterThanThreshold
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value:
-            Ref: BBBRDSDBInstance1
-      EvaluationPeriods: 1
-      MetricName: CPUUtilization
-      Namespace: 'AWS/RDS'
-      OKActions:
-        - Ref: BBBNotificationTopic
-      Period: 600
-      Statistic: Average
-      Threshold: 80
-
-  BBBDBBCPUUtilizationTooHighAlarm:
-    Type: 'AWS::CloudWatch::Alarm'
-    Condition: BBBProvisiondedProdAurora
-    Properties:
-      AlarmActions:
-        - Ref: BBBNotificationTopic
-      AlarmDescription: 'Average database CPU utilization over last 10 minutes too high.'
-      ComparisonOperator: GreaterThanThreshold
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value:
-            Ref: BBBRDSDBInstance2
-      EvaluationPeriods: 1
-      MetricName: CPUUtilization
-      Namespace: 'AWS/RDS'
-      OKActions:
-        - Ref: BBBNotificationTopic
-      Period: 600
-      Statistic: Average
-      Threshold: 80
-
-
-  BBBDBACPUCreditBalanceTooLowAlarm:
-    Type: 'AWS::CloudWatch::Alarm'
-    Condition: BBBProvisionedAurora
-    Properties:
-      AlarmActions:
-        - Ref: BBBNotificationTopic
-      AlarmDescription: 'Average database CPU credit balance over last 10 minutes too low, expect a significant performance drop soon.'
-      ComparisonOperator: LessThanThreshold
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value:
-            Ref: BBBRDSDBInstance1
-      EvaluationPeriods: 1
-      MetricName: CPUCreditBalance
-      Namespace: 'AWS/RDS'
-      OKActions:
-        - Ref: BBBNotificationTopic
-      Period: 600
-      Statistic: Average
-      Threshold: 20
-
-  BBBDBBCPUCreditBalanceTooLowAlarm:
-    Type: 'AWS::CloudWatch::Alarm'
-    Condition: BBBProvisiondedProdAurora
-    Properties:
-      AlarmActions:
-        - Ref: BBBNotificationTopic
-      AlarmDescription: 'Average database CPU credit balance over last 10 minutes too low, expect a significant performance drop soon.'
-      ComparisonOperator: LessThanThreshold
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value:
-            Ref: BBBRDSDBInstance2
-      EvaluationPeriods: 1
-      MetricName: CPUCreditBalance
-      Namespace: 'AWS/RDS'
-      OKActions:
-        - Ref: BBBNotificationTopic
-      Period: 600
-      Statistic: Average
-      Threshold: 20
-
-
-  BBBDBAFreeableMemoryTooLowAlarm:
-    Type: 'AWS::CloudWatch::Alarm'
-    Condition: BBBProvisionedAurora
-    Properties:
-      AlarmActions:
-        - Ref: BBBNotificationTopic
-      AlarmDescription: 'Average database freeable memory over last 10 minutes too low, performance may suffer.'
-      ComparisonOperator: LessThanThreshold
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value:
-            Ref: BBBRDSDBInstance1
-      EvaluationPeriods: 1
-      MetricName: FreeableMemory
-      Namespace: 'AWS/RDS'
-      OKActions:
-        - Ref: BBBNotificationTopic
-      Period: 600
-      Statistic: Average
-      Threshold: 64000000 # 64 Megabyte in Byte
-
-
-  BBBDBBFreeableMemoryTooLowAlarm:
-    Type: 'AWS::CloudWatch::Alarm'
-    Condition: BBBProvisiondedProdAurora
-    Properties:
-      AlarmActions:
-        - Ref: BBBNotificationTopic
-      AlarmDescription: 'Average database freeable memory over last 10 minutes too low, performance may suffer.'
-      ComparisonOperator: LessThanThreshold
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value:
-            Ref: BBBRDSDBInstance2
-      EvaluationPeriods: 1
-      MetricName: FreeableMemory
-      Namespace: 'AWS/RDS'
-      OKActions:
-        - Ref: BBBNotificationTopic
-      Period: 600
-      Statistic: Average
-      Threshold: 64000000 # 64 Megabyte in Byte
-
-
   DBClusterEventSubscription:
     Type: 'AWS::RDS::EventSubscription'
     Properties:
@@ -363,6 +229,9 @@ Resources:
       SourceType: 'db-cluster'
 
 Outputs:
+  BBBDBName: 
+    Value: 
+      !Join [ '_', [ 'APPDB', !Ref AWS::StackId ] ]
   BBBDB:
     Description: The Big Blue Button Database Created
     Value:
