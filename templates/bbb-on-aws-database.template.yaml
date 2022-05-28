@@ -110,12 +110,21 @@ Resources:
           BBBDBUser: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
           BBBDBPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
 
+  BBBDatabaseName:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'This is the BBB DBName as secret'
+      GenerateSecretString:
+        GenerateStringKey: 'DBBame'
+        PasswordLength: 24
+        ExcludePunctuation: true
+
   BBBRDSCluster:
     Type: AWS::RDS::DBCluster
     Properties:
       MasterUsername: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
       MasterUserPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
-      DatabaseName: !Join [ '_', [ 'APPDB', !Ref AWS::StackId ] ]
+      DatabaseName: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBDatabaseName, ':SecretString:DBName}}' ] ]
       Port:
         Ref: BBBDBPort
       Engine: aurora-postgresql
@@ -231,7 +240,7 @@ Resources:
 Outputs:
   BBBDBName: 
     Value: 
-      !Join [ '_', [ 'APPDB', !Ref AWS::StackId ] ]
+      !Join [ '_', [ 'APPDB', !Ref AWS::StackName ] ]
   BBBDB:
     Description: The Big Blue Button Database Created
     Value:

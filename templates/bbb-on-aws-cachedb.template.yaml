@@ -49,7 +49,7 @@ Resources:
   BBBCacheSubnetGroup:
     Type: AWS::ElastiCache::SubnetGroup
     Properties:
-      Description: !Sub CacheSubnetGroup-${AWS::StackID}
+      Description: !Sub CacheSubnetGroup-${AWS::StackName}
       SubnetIds: !Ref BBBPrivateDBSubnets
 
   BBBParametersGroup:

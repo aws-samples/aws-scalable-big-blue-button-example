@@ -5,7 +5,7 @@ Description: >
 
   Disclaimber: Not for Production Use. Demo and Testing purposes only. 
 
-  Last Modified: 2nd April 2020
+  Last Modified: 27th May 2022
   Authors: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
 
 Parameters:
@@ -868,8 +868,6 @@ Resources:
           Fn::GetAtt:
             - "BBBAMIFinderStack"
             - Outputs.BBBTurnAMIParameter
-        BBBEnvironmentType:
-          Ref: BBBEnvironmentType
         BBBTurnInstanceType:
           Ref: BBBTurnInstanceType
         BBBTurnMaxInstances:

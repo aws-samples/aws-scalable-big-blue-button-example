@@ -11,8 +11,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - Removed unused Parameters 
-- Randomized Database Naming utilizing the StackID of the database nested stack
+- Randomized Database Naming 
 - upgraded cfn-ses-provider to v0.8.2
+- remove of any CW alarms as this should be customized per environment 
+- pushed BBB Version to 2.4
 ## [3.0.4] - 2021-11-11
 
 ### Fixed
