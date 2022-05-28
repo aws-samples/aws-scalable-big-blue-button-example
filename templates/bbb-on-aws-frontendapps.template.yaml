@@ -300,8 +300,6 @@ Resources:
         SecretStringTemplate: !Sub "{\"username\":\"${BBBOperatorEMail}\"}"
         GenerateStringKey: 'password'
         PasswordLength: 16
-        ExcludePunctuation: false
-        ExcludeCharacters: " ' \ \" "
 
   BBBScaleliteExecutionRole:
     Type: AWS::IAM::Role
