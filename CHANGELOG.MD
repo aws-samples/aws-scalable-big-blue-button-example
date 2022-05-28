@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
 - upgraded cfn-ses-provider to v0.8.2
 - remove of any CW alarms as this should be customized per environment 
 
-## [3.0.6] - 2022-05-28
+## [3.0.7] - 2022-05-28
 
 ### Fixed
 - #113: Admin Password adds punktuation so greenlight bootstrapping does work again
