@@ -113,10 +113,11 @@ Resources:
   BBBDatabaseName:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Description: 'This is the BBB DBName as secret'
+      Description: 'This is the BBB DBName as secret'      
       GenerateSecretString:
-        GenerateStringKey: 'DBBame'
-        PasswordLength: 24
+        SecretStringTemplate: '{"database": "BBBDB"}'
+        GenerateStringKey: 'DBName'
+        PasswordLength: 16
         ExcludePunctuation: true
 
   BBBRDSCluster:
