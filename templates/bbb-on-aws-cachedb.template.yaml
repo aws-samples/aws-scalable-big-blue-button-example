@@ -44,20 +44,12 @@ Parameters:
     AllowedValues:
       - single-az
       - cross-az
-  BBBEnvironmentStage:
-    Type: String
-    Description: Select the appropriate environment
-    AllowedValues:
-      - stage
-      - prod
-      - dev
 
 Resources:
-
   BBBCacheSubnetGroup:
     Type: AWS::ElastiCache::SubnetGroup
     Properties:
-      Description: !Sub CacheSubnetGroup-${BBBEnvironmentStage}
+      Description: !Sub CacheSubnetGroup-${AWS::StackName}
       SubnetIds: !Ref BBBPrivateDBSubnets
 
   BBBParametersGroup:

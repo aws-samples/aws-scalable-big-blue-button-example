@@ -89,13 +89,6 @@ Parameters:
   BBBPrivateApplicationSubnets:
     Description: Comma separated list of the private EC2 instance subnets
     Type: CommaDelimitedList
-  BBBEnvironmentStage:
-    Type: String
-    Description: Select the appropriate environment
-    AllowedValues:
-      - stage
-      - prod
-      - dev
   BBBECSTaskSecurityGroup:
     Description: Security Group that should be assigned for the EC2 Instances
     Type: String
@@ -105,8 +98,6 @@ Parameters:
     Default: '/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id'
 
 Conditions:
-  BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
-  BBBNonProdEnvironment: !Not [ Condition: BBBProdEnvironment]
   BBBECSFargate: !Equals [!Ref BBBECSInstanceType, fargate]
   BBBECSEC2: !Not [!Equals [!Ref BBBECSInstanceType, fargate]]
 

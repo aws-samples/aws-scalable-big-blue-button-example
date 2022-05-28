@@ -98,19 +98,6 @@ Parameters:
     Type: Number
     Description: Desired number of turn server instance
     Default: 1
-  BBBEnvironmentStage:
-    Type: String
-    Description: Select the appropriate environment
-    AllowedValues:
-      - stage
-      - prod
-      - dev
-  BBBEnvironmentType:
-    Description: 'Defines the environment type. Allowed values: scalable, single'
-    Type: String
-    AllowedValues:
-      - scalable
-      - single
   BBBTurnSecurityGroup:
     Description: Security Group that should be assigned for the turn server
     Type: String

@@ -5,7 +5,7 @@ Description: >
 
   Disclaimber: Not for Production Use. Demo and Testing purposes only. 
 
-  Last Modified: 2nd April 2020
+  Last Modified: 27th May 2022
   Authors: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
 
 Parameters:
@@ -93,13 +93,6 @@ Parameters:
     AllowedPattern: "([a-zA-Z0-9_\\-\\.]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)"
     ConstraintDescription: must be a valid email address.
     Default: johndoe@example.com
-  BBBDBName:
-    Description: Database Name
-    Type: String
-    MinLength: '1'
-    MaxLength: '64'
-    AllowedPattern: "^[a-zA-Z]+[0-9a-zA-Z_]*$"
-    Default: frontendapp
   BBBDBEngineVersion:
     Description: Database engine version for Aurora PostgreSQL
     Type: String
@@ -571,9 +564,6 @@ Resources:
           - - "https://s3.amazonaws.com/"
             - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
             - "/bbb-on-aws-amifinder.template.yaml"
-      Parameters:
-        BBBEnvironmentStage:
-          Ref: BBBEnvironmentStage
       Tags:
         - Key: Name
           Value:
@@ -594,8 +584,6 @@ Resources:
             - "/bbb-on-aws-ses.template.yaml"
       Parameters:
         BBBHostedZone: !Ref BBBHostedZone
-        BBBEnvironmentStage:
-          Ref: BBBEnvironmentStage
       Tags:
         - Key: Name
           Value:
@@ -632,8 +620,6 @@ Resources:
           Fn::Join:
             - ","
             - Ref: BBBPublicApplicationSubnets
-        BBBEnvironmentName:
-          Ref: BBBEnvironmentName
         BBBEnvironmentStage:
           Ref: BBBEnvironmentStage
         BBBEnvironmentType:
@@ -664,8 +650,6 @@ Resources:
               - BBBNetworkStack
               - Outputs.BBBVPCs
             - Ref: BBBVPCs
-        BBBEnvironmentStage:
-          Ref: BBBEnvironmentStage
         BBBEnvironmentType:
           Ref: BBBEnvironmentType
         BBBECSInstanceType:
@@ -705,8 +689,6 @@ Resources:
           Fn::GetAtt:
             - BBBSecurityGroupStack
             - Outputs.BBBSharedStorageSecurityGroup
-        BBBEnvironmentStage:
-          Ref: BBBEnvironmentStage
       Tags:
         - Key: Name
           Value:
@@ -735,8 +717,6 @@ Resources:
           Ref: BBBServerlessAuroraMinCapacity
         BBBServerlessAuroraMaxCapacity:
           Ref: BBBServerlessAuroraMaxCapacity
-        BBBDBName:
-          Ref: BBBDBName
         BBBPrivateDBSubnets:
           Fn::If:
             - BBBNewVPC 
@@ -791,8 +771,6 @@ Resources:
           Fn::GetAtt:
             - BBBSecurityGroupStack
             - Outputs.BBBCACHEDBSecurityGroup
-        BBBEnvironmentStage:
-          Ref: BBBEnvironmentStage
       Tags:
         - Key: Name
           Value:
@@ -824,8 +802,6 @@ Resources:
             - Fn::Join:
               - ","
               - Ref: BBBPrivateApplicationSubnets
-        BBBEnvironmentStage:
-          Ref: BBBEnvironmentStage
         BBBECSInstanceType:
           Ref: BBBECSInstanceType
         BBBECSTaskSecurityGroup:
@@ -892,10 +868,6 @@ Resources:
           Fn::GetAtt:
             - "BBBAMIFinderStack"
             - Outputs.BBBTurnAMIParameter
-        BBBEnvironmentStage:
-          Ref: BBBEnvironmentStage
-        BBBEnvironmentType:
-          Ref: BBBEnvironmentType
         BBBTurnInstanceType:
           Ref: BBBTurnInstanceType
         BBBTurnMaxInstances:
@@ -986,8 +958,6 @@ Resources:
           Fn::GetAtt:
             - "BBBAMIFinderStack"
             - Outputs.BBBApplicationAMIParameter
-        BBBEnvironmentStage:
-          Ref: BBBEnvironmentStage
         BBBApplicationInstanceType:
           Ref: BBBApplicationInstanceType
         BBBApplicationDataVolumeSize:
@@ -1087,8 +1057,6 @@ Resources:
           Fn::GetAtt:
             - "BBBAMIFinderStack"
             - Outputs.BBBApplicationAMIParameter
-        BBBEnvironmentStage:
-          Ref: BBBEnvironmentStage
         BBBApplicationInstanceType:
           Ref: BBBApplicationInstanceType
         BBBApplicationDataVolumeSize:
@@ -1133,7 +1101,9 @@ Resources:
               - Outputs.BBBVPCs
             - Ref: BBBVPCs
         BBBDBName:
-          Ref: BBBDBName
+          Fn::GetAtt:
+            - BBBDatabaseStack
+            - Outputs.BBBDBName
         BBBRDSDBSecret:
           Fn::GetAtt:
             - BBBDatabaseStack
@@ -1142,8 +1112,6 @@ Resources:
           Fn::GetAtt:
             - BBBDatabaseStack
             - Outputs.BBBRDSDBConnectionSecret
-        BBBEnvironmentStage:
-          Ref: BBBEnvironmentStage
         BBBSESValidated: 
           Ref: BBBSESValidated
         BBBECSCluster:

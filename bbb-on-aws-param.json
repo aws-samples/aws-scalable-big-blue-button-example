@@ -26,7 +26,6 @@
     "BBBTurnMaxInstances": 1,
     "BBBTurnMinInstances": 1,
     "BBBTurnDesiredInstances": 1,
-    "BBBDBName": "frontendapp",
     "BBBDBEngineVersion": "10.14",
     "BBBEnvironmentStage": "dev",
     "BBBEnvironmentName": "bbbonaws",

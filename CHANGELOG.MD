@@ -1,6 +1,18 @@
 
 # Change Log
+
 All notable changes to this project will be documented in this file.
+
+## [4.0.0] - 2021-11-11
+
+### Fixed
+- #112: switch parameters and variables to dynamic variables which should enable multi deployments at the same AWS Account. 
+
+### Changed
+- Removed unused Parameters 
+- Randomized Database Naming 
+- upgraded cfn-ses-provider to v0.8.2
+- remove of any CW alarms as this should be customized per environment 
 
 ## [3.0.7] - 2022-05-28
 

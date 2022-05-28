@@ -23,13 +23,6 @@ Parameters:
     AllowedValues:
       - xenial-16.04
       - bionic-18.04
-  BBBEnvironmentStage:
-    Type: String
-    Description: Select the appropriate environment
-    AllowedValues:
-      - stage
-      - prod
-      - dev
 
 Resources:
   BBBGetLatestAMILambdaRole:

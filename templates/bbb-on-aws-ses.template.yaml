@@ -12,13 +12,6 @@ Parameters:
   BBBHostedZone:
     Description: Hosted zone in which the DNS entries for SES should be created
     Type: String
-  BBBEnvironmentStage:
-    Type: String
-    Description: Select the appropriate environment
-    AllowedValues:
-      - stage
-      - prod
-      - dev
 
 Resources:
   BBBSESProviderLambdaRole:
@@ -82,7 +75,7 @@ Resources:
       Code:
       Code:
         S3Bucket: !Sub "binxio-public-${AWS::Region}"
-        S3Key: lambdas/cfn-ses-provider-0.7.1.zip
+        S3Key: lambdas/cfn-ses-provider-0.8.2.zip
       Handler: ses.handler
       MemorySize: 128
       Role: !GetAtt 'BBBSESProviderLambdaRole.Arn'

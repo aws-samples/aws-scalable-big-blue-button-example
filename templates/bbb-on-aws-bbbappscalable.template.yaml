@@ -112,14 +112,6 @@ Parameters:
     Type: Number
     Description: Desired number of appserver instances
     Default: 1
-  BBBEnvironmentStage:
-    Type: String
-    Description: Select the appropriate environment
-    Default: stage
-    AllowedValues:
-      - stage
-      - prod
-      - dev
   BBBTurnSecret:
     Description: Secret string for the Turn server
     Type: String
@@ -201,7 +193,6 @@ Resources:
   BBBApplicationEC2Role:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: BBBApplicationEC2Role
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
