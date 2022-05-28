@@ -7,14 +7,19 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - #112: switch parameters and variables to dynamic variables which should enable multi deployments at the same AWS Account. 
-- #113: Admin Password should now meet needed complexity
 
 ### Changed
 - Removed unused Parameters 
 - Randomized Database Naming 
 - upgraded cfn-ses-provider to v0.8.2
 - remove of any CW alarms as this should be customized per environment 
-- pushed BBB Version to 2.4
+
+## [3.0.6] - 2022-05-28
+
+### Fixed
+- #113: Admin Password adds punktuation so greenlight bootstrapping does work again
+- BBB Version pushed to 2.4 (2.3 seems broken atm)
+
 ## [3.0.4] - 2021-11-11
 
 ### Fixed
