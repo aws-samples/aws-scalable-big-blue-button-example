@@ -2,7 +2,7 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-## [3.0.6] - 2022-05-28
+## [3.0.7] - 2022-05-28
 
 ### Fixed
 - #113: Admin Password adds punktuation so greenlight bootstrapping does work again
