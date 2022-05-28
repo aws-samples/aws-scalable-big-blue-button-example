@@ -3,7 +3,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.0.0] - 2021-11-11
+## [4.0.0] - 2022-05-28
 
 ### Fixed
 - #112: switch parameters and variables to dynamic variables which should enable multi deployments at the same AWS Account. 
