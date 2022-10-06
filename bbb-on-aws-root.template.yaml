@@ -36,14 +36,17 @@ Parameters:
   BBBApplicationVersion:
     Description: Version of the Big Blue Button Application
     Type: String
-    Default: xenial-22
+    Default: focal-25
+    AllowedValues: 
+      - focal-25
+      - focal-26
   BBBApplicationInstanceOSVersion: 
     Description: Ubuntu Version to be deployed for Application Instances 
-    Default: xenial-16.04
+    Default: focal-20.04
     Type: String
     AllowedValues:
-      - xenial-16.04
       - bionic-18.04
+      - focal-20.04
   BBBTurnInstanceOSVersion: 
     Description: Ubuntu Version to be deployed for Turn Instances 
     Default: focal-20.04
@@ -301,7 +304,7 @@ Parameters:
     Description: DB RDS instance type
     Type: String
     AllowedValues:
-      - serverless
+      - db.serverless
       - db.m5.large
       - db.m5.xlarge
       - db.m5.2xlarge
@@ -320,7 +323,7 @@ Parameters:
       - db.t3.large
       - db.t3.xlarge
       - db.t3.2xlarge
-    Default: serverless
+    Default: db.serverless
   BBBServerlessAuroraMinCapacity:
     Description: The minimum capacity for the Amazon Aurora Serverless Cluster.
     Type: Number
@@ -839,6 +842,10 @@ Resources:
           Ref: BBBOperatorEMail
         BBBNotificationTopic:
           Ref: BBBNotificationTopic
+        BBBTurnInstanceOSVersion: 
+          Ref: BBBTurnInstanceOSVersion
+        BBBApplicationVersion: 
+          Ref: BBBApplicationVersion
         BBBSystemLogsGroupArn:
           Fn::GetAtt:
             - BBBSystemLogsGroup
@@ -906,6 +913,8 @@ Resources:
           Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
         BBBOperatorEMail:
           Ref: BBBOperatorEMail
+        BBBApplicationInstanceOSVersion: 
+          Ref: BBBApplicationInstanceOSVersion
         BBBTurnSecret:
           Fn::GetAtt:
             - BBBTurnStack
@@ -1018,6 +1027,8 @@ Resources:
           Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
         BBBOperatorEMail:
           Ref: BBBOperatorEMail
+        BBBApplicationInstanceOSVersion: 
+          Ref: BBBApplicationInstanceOSVersion
         BBBTurnSecret:
           Fn::GetAtt:
             - BBBTurnStack

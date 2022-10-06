@@ -55,7 +55,7 @@ Resources:
   BBBGetLatestAMI:
     Type: AWS::Lambda::Function
     Properties:
-      Runtime: python3.6
+      Runtime: python3.9
       Handler: index.handler
       Role: !Sub ${BBBGetLatestAMILambdaRole.Arn}
       Timeout: 60

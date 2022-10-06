@@ -10,9 +10,9 @@ Description: >
 
 Parameters:
   BBBApplicationVersion:
-    Description: Database engine version for Aurora PostgreSQL
+    Description: Application Version for BBB
     Type: String
-    Default: bionic-230
+    Default: focal-250
   BBBOperatorEMail:
     Description: E-Mail address to notify if there are any operational issues
     Type: String
@@ -25,6 +25,13 @@ Parameters:
   BBBPublicApplicationSubnets:
     Description: Comma separated list of the appserver's subnets
     Type: CommaDelimitedList
+  BBBApplicationInstanceOSVersion: 
+    Description: Ubuntu Version to be deployed for Application Instances 
+    Default: focal-20.04
+    Type: String
+    AllowedValues:
+      - bionic-18.04
+      - focal-20.04
   BBBApplicationInstanceType:
     Description: Instance type for the appserver
     Type: String
@@ -265,7 +272,7 @@ Resources:
 
             while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
 
-            apt install -y git binutils python3-pip build-essential python-dev python-setuptools jq
+            apt install -y git binutils python3-pip build-essential python-dev python-setuptools jq letsencrypt
             pip3 install -U awscli
 
             while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done
@@ -344,7 +351,11 @@ Resources:
               x=$(( $x + 1 ))
             done
 
-            wget -qO- https://ubuntu.bigbluebutton.org/bbb-install.sh | bash -s -- -v ${BBBApplicationVersion} -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret -g
+            if [[ ${BBBApplicationVersion} == *"25"* ]] ;then
+              wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.5.sh | bash -s -- -v ${BBBApplicationVersion} -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret
+            else
+              wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.6.sh | bash -s -- -v ${BBBApplicationVersion} -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret
+            fi
 
             # create script for turn-handler
             aws s3 cp s3://${BBBStackBucketStack}/turn-handler.service /etc/systemd/system/turn-handler.service
@@ -360,9 +371,6 @@ Resources:
             systemctl start turn-handler.timer
 
             /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBApplicationAutoScaling --region ${AWS::Region} || true
-
-
-
 
 Outputs:
   BBBApplicationEC2InstanceProfile:

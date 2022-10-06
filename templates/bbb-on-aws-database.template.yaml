@@ -19,9 +19,9 @@ Parameters:
   BBBDBInstanceType:
     Description: DB RDS instance type
     Type: String
-    Default: db.t3.medium
+    Default: db.serverless
     AllowedValues:
-      - serverless
+      - db.serverless
       - db.m5.large
       - db.m5.xlarge
       - db.m5.2xlarge
@@ -54,7 +54,7 @@ Parameters:
   BBBDBEngineVersion:
     Description: Database engine version for Aurora PostgreSQL
     Type: String
-    Default: 10.7
+    Default: 13.7
   BBBDBSecurityGroup:
     Description: Security Group that should be assigned for the database
     Type: String
@@ -69,11 +69,7 @@ Parameters:
 Conditions:
   BBBProdEnvironment: !Equals [ !Ref BBBEnvironmentStage, prod ]
   BBBNonProdEnvironment: !Not [ Condition: BBBProdEnvironment ]
-  BBBServerlessAurora: !Equals [ !Ref BBBDBInstanceType, serverless ]
-  BBBProvisionedAurora: !Not [ Condition: BBBServerlessAurora ]
-  BBBProvisiondedProdAurora: !And
-    - !Not [ Condition: BBBServerlessAurora ]
-    - Condition: BBBProdEnvironment
+  BBBServerlessAurora: !Equals [ !Ref BBBDBInstanceType, db.serverless ]
 
 Resources:
   BBBDBSubnetGroup:
@@ -125,13 +121,12 @@ Resources:
     Properties:
       MasterUsername: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
       MasterUserPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
-      DatabaseName: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBDatabaseName, ':SecretString:DBName}}' ] ]
+      DatabaseName: !Join [ '', [ 'BBB', '{{resolve:secretsmanager:', !Ref BBBDatabaseName, ':SecretString:DBName}}' ] ]
       Port:
         Ref: BBBDBPort
       Engine: aurora-postgresql
       EngineVersion:
         Ref: BBBDBEngineVersion
-      EngineMode: !If [ BBBServerlessAurora, serverless, provisioned ]
       StorageEncrypted: 'true'
       DBSubnetGroupName:
         Ref: BBBDBSubnetGroup
@@ -139,18 +134,15 @@ Resources:
         Ref: "BBBRDSDBClusterParameterGroupPostgres"
       VpcSecurityGroupIds:
         - Ref: BBBDBSecurityGroup
-      ScalingConfiguration:
+      ServerlessV2ScalingConfiguration:
         !If
         - BBBServerlessAurora
-        - AutoPause: true
-          MinCapacity: !Ref BBBServerlessAuroraMinCapacity
+        - MinCapacity: !Ref BBBServerlessAuroraMinCapacity
           MaxCapacity: !Ref BBBServerlessAuroraMaxCapacity
-          SecondsUntilAutoPause: 300
         - !Ref "AWS::NoValue"
 
   BBBRDSDBInstance1:
     Type: AWS::RDS::DBInstance
-    Condition: BBBProvisionedAurora
     Properties:
       AllowMajorVersionUpgrade: 'false'
       AutoMinorVersionUpgrade: 'true'
@@ -174,7 +166,7 @@ Resources:
 
   BBBRDSDBInstance2:
     Type: AWS::RDS::DBInstance
-    Condition: BBBProvisiondedProdAurora
+    Condition: BBBProdEnvironment
     Properties:
       AllowMajorVersionUpgrade: 'false'
       AutoMinorVersionUpgrade: 'true'
@@ -197,8 +189,8 @@ Resources:
   BBBRDSDBParameterGroupPostgres:
     Type: AWS::RDS::DBParameterGroup
     Properties:
-      Description: Aurora PG 12 Database Instance Parameter Group for Cloudformation Stack
-      Family: !If [ BBBServerlessAurora, aurora-postgresql10, aurora-postgresql12 ]
+      Description: Aurora PG 13 Database Instance Parameter Group for Cloudformation Stack
+      Family: !If [ BBBServerlessAurora, aurora-postgresql13, aurora-postgresql13 ]
       Parameters:
         shared_preload_libraries: auto_explain,pg_stat_statements,pg_hint_plan,pgaudit
         log_statement: "ddl"
@@ -221,7 +213,7 @@ Resources:
     Type: AWS::RDS::DBClusterParameterGroup
     Properties:
       Description: CloudFormation Sample Aurora Cluster PG Parameter Group
-      Family: !If [ BBBServerlessAurora, aurora-postgresql10, aurora-postgresql12 ]
+      Family: !If [ BBBServerlessAurora, aurora-postgresql13, aurora-postgresql12 ]
       Parameters:
         timezone: Europe/Berlin
 
@@ -267,12 +259,11 @@ Outputs:
     Value:
       Ref: BBBRDSCluster
   BBBRDSDBInstance1:
-    Condition: BBBProvisionedAurora
     Description: The Big Blue Button DB Instance 1
     Value:
       Ref: BBBRDSDBInstance1
   BBBRDSDBInstance2:
-    Condition: BBBProvisiondedProdAurora
+    Condition: BBBProdEnvironment
     Description: The Big Blue Button DB Instance 2
     Value:
       Ref: BBBRDSDBInstance2

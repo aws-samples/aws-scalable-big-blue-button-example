@@ -278,6 +278,16 @@ Our recommendation is to hook into the bootstrap and alter/extend the Scripts an
 
 When it comes to Greenlight there is also a part at the [official documentation](https://docs.bigbluebutton.org/greenlight/gl-customize.html) covering this. As we do use the containerized version of the Greenlight deployment at the scalable option the best way to approach it is to customize and extend the related Greenlight container, push it into your private container registy. [Amazon ECR](https://aws.amazon.com/ecr/) or any docker compatible registry of your choise. And continue with your customized container image setting the related parameter. 
 
+### Integrating with Learning Management Systems
+
+Integrating the Big Blue Button Setup into a LMS is possible. As example to integrate with Moodle a few steps need to be taken
+
+- Follow the instructions to setup the [BBB Plugin](https://moodle.org/plugins/mod_bigbluebuttonbn) into Moodle
+- the Big Blue Button Server URL should reflect your Scalelite ALB endpoint like https://scalelite.example.com 
+- to get the needed Big Blue Button Shared Secret visit the AWS Secrets Manager and look for the secret called "BBBLoadbalancerSecret". Look into the "basekeyvalue" key. that's whaat you need to add to the addon setup. 
+
+When integrating with a LMS you might want to disable the deployment of Greenlight into your setup. To do so please fork the repository and start with altering the template within the nested stack deployed by bbb-on-aws-frontendapps.template.yaml and remove the greenlight task, service and task definitions as well as any reference resource like alarms and scaling rules.  
+
 # Code updates
 
 to update an already deployed stack just pull the current version of the IaC code repository. Afterwards you can start the upgrade process the same way as you would do the initial setup. 

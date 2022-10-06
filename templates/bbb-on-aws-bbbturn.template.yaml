@@ -21,6 +21,17 @@ Parameters:
   BBBPublicApplicationSubnets:
     Description: Comma separated list of the appserver's subnets
     Type: CommaDelimitedList
+  BBBTurnInstanceOSVersion: 
+    Description: Ubuntu Version to be deployed for Turn Instances 
+    Default: focal-20.04
+    Type: String
+    AllowedValues:
+      - bionic-18.04
+      - focal-20.04
+  BBBApplicationVersion:
+    Description: Version of the Big Blue Button Application
+    Type: String
+    Default: focal-25
   BBBTurnInstanceType:
     Description: Instance type for the turn server
     Type: String
@@ -261,7 +272,7 @@ Resources:
 
             while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
 
-            apt install -y git binutils python3-pip build-essential python-dev python-setuptools jq
+            apt install -y git binutils python3-pip build-essential python-dev python-setuptools jq letsencrypt
             pip3 install -U awscli
 
             while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done
@@ -313,7 +324,11 @@ Resources:
               x=$(( $x + 1 ))
             done
 
-            wget -qO- https://ubuntu.bigbluebutton.org/bbb-install.sh | bash -s -- -c $instance_fqdn:$turnsecret -e ${BBBOperatorEMail}
+            if [[ ${BBBApplicationVersion} == *"25"* ]] ;then
+              wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.5.sh | bash -s -- -c $instance_fqdn:$turnsecret -e ${BBBOperatorEMail}
+            else
+              wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.6.sh | bash -s -- -c $instance_fqdn:$turnsecret -e ${BBBOperatorEMail}
+            fi
 
             /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBTurnAutoScaling --region ${AWS::Region} || true
 
