@@ -246,13 +246,10 @@ Resources:
     Type: AWS::EC2::LaunchTemplate
     Properties:
       LaunchTemplateData:
-        EbsOptimized: false
         IamInstanceProfile:
           Arn: !GetAtt BBBTurnEC2InstanceProfile.Arn
         ImageId: !Ref BBBLatestTurnAmiId
         InstanceType: !Ref BBBTurnInstanceType
-        Monitoring:
-          Enabled: true
         NetworkInterfaces:
           - AssociatePublicIpAddress: true
             DeviceIndex: 0

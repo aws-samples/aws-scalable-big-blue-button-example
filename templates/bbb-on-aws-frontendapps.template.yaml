@@ -18,6 +18,7 @@ Parameters:
   BBBFrontendELBSecurityGroup:
     Description: Security Group that should be assigned for the frontend ELB
     Type: String
+    Default: "AWS::NoValue"
   BBBScaleliteELBSecurityGroup:
     Description: Security Group that should be assigned for the Scalelite ELB
     Type: String
@@ -410,7 +411,7 @@ Resources:
                   - "ecs:DescribeServices"
                   - "ecs:UpdateService"
                 Resource:
-                  - !Ref BBBgreenlightService
+                  - !If [ BBBGreenlight, !Ref BBBgreenlightService, !Ref "AWS::NoValue" ] 
                   - !Ref BBBScaleliteService
                   - !Sub "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:*"
 
@@ -1147,9 +1148,11 @@ Outputs:
     Description: Scalelite Application Load Balancer Target Group
     Value: !Ref BBBScaleliteTG
   BBBgreenlightTaskdefinition:
+    Condition: BBBGreenlight
     Description: Frontend Task Definition
     Value: !Ref BBBgreenlightTaskdefinition
   BBBgreenlightService:
+    Condition: BBBGreenlight
     Description: Frontend Service
     Value: !Ref BBBgreenlightService
   BBBScaleliteTaskdefinition:

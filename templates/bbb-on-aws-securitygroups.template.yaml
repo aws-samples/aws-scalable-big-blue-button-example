@@ -21,11 +21,19 @@ Parameters:
   BBBECSInstanceType: 
     Description: Set the ECS Cluster Type to either EC2 based or Fargate based deployments
     Type: String
+  BBBFrontendType: 
+    Type: String
+    Default: Greenlight
+    AllowedValues:
+      - Greenlight
+      - External
 
 Conditions:
   BBBScalableEnvironment: !Equals [!Ref BBBEnvironmentType, scalable]
   BBBECSFargate: !Equals [!Ref BBBECSInstanceType, fargate]
   BBBECSEC2: !Not [!Equals [!Ref BBBECSInstanceType, fargate]]
+  BBBGreenlight: !Equals [!Ref BBBFrontendType, Greenlight]
+  BBBScalableGreenlight: !And [!Equals [!Ref BBBFrontendType, Greenlight], !Equals [!Ref BBBEnvironmentType, scalable]]
 
 Resources:
   BBBECSTaskSecurityGroup:
@@ -64,14 +72,14 @@ Resources:
 
   BBBFrontendELBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Condition: BBBScalableEnvironment
+    Condition: BBBScalableGreenlight
     Properties:
       GroupDescription: ALB Security Group
       VpcId: !Ref BBBVPCs
 
   BBBECSSecurityGroupPublicports:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
+    Condition: BBBScalableGreenlight
     Properties:
       CidrIp: 0.0.0.0/0
       IpProtocol: tcp
@@ -81,7 +89,7 @@ Resources:
 
   BBBECSSecurityGroupPublicHTTP:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
+    Condition: BBBScalableGreenlight
     Properties:
       CidrIp: 0.0.0.0/0
       IpProtocol: tcp
@@ -91,7 +99,7 @@ Resources:
 
   BBBFrontendSecurityGroupALBports:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
+    Condition: BBBScalableGreenlight
     Properties:
       GroupId: !Ref BBBECSTaskSecurityGroup
       IpProtocol: tcp
@@ -264,7 +272,7 @@ Outputs:
     Description: A reference to the created Security Group for ECS
     Value: !Ref BBBECSTaskSecurityGroup
   BBBFrontendELBSecurityGroup:
-    Condition: BBBScalableEnvironment
+    Condition: BBBScalableGreenlight
     Description: A reference to the created Security Group for ELB
     Value: !Ref BBBFrontendELBSecurityGroup
   BBBScaleliteELBSecurityGroup:

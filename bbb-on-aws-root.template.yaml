@@ -479,6 +479,7 @@ Conditions:
   BBBExistingVPC: !And [ !Not [ !Equals [ !Ref BBBVPCs, "" ]], !Equals [ !Select [ 0, !Split [ vpc-, !Ref BBBVPCs ]], "" ]]
   BBBNewVPC: !Not [ Condition: BBBExistingVPC ]
   BBBSESNotValidated: !Equals [false, !Ref BBBSESValidated]
+  BBBGreenlight: !Equals [!Ref BBBFrontendType, Greenlight]
 
 Resources:
 
@@ -667,6 +668,8 @@ Resources:
           Ref: BBBEnvironmentType
         BBBECSInstanceType:
           Ref: BBBECSInstanceType
+        BBBFrontendType: 
+          Ref: BBBFrontendType
       Tags:
         - Key: Name
           Value:
@@ -1149,9 +1152,12 @@ Resources:
               - ","
               - Ref: BBBPublicApplicationSubnets
         BBBFrontendELBSecurityGroup:
-          Fn::GetAtt:
-            - BBBSecurityGroupStack
-            - Outputs.BBBFrontendELBSecurityGroup
+          Fn::If: 
+            - BBBGreenlight
+            - Fn::GetAtt:
+              - BBBSecurityGroupStack
+              - Outputs.BBBFrontendELBSecurityGroup
+            - "AWS::NoValue"
         BBBScaleliteELBSecurityGroup:
           Fn::GetAtt:
             - BBBSecurityGroupStack

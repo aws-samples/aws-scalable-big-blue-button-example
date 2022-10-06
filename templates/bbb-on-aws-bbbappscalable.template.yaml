@@ -286,13 +286,10 @@ Resources:
               VolumeSize: !Ref BBBApplicationDataVolumeSize
               VolumeType: gp2
               Encrypted: true
-        EbsOptimized: true
         IamInstanceProfile:
           Arn: !GetAtt BBBApplicationEC2InstanceProfile.Arn
         ImageId: !Ref BBBLatestApplicationAmiId
         InstanceType: !Ref BBBApplicationInstanceType
-        Monitoring:
-          Enabled: true
         NetworkInterfaces:
           - AssociatePublicIpAddress: true
             DeviceIndex: 0
