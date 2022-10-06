@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - lambda python runtimes updated to supported version
 - Ensure database names begin with letter
+- Application version parameter is now passed through needed nested stacks
 
 ### Changed
 - Aurora Serverless switched to Aurora Serverless v2 
