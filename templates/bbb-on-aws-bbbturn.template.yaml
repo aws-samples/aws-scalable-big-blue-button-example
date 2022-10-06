@@ -31,7 +31,7 @@ Parameters:
   BBBApplicationVersion:
     Description: Version of the Big Blue Button Application
     Type: String
-    Default: focal-25
+    Default: focal-250
   BBBTurnInstanceType:
     Description: Instance type for the turn server
     Type: String

@@ -36,10 +36,10 @@ Parameters:
   BBBApplicationVersion:
     Description: Version of the Big Blue Button Application
     Type: String
-    Default: focal-25
+    Default: focal-250
     AllowedValues: 
-      - focal-25
-      - focal-26
+      - focal-250
+      - focal-260
   BBBApplicationInstanceOSVersion: 
     Description: Ubuntu Version to be deployed for Application Instances 
     Default: focal-20.04
