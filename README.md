@@ -127,6 +127,7 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 | BBBSesRegion| - | Region of the SES Service to be used | if the setup is planned to be deployed in a Region w/o Amazon SES, choose a proper region here. 
 | BBBSESValidated| false | controls if a pre validated SES domain is used | set to true if you setup the SES domain outside of this deployment 
 | BBBACMCertArn | - | existing SSL/TLS Certificate ARN for HTTPS | add your Certificate ARN here. e.g. if you imported your own Cert into ACM. 
+| BBBFrontendType | Greenlight | choose "Greenlight" for deploying a scalable Greenlight Frontend and "External" to only get the Scalelite API endpoint to be able to connect an externally managed LMS" 
 
 # Deployment
 
@@ -282,11 +283,12 @@ When it comes to Greenlight there is also a part at the [official documentation]
 
 Integrating the Big Blue Button Setup into a LMS is possible. As example to integrate with Moodle a few steps need to be taken
 
+- Use the parameter "BBBFrontendType" and set it to "External"
 - Follow the instructions to setup the [BBB Plugin](https://moodle.org/plugins/mod_bigbluebuttonbn) into Moodle
 - the Big Blue Button Server URL should reflect your Scalelite ALB endpoint like https://scalelite.example.com 
 - to get the needed Big Blue Button Shared Secret visit the AWS Secrets Manager and look for the secret called "BBBLoadbalancerSecret". Look into the "basekeyvalue" key. that's whaat you need to add to the addon setup. 
 
-When integrating with a LMS you might want to disable the deployment of Greenlight into your setup. To do so please fork the repository and start with altering the template within the nested stack deployed by bbb-on-aws-frontendapps.template.yaml and remove the greenlight task, service and task definitions as well as any reference resource like alarms and scaling rules.  
+Important, with the scalable setup used with Scalelite recordings of sessions are transferred to the central Shared Storage at Amazon EFS. Your LMS setup should either mount the volume or you need to change that strategy. Please read through the Amazon EFS documentation to get the needed access and prerequisites setup we're using AccessPoints and IAM support to grant least privileges and secure access. You might want to adjust the template to your needs (Roles added for access as an example). 
 
 # Code updates
 

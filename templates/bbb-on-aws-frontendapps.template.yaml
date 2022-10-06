@@ -166,6 +166,12 @@ Parameters:
     Description: Set this parameter if you want to reuse an existing ACM certificate for your deployment
     Type: String
     Default: "AWS::NoValue"
+  BBBFrontendType: 
+    Type: String
+    Default: Greenlight
+    AllowedValues:
+      - Greenlight
+      - External
 
 Conditions:
   BBBSESRegionSet: !Not [ !Equals [ !Ref BBBSesRegion, "AWS::NoValue" ] ]
@@ -173,11 +179,13 @@ Conditions:
   BBBECSEC2: !Not [ !Equals [ !Ref BBBECSInstanceType, fargate ] ]
   BBBSESNotValidated: !Equals [ false, !Ref BBBSESValidated ]
   BBBACMNewCert: !Equals [ !Ref BBBACMCertArn, "AWS::NoValue" ]
+  BBBGreenlight: !Equals [!Ref BBBFrontendType, Greenlight]
+  BBBSESNotValidatedGreenlight: !And [!Equals [!Ref BBBFrontendType, Greenlight], !Equals [ false, !Ref BBBSESValidated ]]
 
 Resources:
   BBBSESDomainIdentity:
     Type: Custom::DomainIdentity
-    Condition: BBBSESNotValidated
+    Condition: BBBSESNotValidatedGreenlight
     Properties:
       Domain: !Ref BBBDomainName
       Region: !If [ BBBSESRegionSet, !Ref BBBSesRegion, !Ref "AWS::Region" ]
@@ -189,7 +197,7 @@ Resources:
 
   BBBSESVerifiedIdentity:
     Type: Custom::VerifiedIdentity
-    Condition: BBBSESNotValidated
+    Condition: BBBSESNotValidatedGreenlight
     DependsOn:
       - BBBSESDkimRecords
       - BBBSESVerificationRecords
@@ -201,7 +209,7 @@ Resources:
 
   BBBSESVerificationRecords:
     Type: AWS::Route53::RecordSetGroup
-    Condition: BBBSESNotValidated
+    Condition: BBBSESNotValidatedGreenlight
     Properties:
       Comment: !Sub 'SES identity for ${BBBDomainName}'
       HostedZoneId: !Ref BBBHostedZone
@@ -209,7 +217,7 @@ Resources:
 
   BBBSESDkimTokens:
     Type: Custom::DkimTokens
-    Condition: BBBSESNotValidated
+    Condition: BBBSESNotValidatedGreenlight
     Properties:
       Domain: !GetAtt 'BBBSESDomainIdentity.Domain'
       Region: !GetAtt 'BBBSESDomainIdentity.Region'
@@ -217,7 +225,7 @@ Resources:
 
   BBBSESDkimRecords:
     Type: AWS::Route53::RecordSetGroup
-    Condition: BBBSESNotValidated
+    Condition: BBBSESNotValidatedGreenlight
     Properties:
       Comment: !Sub 'DKIM records for ${BBBDomainName}'
       HostedZoneId: !Ref BBBHostedZone
@@ -225,7 +233,7 @@ Resources:
 
   BBBSESIdentityNotifications:
     Type: Custom::IdentityNotifications
-    Condition: BBBSESNotValidated
+    Condition: BBBSESNotValidatedGreenlight
     Properties:
       Identity: !GetAtt BBBSESVerifiedIdentity.Identity
       Region: !GetAtt BBBSESVerifiedIdentity.Region
@@ -238,6 +246,7 @@ Resources:
 
   BBBSMTPUser:
     Type: AWS::IAM::User
+    Condition: BBBGreenlight
     Properties:
       Policies:
         - PolicyName: BBBSMTPUserPolicy
@@ -250,6 +259,7 @@ Resources:
 
   BBBUserAccessKey:
     Type: AWS::IAM::AccessKey
+    Condition: BBBGreenlight
     Properties:
       Serial: 8
       Status: Active
@@ -257,6 +267,7 @@ Resources:
 
   BBBSMTPAccessKey:
     Type: Custom::SMTPPW
+    Condition: BBBGreenlight
     Properties:
       Description: The SMTP User Password for Email Sendout
       SecretKey: !GetAtt BBBUserAccessKey.SecretAccessKey
@@ -266,6 +277,7 @@ Resources:
 
   BBBSMTPAccessSecret:
     Type: AWS::SecretsManager::Secret
+    Condition: BBBGreenlight
     Properties:
       Description: 'This is the BBB SMTP Login'
       SecretString: !Sub "{\"smtpusername\":\"${BBBUserAccessKey}\",\"smtppassword\":\"${BBBSMTPAccessKey}\"}"
@@ -294,6 +306,7 @@ Resources:
 
   BBBAdministratorlogin:
     Type: AWS::SecretsManager::Secret
+    Condition: BBBGreenlight
     Properties:
       Description: 'This is the BBB Admin Login'
       GenerateSecretString:
@@ -338,6 +351,7 @@ Resources:
 
   BBBGreenlightTaskExecutionRole:
     Type: AWS::IAM::Role
+    Condition: BBBGreenlight
     Properties:
       AssumeRolePolicyDocument:
         Statement:
@@ -365,6 +379,7 @@ Resources:
 
   BBBGreenlightTaskRole:
     Type: AWS::IAM::Role
+    Condition: BBBGreenlight
     Properties:
       AssumeRolePolicyDocument:
         Statement:
@@ -415,6 +430,7 @@ Resources:
 
   BBBFrontendALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Condition: BBBGreenlight
     Properties:
       Scheme: internet-facing
       LoadBalancerAttributes:
@@ -426,6 +442,7 @@ Resources:
 
   BBBFrontendALBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: BBBGreenlight
     Properties:
       DefaultActions:
         - Type: redirect
@@ -440,6 +457,7 @@ Resources:
 
   BBBFrontendALBListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Condition: BBBGreenlight
     Properties:
       Actions:
         - Type: forward
@@ -452,6 +470,7 @@ Resources:
 
   BBBFrontendTG:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Condition: BBBGreenlight
     DependsOn: BBBFrontendALB
     Properties:
       HealthCheckIntervalSeconds: 90
@@ -467,6 +486,7 @@ Resources:
 
   BBBFrontendALBListenerHTTP2HTTPS:
     Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: BBBGreenlight
     Properties:
       DefaultActions:
       - Type: redirect
@@ -483,6 +503,7 @@ Resources:
 
   BBBFrontendALBDNS:
     Type: AWS::Route53::RecordSetGroup
+    Condition: BBBGreenlight
     Properties:
       HostedZoneId: !Ref BBBHostedZone
       Comment: ALB for Big Blue Button Frontend
@@ -557,6 +578,7 @@ Resources:
 
   BBBgreenlightTaskdefinition:
     Type: AWS::ECS::TaskDefinition
+    Condition: BBBGreenlight
     DependsOn:
       - BBBSMTPAccessKey
     Properties:
@@ -667,6 +689,7 @@ Resources:
 
   BBBgreenlightService:
     Type: AWS::ECS::Service
+    Condition: BBBGreenlight
     DependsOn:
       - BBBFrontendALBListener
       - BBBFrontendALBListenerRule
@@ -693,6 +716,7 @@ Resources:
 
   BBBgreenlightServiceScalingTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Condition: BBBGreenlight
     DependsOn: BBBAutoscalingRole
     Properties:
       MaxCapacity: !Ref BBBGreenlightMaxReplicas
@@ -708,6 +732,7 @@ Resources:
 
   BBBgreenlightServiceScalingPolicy:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Condition: BBBGreenlight
     DependsOn: BBBAutoscalingRole
     Properties:
       PolicyName: BBBgreenlightTargetTrackingPolicy
@@ -1073,6 +1098,7 @@ Outputs:
     Description: Scalelite Task Execution Role ARN
     Value: !GetAtt BBBScaleliteExecutionRole.Arn
   BBBGreenlightTaskExecutionRole:
+    Condition: BBBGreenlight
     Description: Scalelite Task Execution Role ARN
     Value: !GetAtt BBBGreenlightTaskExecutionRole.Arn
   BBBApplicationBaseSecret:
@@ -1089,18 +1115,23 @@ Outputs:
     Condition: BBBACMNewCert
     Value: !Ref BBBPublicCertificate
   BBBFrontendALB:
+    Condition: BBBGreenlight
     Description: Frontend Application Load Balancer
     Value: !Ref BBBFrontendALB
   BBBFrontendALBListener:
+    Condition: BBBGreenlight
     Description: Frontend Application Load Balancer Listener
     Value: !Ref BBBFrontendALBListener
   BBBFrontendALBListenerHTTP2HTTPS:
+    Condition: BBBGreenlight
     Description: Frontend Application Load Balancer Listener HTTP Redirect
     Value: !Ref BBBFrontendALBListenerHTTP2HTTPS
   BBBFrontendTG:
+    Condition: BBBGreenlight
     Description: Frontend Application Load Balancer Target Group
     Value: !Ref BBBFrontendTG
   BBBFrontendALBDNS:
+    Condition: BBBGreenlight
     Description: Frontend Application Load Balancer DNS Record
     Value: !Ref BBBFrontendALBDNS
   BBBScaleliteALBDNSName:

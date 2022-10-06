@@ -3,7 +3,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.5.0] - 2022-10-05
+## [4.5.0] - 2022-10-06
 ### Upgrade Notes: 
 - Upgrading the Amazon Aurora Postgres Engine version and/or the switch to Aurora Serverless v2 via Amazon Cloudformation is not supported. Please refer to the official [upgrade documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_UpgradeDBInstance.PostgreSQL.html) and [migrate to Aurora Serverless v2](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2.upgrade.html) if you have a already running environment using an older engine version and/or Aurora Serverless v1 to proceed with the upgrade before using the Cloudformation deployment. 
 
@@ -18,6 +18,9 @@ All notable changes to this project will be documented in this file.
 - Update Big Blue Button version to 2.5 
 - Application Server OS now on Ubuntu 20.04 
 - upgraded cfn-ses-provider to v0.8.3 
+
+### Added
+- Parameter to enable/disable the deployment of Greenlight for the scalable setup. This enables you to have a deployment prepared to be used with an external LMS or Frontend in general. this change disables the Greenlight Tasks, Services, ALB deployments, DNS entries, setup of SES and SMTP User and referred Roles. Parameter: "BBBFrontendType" valid values: Greenlight, External
 
 ## [4.0.0] - 2022-05-28
 

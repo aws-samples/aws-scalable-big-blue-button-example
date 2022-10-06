@@ -18,11 +18,11 @@ Parameters:
       - focal-20.04
   BBBApplicationInstanceOSVersion: 
     Description: Ubuntu Version to be deployed for Application Instances 
-    Default: bionic-18.04
+    Default: focal-20.04
     Type: String
     AllowedValues:
-      - xenial-16.04
       - bionic-18.04
+      - focal-20.04
 
 Resources:
   BBBGetLatestAMILambdaRole:

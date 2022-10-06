@@ -39,6 +39,7 @@
     "BBBGreenlightMemory": 1024,
     "BBBGreenlightCPU": 512,
     "BBBScaleliteMemory": 2048,
-    "BBBScaleliteCPU": 1024
+    "BBBScaleliteCPU": 1024,
+    "BBBFrontendType": "Greenlight"
   }
 }

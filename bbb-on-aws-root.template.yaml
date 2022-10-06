@@ -465,7 +465,12 @@ Parameters:
     Description: Set this parameter if you want to reuse an existing ACM certificate for your deployment
     Type: String
     Default: "AWS::NoValue"
-
+  BBBFrontendType: 
+    Type: String
+    Default: Greenlight
+    AllowedValues:
+      - Greenlight
+      - External
 Conditions:
   BBBProdEnvironment: !Equals [!Ref BBBEnvironmentStage, prod]
   BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
@@ -567,6 +572,11 @@ Resources:
           - - "https://s3.amazonaws.com/"
             - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
             - "/bbb-on-aws-amifinder.template.yaml"
+      Parameters: 
+        BBBApplicationInstanceOSVersion: 
+          Ref: BBBApplicationInstanceOSVersion
+        BBBTurnInstanceOSVersion: 
+          Ref: BBBTurnInstanceOSVersion
       Tags:
         - Key: Name
           Value:
@@ -1247,6 +1257,8 @@ Resources:
             - Outputs.BBBECSTaskSecurityGroup
         BBBApplicationLogsGroup:
           Ref: BBBApplicationLogsGroup
+        BBBFrontendType: 
+          Ref: BBBFrontendType
       Tags:
         - Key: Name
           Value:
