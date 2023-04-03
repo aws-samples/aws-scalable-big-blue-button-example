@@ -6,7 +6,7 @@ Description: >
 
   Disclaimer: Not for production use. Demo and testing purposes only.
 
-  Author: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
+  Author: David Surey <suredavi@amazon.com>
 
 Parameters:
   BBBNotificationTopic:
@@ -54,7 +54,7 @@ Parameters:
   BBBDBEngineVersion:
     Description: Database engine version for Aurora PostgreSQL
     Type: String
-    Default: 13.7
+    Default: 14.3
   BBBDBSecurityGroup:
     Description: Security Group that should be assigned for the database
     Type: String
@@ -189,8 +189,8 @@ Resources:
   BBBRDSDBParameterGroupPostgres:
     Type: AWS::RDS::DBParameterGroup
     Properties:
-      Description: Aurora PG 13 Database Instance Parameter Group for Cloudformation Stack
-      Family: !If [ BBBServerlessAurora, aurora-postgresql13, aurora-postgresql13 ]
+      Description: Aurora PG 14 Database Instance Parameter Group for Cloudformation Stack
+      Family: !If [ BBBServerlessAurora, aurora-postgresql14, aurora-postgresql14 ]
       Parameters:
         shared_preload_libraries: auto_explain,pg_stat_statements,pg_hint_plan,pgaudit
         log_statement: "ddl"
@@ -213,7 +213,7 @@ Resources:
     Type: AWS::RDS::DBClusterParameterGroup
     Properties:
       Description: CloudFormation Sample Aurora Cluster PG Parameter Group
-      Family: !If [ BBBServerlessAurora, aurora-postgresql13, aurora-postgresql12 ]
+      Family: !If [ BBBServerlessAurora, aurora-postgresql14, aurora-postgresql14 ]
       Parameters:
         timezone: Europe/Berlin
 
@@ -242,10 +242,6 @@ Outputs:
     Description: The Big Blue Button DB Connection Data
     Value:
       Ref: BBBRDSDBConnectionSecret
-  BBBRDSDBSecret:
-    Description: The Big Blue Button DB Login Data
-    Value:
-      Ref: BBBRDSDBSecret
   BBBRDSDBClusterParameterGroup:
     Description: The Big Blue Button DB Cluster Parameter Group
     Value:

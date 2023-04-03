@@ -5,8 +5,8 @@ Description: >
 
   Disclaimber: Not for Production Use. Demo and Testing purposes only. 
 
-  Last Modified: 27th May 2022
-  Authors: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
+  Last Modified: 02 April 2023
+  Authors: David Surey <suredavi@amazon.com>
 
 Parameters:
   BBBVPCs:
@@ -99,7 +99,7 @@ Parameters:
   BBBDBEngineVersion:
     Description: Database engine version for Aurora PostgreSQL
     Type: String
-    Default: 10.7
+    Default: 14.3
   BBBECSInstanceType:
     Description: Instance type for ECS Cluster worker nodes
     Type: String
@@ -1124,14 +1124,6 @@ Resources:
               - BBBNetworkStack
               - Outputs.BBBVPCs
             - Ref: BBBVPCs
-        BBBDBName:
-          Fn::GetAtt:
-            - BBBDatabaseStack
-            - Outputs.BBBDBName
-        BBBRDSDBSecret:
-          Fn::GetAtt:
-            - BBBDatabaseStack
-            - Outputs.BBBRDSDBSecret
         BBBRDSDBConnectionSecret:
           Fn::GetAtt:
             - BBBDatabaseStack

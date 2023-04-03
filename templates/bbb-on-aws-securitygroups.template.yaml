@@ -6,7 +6,7 @@ Description: >
 
   Disclaimer: Not for production use. Demo and testing purposes only.
 
-  Author: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
+  Author: David Surey <suredavi@amazon.com>
 
 Parameters:
   BBBVPCs:
@@ -103,8 +103,8 @@ Resources:
     Properties:
       GroupId: !Ref BBBECSTaskSecurityGroup
       IpProtocol: tcp
-      FromPort: !If [ BBBECSFargate, 80, 32768]
-      ToPort: !If [ BBBECSFargate, 80, 60999]
+      FromPort: !If [ BBBECSFargate, 3000, 32768]
+      ToPort: !If [ BBBECSFargate, 3000, 60999]
       SourceSecurityGroupId: !Ref BBBFrontendELBSecurityGroup
 
   BBBDBSecurityGroup:

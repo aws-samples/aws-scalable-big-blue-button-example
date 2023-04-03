@@ -6,7 +6,7 @@ Description: >
 
   Disclaimer: Not for production use. Demo and testing purposes only.
 
-  Author: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
+  Author: David Surey <suredavi@amazon.com>
 
 Parameters:
   BBBNotificationTopic:
@@ -55,7 +55,7 @@ Resources:
   BBBParametersGroup:
     Type: AWS::ElastiCache::ParameterGroup
     Properties:
-      CacheParameterGroupFamily: "redis5.0"
+      CacheParameterGroupFamily: "redis7"
       Description: "Modifications to support better performance"
       Properties:
         tcp-keepalive: 60
@@ -72,7 +72,7 @@ Resources:
       CacheSubnetGroupName: !Ref BBBCacheSubnetGroup
       AZMode: !Ref BBBCacheAZMode
       Engine: "redis"
-      EngineVersion: "5.0.5"
+      EngineVersion: "7.0"
       NotificationTopicArn: !Ref BBBNotificationTopic
       VpcSecurityGroupIds:
         - Ref: BBBCACHEDBSecurityGroup

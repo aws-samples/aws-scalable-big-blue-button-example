@@ -6,7 +6,7 @@ Description: >
 
   Disclaimer: Not for production use. Demo and testing purposes only.
 
-  Author: David Surey <suredavi@amazon.com>, Bastian Klein <basklein@amazon.com>
+  Author: David Surey <suredavi@amazon.com>
 
 Parameters:
   BBBApplicationVersion:
@@ -397,10 +397,12 @@ Resources:
               x=$(( $x + 1 ))
             done
 
-            if [[ ${BBBApplicationVersion} == *"25"* ]] ;then
+            if [[ ${BBBApplicationVersion} == *"25"* ]]; then
               wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.5.sh | bash -s -- -v ${BBBApplicationVersion} -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret -j
-            else
+            elif [[ ${BBBApplicationVersion} == *"26"* ]]; then
               wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.6.sh | bash -s -- -v ${BBBApplicationVersion} -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret -j
+            elif [[ ${BBBApplicationVersion} == *"27"* ]]; then
+              wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.7.sh | bash -s -- -v ${BBBApplicationVersion} -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret -j
             fi
             
             groupadd -g 2000 scalelite-spool
