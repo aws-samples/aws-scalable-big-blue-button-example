@@ -342,6 +342,18 @@ Resources:
             Principal:
               Service: ecs-tasks.amazonaws.com
             Action: 'sts:AssumeRole'
+      Policies: 
+        - PolicyName: BBBScaleliteECSEXEC
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssmmessages:CreateControlChannel
+                  - ssmmessages:CreateDataChannel
+                  - ssmmessages:OpenControlChannel
+                  - ssmmessages:OpenDataChannel
+                Resource: "*"
 
   BBBGreenlightTaskExecutionRole:
     Type: AWS::IAM::Role
@@ -374,6 +386,18 @@ Resources:
     Type: AWS::IAM::Role
     Condition: BBBGreenlight
     Properties:
+      Policies:
+        - PolicyName: BBBGreenlightECSEXEC
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssmmessages:CreateControlChannel
+                  - ssmmessages:CreateDataChannel
+                  - ssmmessages:OpenControlChannel
+                  - ssmmessages:OpenDataChannel
+                Resource: '*'
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
@@ -579,6 +603,8 @@ Resources:
               - '/'
               - - !Ref BBBECRRegistry
                 - !Ref BBBgreenlightImage
+          LinuxParameters: 
+            InitProcessEnabled: true
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -630,20 +656,18 @@ Resources:
                 done
               fi
 
+              rails assets:precompile
               db_create="$(RAILS_ENV=$RAILS_ENV rails db:create 2>&1)"
               echo $db_create
-              
-              if [[ $db_create == *"already exists"* ]]; then
-                echo ">>> Database migration"
-                rails db:migrate:with_data
-              else
-                echo ">>> Database initialization"
+              rails db:migrate:with_data
+
+              if [[ ! "$db_create" == *"already exists"* ]]; then
+                echo ">>> Creating admin account"
                 bundle exec rake admin:create["bbbadmin","${ADMIN_LOGIN}","${ADMIN_PASSWORD}"]
               fi
-
-              rails assets:precompile
               
               rails s -b 0.0.0.0 -p $PORT
+ 
           Secrets:
             - Name: ADMIN_PASSWORD
               ValueFrom: !Sub "${BBBAdministratorlogin}:password::"
@@ -706,6 +730,7 @@ Resources:
       Cluster: !Ref BBBECSCluster
       DesiredCount: !Ref BBBGreenlightDesiredReplicas
       PlatformVersion: !If [ BBBECSFargate, 1.4.0, !Ref "AWS::NoValue" ]
+      EnableExecuteCommand: true
       NetworkConfiguration:
         !If
         - BBBECSFargate
@@ -816,6 +841,8 @@ Resources:
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref AWS::StackName ] ]
             - ContainerPath: /var/bigbluebutton/recording/scalelite
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref AWS::StackName ] ]
+          LinuxParameters: 
+            InitProcessEnabled: true
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -851,6 +878,8 @@ Resources:
               - '/'
               - - !Ref BBBECRRegistry
                 - !Ref BBBScalelitePollerImage
+          LinuxParameters: 
+            InitProcessEnabled: true
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -913,6 +942,8 @@ Resources:
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref AWS::StackName ] ]
             - ContainerPath: /var/bigbluebutton/recording/scalelite
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref AWS::StackName ] ]
+          LinuxParameters: 
+            InitProcessEnabled: true
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -960,6 +991,8 @@ Resources:
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-unpublished, !Ref AWS::StackName ] ]
             - ContainerPath: /var/bigbluebutton/recording/scalelite
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-recordings, !Ref AWS::StackName ] ]
+          LinuxParameters: 
+            InitProcessEnabled: true
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -1013,6 +1046,8 @@ Resources:
               - '/'
               - - !Ref BBBECRRegistry
                 - !Ref BBBScaleliteApiImage
+          LinuxParameters: 
+            InitProcessEnabled: true
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -1045,6 +1080,7 @@ Resources:
       DesiredCount: !Ref BBBScaleliteDesiredReplicas
       TaskDefinition: !Ref BBBScaleliteTaskdefinition
       PlatformVersion: !If [ BBBECSFargate, 1.4.0, !Ref "AWS::NoValue" ]
+      EnableExecuteCommand: true
       NetworkConfiguration:
         !If
         - BBBECSFargate

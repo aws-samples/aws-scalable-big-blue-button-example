@@ -7,8 +7,10 @@ All notable changes to this project will be documented in this file.
 ### Upgrade Notes: 
 - Upgrading the Amazon Aurora Postgres Engine version and/or the switch to Aurora Serverless v2 via Amazon Cloudformation is not supported. Please refer to the official [upgrade documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_UpgradeDBInstance.PostgreSQL.html) and [migrate to Aurora Serverless v2](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2.upgrade.html) if you have a already running environment using an older engine version and/or Aurora Serverless v1 to proceed with the upgrade before using the Cloudformation deployment. 
 - Greenlight Updated to version 3 which will come with some major changes to the startup scripts. 5.0.0 of the deployment will not be compatible to Greenligth version 2 based deployments anymore. If you need to stay with Greenlight version 2 please use version 4.5.0 of the deployment codebase. 
+
 ### Changed
 - Aurora Engine Version now on 14.3
+- ExecutionCommand Enabled for the ECS cluster, tasks are extended to be able to use aws ecs cli commands to log into the tasks for debug purposes
 - Update Big Blue Button version to 2.6 
 - Update Greenlight to version 3
 - Update Scalelite to version 1.4
