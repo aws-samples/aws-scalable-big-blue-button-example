@@ -1,8 +1,6 @@
----
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
-
-  This Cloudformation Template deploys a Custom AMI Finder.
+  This CloudFormation Template deploys a Custom AMI Finder.
 
   Disclaimer: Not for production use. Demo and testing purposes only.
 
@@ -35,14 +33,6 @@ Resources:
             Effect: Allow
             Principal:
               Service: lambda.amazonaws.com
-      Policies:
-        - PolicyName: DescribeImages
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Action: ec2:DescribeImages
-                Effect: Allow
-                Resource: "*"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
@@ -57,7 +47,7 @@ Resources:
     Properties:
       Runtime: python3.9
       Handler: index.handler
-      Role: !Sub ${BBBGetLatestAMILambdaRole.Arn}
+      Role: !GetAtt BBBGetLatestAMILambdaRole.Arn
       Timeout: 60
       Code:
         ZipFile: |
@@ -76,9 +66,7 @@ Resources:
                   ],
               )
 
-              amis = sorted(response['Images'],
-                            key=lambda x: x['CreationDate'],
-                            reverse=True)
+              amis = sorted(response['Images'], key=lambda x: x['CreationDate'], reverse=True)
               id = amis[0]['ImageId']
 
               cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, id)
@@ -88,7 +76,7 @@ Resources:
   BBBApplicationAmiID:
     Type: Custom::FindAMI
     Properties:
-      ServiceToken: !Sub ${BBBGetLatestAMI.Arn}
+      ServiceToken: !GetAtt BBBGetLatestAMI.Arn
       Owner: "099720109477"
       Name: !Sub "ubuntu/images/hvm-ssd/ubuntu-${BBBApplicationInstanceOSVersion}-amd64-server*"
       Architecture: "x86_64"
@@ -96,7 +84,7 @@ Resources:
   BBBTurnAmiID:
     Type: Custom::FindAMI
     Properties:
-      ServiceToken: !Sub ${BBBGetLatestAMI.Arn}
+      ServiceToken: !GetAtt BBBGetLatestAMI.Arn
       Owner: "099720109477"
       Name: !Sub "ubuntu/images/hvm-ssd/ubuntu-${BBBTurnInstanceOSVersion}-amd64-server-*"
       Architecture: "x86_64"
@@ -130,4 +118,3 @@ Outputs:
   BBBApplicationAMIParameter:
     Description: Parameter for the Application AMI
     Value: !Ref BBBApplicationAMIParameter
-

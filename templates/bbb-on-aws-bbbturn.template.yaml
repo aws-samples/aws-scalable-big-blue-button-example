@@ -36,67 +36,6 @@ Parameters:
     Description: Instance type for the turn server
     Type: String
     Default: t3a.medium
-    AllowedValues:
-      - t3a.micro
-      - t3a.small
-      - t3a.medium
-      - t3a.large
-      - t3a.xlarge
-      - t3a.2xlarge
-      - c5a.large
-      - c5a.xlarge
-      - c5a.2xlarge
-      - c5a.4xlarge
-      - c5a.8xlarge
-      - c5a.12xlarge
-      - c5a.16xlarge
-      - c5a.24xlarge
-      - m5a.large
-      - m5a.xlarge
-      - m5a.2xlarge
-      - m5a.4xlarge
-      - m5a.8xlarge
-      - m5a.12xlarge
-      - m5a.16xlarge
-      - m5a.24xlarge
-      - r5a.large
-      - r5a.xlarge
-      - r5a.2xlarge
-      - r5a.4xlarge
-      - r5a.8xlarge
-      - r5a.12xlarge
-      - r5a.16xlarge
-      - r5a.24xlarge
-      - t3.micro
-      - t3.small
-      - t3.medium
-      - t3.large
-      - t3.xlarge
-      - t3.2xlarge
-      - c5.large
-      - c5.xlarge
-      - c5.2xlarge
-      - c5.4xlarge
-      - c5.8xlarge
-      - c5.12xlarge
-      - c5.16xlarge
-      - c5.24xlarge
-      - m5.large
-      - m5.xlarge
-      - m5.2xlarge
-      - m5.4xlarge
-      - m5.8xlarge
-      - m5.12xlarge
-      - m5.16xlarge
-      - m5.24xlarge
-      - r5.large
-      - r5.xlarge
-      - r5.2xlarge
-      - r5.4xlarge
-      - r5.8xlarge
-      - r5.12xlarge
-      - r5.16xlarge
-      - r5.24xlarge
   BBBTurnMaxInstances:
     Type: Number
     Description: Maximum number of turn server instance
@@ -258,80 +197,37 @@ Resources:
         UserData:
           Fn::Base64: !Sub |
             #!/bin/bash -xe
+
             apt update -y
-
+            
             while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
-
+            
             DEBIAN_FRONTEND='noninteractive' apt -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' full-upgrade
-
+            
             apt autoremove -y
             apt autoclean
-
+            
             while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
-
+            
             apt install -y git binutils python3-pip build-essential python-dev python-setuptools jq letsencrypt
             pip3 install -U awscli
-
+            
             while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done
 
-            wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
-            dpkg -i -E ./amazon-cloudwatch-agent.deb
-
-            # Adding cwagent user to all required groups
-            usermod -a -G adm cwagent
-
-            aws s3 cp s3://${BBBStackBucketStack}/turn-cwagent-config.json /tmp/turn-cwagent-config.json
-            sed -i "s|SYSTEMLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/turn-cwagent-config.json
-            sed -i "s|APPLICATIONLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/turn-cwagent-config.json
-            sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/tmp/turn-cwagent-config.json
-
-            pip3 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
-
-            # associate Elastic IP
-            instance_ipv4=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
-            instance_random=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 6 | head -n 1)
-            instance_publichostname=tu-$instance_random
-            instance_fqdn=$instance_publichostname.${BBBDomainName}
-
-            aws ssm --region ${AWS::Region} put-parameter --name "${BBBTurnHostnameParameter}" --value "$instance_publichostname" --type String --overwrite
-
-            # register in route53
-            wget --tries=10 https://github.com/barnybug/cli53/releases/download/0.8.18/cli53-linux-amd64 -O /usr/local/bin/cli53
-            sudo chmod +x /usr/local/bin/cli53
-
-            # create script for route53-handler
-            aws s3 cp s3://${BBBStackBucketStack}/route53-handler.service /etc/systemd/system/route53-handler.service
-            aws s3 cp s3://${BBBStackBucketStack}/route53-handler.sh /usr/local/bin/route53-handler.sh
-            chmod +x /usr/local/bin/route53-handler.sh
-
-            sed -i "s/INSTANCE_PLACEHOLDER/$instance_publichostname/g" /etc/systemd/system/route53-handler.service
-            sed -i "s/ZONE_PLACEHOLDER/${BBBHostedZone}/g" /etc/systemd/system/route53-handler.service
-
-            systemctl daemon-reload
-            systemctl enable route53-handler
-            systemctl start route53-handler
-
-            turnsecret=$(aws secretsmanager get-secret-value --region ${AWS::Region} --secret-id ${BBBTurnSecret} --query SecretString --output text | jq -r .turnkeyvalue)
-            sleep 1m
-
-            x=1
-            while [ $x -le 5 ]
-            do
-              until host $instance_fqdn  | grep -m 1 "has address $instance_ipv4"; do sleep 5 ; done
-              x=$(( $x + 1 ))
-            done
-
-            if [[ ${BBBApplicationVersion} == *"25"* ]]; then
-              wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.5.sh | bash -s -- -c $instance_fqdn:$turnsecret -e ${BBBOperatorEMail} -j
-            elif [[ ${BBBApplicationVersion} == *"26"* ]]; then
-              wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.6.sh | bash -s -- -c $instance_fqdn:$turnsecret -e ${BBBOperatorEMail} -j
-            elif [[ ${BBBApplicationVersion} == *"27"* ]]; then
-              wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.7.sh | bash -s -- -c $instance_fqdn:$turnsecret -e ${BBBOperatorEMail} -j
-                          
-            fi
+            aws s3 cp s3://${BBBStackBucketStack}/bbb-turnserver-bootstrap.sh /tmp/bbb-turnserver-bootstrap.sh
+            chmod +x /tmp/bbb-turnserver-bootstrap.sh 
+            
+            /tmp/bbb-turnserver-bootstrap.sh -a ${BBBStackBucketStack} \
+            -b ${BBBSystemLogsGroup} \
+            -c ${BBBDomainName} \
+            -d ${BBBTurnHostnameParameter} \
+            -e ${BBBHostedZone} \
+            -f ${BBBTurnSecret} \
+            -g ${BBBOperatorEMail} \
+            -h ${BBBApplicationVersion} \
+            -i ${AWS::Region}
 
             /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBTurnAutoScaling --region ${AWS::Region} || true
-
 
 Outputs:
   BBBTurnSecret:

@@ -20,26 +20,6 @@ Parameters:
     Description: DB RDS instance type
     Type: String
     Default: db.serverless
-    AllowedValues:
-      - db.serverless
-      - db.m5.large
-      - db.m5.xlarge
-      - db.m5.2xlarge
-      - db.m5.4xlarge
-      - db.m5.12xlarge
-      - db.m5.24xlarge
-      - db.r4.large
-      - db.r4.xlarge
-      - db.r4.2xlarge
-      - db.r4.4xlarge
-      - db.r4.8xlarge
-      - db.r4.16xlarge
-      - db.t3.micro
-      - db.t3.small
-      - db.t3.medium
-      - db.t3.large
-      - db.t3.xlarge
-      - db.t3.2xlarge
   BBBServerlessAuroraMinCapacity:
     Description: The minimum capacity for the Amazon Aurora Serverless Cluster.
     Type: Number

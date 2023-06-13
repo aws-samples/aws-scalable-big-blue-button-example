@@ -42,63 +42,6 @@ Parameters:
     Description: Instance type for the appserver
     Type: String
     Default: t3a.xlarge
-    AllowedValues:
-      - t3a.medium
-      - t3a.large
-      - t3a.xlarge
-      - t3a.2xlarge
-      - c5a.large
-      - c5a.xlarge
-      - c5a.2xlarge
-      - c5a.4xlarge
-      - c5a.8xlarge
-      - c5a.12xlarge
-      - c5a.16xlarge
-      - c5a.24xlarge
-      - m5a.large
-      - m5a.xlarge
-      - m5a.2xlarge
-      - m5a.4xlarge
-      - m5a.8xlarge
-      - m5a.12xlarge
-      - m5a.16xlarge
-      - m5a.24xlarge
-      - r5a.large
-      - r5a.xlarge
-      - r5a.2xlarge
-      - r5a.4xlarge
-      - r5a.8xlarge
-      - r5a.12xlarge
-      - r5a.16xlarge
-      - r5a.24xlarge
-      - t3.medium
-      - t3.large
-      - t3.xlarge
-      - t3.2xlarge
-      - c5.large
-      - c5.xlarge
-      - c5.2xlarge
-      - c5.4xlarge
-      - c5.8xlarge
-      - c5.12xlarge
-      - c5.16xlarge
-      - c5.24xlarge
-      - m5.large
-      - m5.xlarge
-      - m5.2xlarge
-      - m5.4xlarge
-      - m5.8xlarge
-      - m5.12xlarge
-      - m5.16xlarge
-      - m5.24xlarge
-      - r5.large
-      - r5.xlarge
-      - r5.2xlarge
-      - r5.4xlarge
-      - r5.8xlarge
-      - r5.12xlarge
-      - r5.16xlarge
-      - r5.24xlarge
   BBBApplicationDataVolumeSize:
     Description: Size of the application instance data volume
     Type: Number
@@ -298,152 +241,41 @@ Resources:
         UserData:
           Fn::Base64: !Sub |
             #!/bin/bash -xe
+
             apt update -y
-
+            
             while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
-
+            
             DEBIAN_FRONTEND='noninteractive' apt -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' full-upgrade
-
+            
             apt autoremove -y
             apt autoclean
-
+            
             while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
-
+            
             apt install -y git binutils python3-pip build-essential python-dev python-setuptools jq letsencrypt
             pip3 install -U awscli
-
+            
             while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done
 
-            wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
-            dpkg -i -E ./amazon-cloudwatch-agent.deb
-
-            # Adding cwagent user to all required groups
-            useradd mongodb
-            usermod -a -G adm cwagent
-            usermod -a -G mongodb cwagent
-            usermod -a -G mongodb mongodb
-            mkdir /var/log/mongodb
-            touch /var/log/mongodb/mongod.log
-            chown -R mongodb:mongodb /var/log/mongodb
-            chmod g+r /var/log/mongodb/mongod.log
-
-            aws s3 cp s3://${BBBStackBucketStack}/bbb-cwagent-config.json /tmp/bbb-cwagent-config.json
-            sed -i "s|SYSTEMLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/bbb-cwagent-config.json
-            sed -i "s|APPLICATIONLOGS_PLACEHOLDER|${BBBSystemLogsGroup}|g" /tmp/bbb-cwagent-config.json
-            sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/tmp/bbb-cwagent-config.json
-
-            pip3 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
-
-            cd /tmp
-            git clone https://github.com/aws/efs-utils
-            cd efs-utils
-            ./build-deb.sh
-            apt-get -y install ./build/amazon-efs-utils*deb
-
-            # Set instance Hostname
-            instance_ipv4=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
-            instance_random=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 6 | head -n 1)
-            instance_publichostname=vc-$instance_random
-            instance_fqdn=$instance_publichostname.${BBBDomainName}
-
-            # register in route53
-            wget --tries=10 https://github.com/barnybug/cli53/releases/download/0.8.18/cli53-linux-amd64 -O /usr/local/bin/cli53
-            sudo chmod +x /usr/local/bin/cli53
-
-            # create script for route53-handler
-            aws s3 cp s3://${BBBStackBucketStack}/route53-handler.service /etc/systemd/system/route53-handler.service
-            aws s3 cp s3://${BBBStackBucketStack}/route53-handler.sh /usr/local/bin/route53-handler.sh
-            chmod +x /usr/local/bin/route53-handler.sh
-
-            sed -i "s/INSTANCE_PLACEHOLDER/$instance_publichostname/g" /etc/systemd/system/route53-handler.service
-            sed -i "s/ZONE_PLACEHOLDER/${BBBHostedZone}/g" /etc/systemd/system/route53-handler.service
-
-            systemctl daemon-reload
-            systemctl enable route53-handler
-            systemctl start route53-handler
-
-            mkdir -p /mnt/bbb-recordings
-            echo "${BBBSharedStorageFS}: /mnt/bbb-recordings efs defaults,_netdev,tls,iam,accesspoint=${BBBSharedStorageAPspool},rw 0 0" >> /etc/fstab
-
-            mkdir -p /var/bigbluebutton
-
-            if test -e "/dev/nvme1n1"; then
-              DEVICE=/dev/nvme1n1
-              parted -s -a optimal -- $DEVICE mklabel gpt mkpart primary 1MiB -2048s
-              sleep 20s
-              mkfs.ext4 -F $DEVICE\p1
-              UUID=$(blkid |grep "$DEVICE\p1" | awk '{print $2}' |sed 's/"//g')
-            else
-              DEVICE=/dev/sdf
-              parted -s -a optimal -- $DEVICE mklabel gpt mkpart primary 1MiB -2048s
-              sleep 20s
-              mkfs.ext4 -F $DEVICE\1
-              UUID=$(blkid |grep "$DEVICE\1" | awk '{print $2}' |sed 's/"//g')
-            fi
-
-            echo "$UUID       /var/bigbluebutton   ext4    defaults,nofail        0       2" >> /etc/fstab
-            mount -a
-
-            turn_hostname=$(aws ssm get-parameter --region ${AWS::Region} --name "${BBBTurnHostnameParameter}" --with-decryption --output text --query Parameter.Value)
-            turn_fqdn=$turn_hostname.${BBBDomainName}
-            turnsecret=$(aws secretsmanager get-secret-value --region ${AWS::Region} --secret-id ${BBBTurnSecret} --query SecretString --output text | jq -r .turnkeyvalue)
-
-            sleep 1m
-
-            x=1
-            while [ $x -le 5 ]
-            do
-              until host $instance_fqdn  | grep -m 1 "has address $instance_ipv4"; do sleep 5 ; done
-              x=$(( $x + 1 ))
-            done
-
-            if [[ ${BBBApplicationVersion} == *"25"* ]]; then
-              wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.5.sh | bash -s -- -v ${BBBApplicationVersion} -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret -j
-            elif [[ ${BBBApplicationVersion} == *"26"* ]]; then
-              wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.6.sh | bash -s -- -v ${BBBApplicationVersion} -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret -j
-            elif [[ ${BBBApplicationVersion} == *"27"* ]]; then
-              wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.7.sh | bash -s -- -v ${BBBApplicationVersion} -s $instance_fqdn -e ${BBBOperatorEMail} -c $turn_fqdn:$turnsecret -j
-            fi
+            aws s3 cp s3://${BBBStackBucketStack}/bbb-appscalable-bootstrap.sh /tmp/bbb-bootstrap.sh
+            chmod +x /tmp/bbb-bootstrap.sh 
             
-            groupadd -g 2000 scalelite-spool
-            usermod -a -G scalelite-spool bigbluebutton
-
-            wget --tries=10  https://raw.githubusercontent.com/blindsidenetworks/scalelite/master/bigbluebutton/scalelite_post_publish.rb -O /usr/local/bigbluebutton/core/scripts/post_publish/scalelite_post_publish.rb
-            chmod +x /usr/local/bigbluebutton/core/scripts/post_publish/scalelite_post_publish.rb
-            aws s3 cp s3://${BBBStackBucketStack}/scalelite-config.yml /usr/local/bigbluebutton/core/scripts/scalelite.yml
-
-            # create script for scalelite-handler
-            aws s3 cp s3://${BBBStackBucketStack}/scalelite-handler.service /etc/systemd/system/scalelite-handler.service
-            aws s3 cp s3://${BBBStackBucketStack}/scalelite-handler.sh /usr/local/bin/scalelite-handler.sh
-            chmod +x /usr/local/bin/scalelite-handler.sh
-
-            SERVER="$(bbb-conf --secret | head -2 | tail -1 | sed -r 's/.*URL: //g')api"
-            SECRET=$(bbb-conf --secret | head -3 | tail -1 | sed -r 's/.*Secret: //g')
-
-            sed -i "s/SECRET_PLACEHOLDER/$SECRET/g" /etc/systemd/system/scalelite-handler.service
-            sed -i "s|SERVER_PLACEHOLDER|$SERVER|g" /etc/systemd/system/scalelite-handler.service
-            sed -i "s/AWSREGION_PLACEHOLDER/${AWS::Region}/g" /etc/systemd/system/scalelite-handler.service
-            sed -i "s/ECSCLUSTER_PLACEHOLDER/${BBBECSCluster}/g" /etc/systemd/system/scalelite-handler.service
-            sed -i "s/ECSMODE_PLACEHOLDER/${BBBECSInstanceType}/g" /etc/systemd/system/scalelite-handler.service
-            sed -i "s/TASKSUBNETS_PLACEHOLDER/${BBBPrivateApplicationSubnets}/g" /etc/systemd/system/scalelite-handler.service
-            sed -i "s/TASKSGS_PLACEHOLDER/${BBBECSTaskSecurityGroup}/g" /etc/systemd/system/scalelite-handler.service
-
-            systemctl daemon-reload
-            systemctl enable scalelite-handler
-            systemctl start scalelite-handler
-
-            # create script for turn-handler
-            aws s3 cp s3://${BBBStackBucketStack}/turn-handler.service /etc/systemd/system/turn-handler.service
-            aws s3 cp s3://${BBBStackBucketStack}/turn-handler.timer /etc/systemd/system/turn-handler.timer
-            aws s3 cp s3://${BBBStackBucketStack}/turn-handler.sh /usr/local/bin/turn-handler.sh
-            chmod +x /usr/local/bin/turn-handler.sh
-
-            sed -i "s/AWSREGION_PLACEHOLDER/${AWS::Region}/g" /etc/systemd/system/turn-handler.service
-            sed -i "s|PARAMETER_PLACEHOLDER|${BBBTurnHostnameParameter}|g" /etc/systemd/system/turn-handler.service
-
-            systemctl daemon-reload
-            systemctl enable turn-handler.timer
-            systemctl start turn-handler.timer
+            /tmp/bbb-bootstrap.sh -a ${BBBStackBucketStack} \
+            -b ${BBBSystemLogsGroup} \
+            -c ${BBBDomainName} \
+            -d ${BBBTurnHostnameParameter} \
+            -e ${BBBHostedZone} \
+            -f ${BBBTurnSecret} \
+            -g ${BBBOperatorEMail} \
+            -h ${BBBApplicationVersion} \
+            -i ${AWS::Region} \
+            -j ${BBBSharedStorageFS} \
+            -k ${BBBSharedStorageAPspool} \
+            -l ${BBBECSCluster} \
+            -m ${BBBECSInstanceType} \    
+            -n ${BBBPrivateApplicationSubnets} \
+            -o ${BBBECSTaskSecurityGroup}
 
             /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBApplicationAutoScaling --region ${AWS::Region} || true
 

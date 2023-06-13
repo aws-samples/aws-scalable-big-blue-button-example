@@ -15,22 +15,7 @@ Parameters:
   BBBCACHEDBInstanceType:
     Description: Instance type for Amazon ElastiCache (Redis)
     Type: String
-    AllowedValues:
-      - cache.t3.micro
-      - cache.t3.small
-      - cache.t3.medium
-      - cache.m5.large
-      - cache.m5.xlarge
-      - cache.m5.2xlarge
-      - cache.m5.4xlarge
-      - cache.m5.12xlarge
-      - cache.m5.24xlarge
-      - cache.r5.large
-      - cache.r5.xlarge
-      - cache.r5.2xlarge
-      - cache.r5.4xlarge
-      - cache.r5.12xlarge
-      - cache.r5.24xlarge
+    Default: cache.t3.micro
   BBBPrivateDBSubnets:
     Description: Comma separated list of the private database subnets
     Type: CommaDelimitedList
