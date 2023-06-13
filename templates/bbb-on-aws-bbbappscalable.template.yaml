@@ -31,13 +31,9 @@ Parameters:
   BBBECSTaskSecurityGroup:
     Description: Security Group that should be assigned for the Task Instances
     Type: String
-  BBBApplicationInstanceOSVersion: 
-    Description: Ubuntu Version to be deployed for Application Instances 
-    Default: focal-20.04
+  BBBApplicationInstanceAMI: 
+    Description: Ubuntu AMI ID for Application Instances 
     Type: String
-    AllowedValues:
-      - bionic-18.04
-      - focal-20.04
   BBBApplicationInstanceType:
     Description: Instance type for the appserver
     Type: String
@@ -104,10 +100,6 @@ Parameters:
   BBBApplicationLogsGroupArn:
     Description: Log group to be used for the Application logs
     Type: String
-  BBBLatestApplicationAmiId:
-    Description: AMI id that should be used for the appserver instaces
-    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Default: 'bbbapplicationimageid'
   BBBECSInstanceType:
     Description: EC2 instance type for ECS Cluster worker nodes
     Type: String
@@ -231,7 +223,7 @@ Resources:
               Encrypted: true
         IamInstanceProfile:
           Arn: !GetAtt BBBApplicationEC2InstanceProfile.Arn
-        ImageId: !Ref BBBLatestApplicationAmiId
+        ImageId: !Ref BBBApplicationInstanceAMI
         InstanceType: !Ref BBBApplicationInstanceType
         NetworkInterfaces:
           - AssociatePublicIpAddress: true

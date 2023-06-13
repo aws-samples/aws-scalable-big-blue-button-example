@@ -21,13 +21,9 @@ Parameters:
   BBBPublicApplicationSubnets:
     Description: Comma separated list of the appserver's subnets
     Type: CommaDelimitedList
-  BBBTurnInstanceOSVersion: 
-    Description: Ubuntu Version to be deployed for Turn Instances 
-    Default: focal-20.04
+  BBBTurnInstanceAMI: 
+    Description: Ubuntu AMIID to be deployed for Turn Instances 
     Type: String
-    AllowedValues:
-      - bionic-18.04
-      - focal-20.04
   BBBApplicationVersion:
     Description: Version of the Big Blue Button Application
     Type: String
@@ -72,10 +68,6 @@ Parameters:
   BBBApplicationLogsGroupArn:
     Description: Log group to be used for the Application logs
     Type: String
-  BBBLatestTurnAmiId:
-    Description: AMI id that should be used for the turn server instaces
-    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Default: 'bbbturnimageid'
 
 Resources:
   BBBTurnSecret:
@@ -187,7 +179,7 @@ Resources:
       LaunchTemplateData:
         IamInstanceProfile:
           Arn: !GetAtt BBBTurnEC2InstanceProfile.Arn
-        ImageId: !Ref BBBLatestTurnAmiId
+        ImageId: !Ref BBBTurnInstanceAMI
         InstanceType: !Ref BBBTurnInstanceType
         NetworkInterfaces:
           - AssociatePublicIpAddress: true

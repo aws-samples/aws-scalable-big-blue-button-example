@@ -40,20 +40,14 @@ Parameters:
     AllowedValues: 
       - focal-250
       - focal-260
-  BBBApplicationInstanceOSVersion: 
+  BBBApplicationInstanceAMIParameter: 
     Description: Ubuntu Version to be deployed for Application Instances 
-    Default: focal-20.04
-    Type: String
-    AllowedValues:
-      - bionic-18.04
-      - focal-20.04
-  BBBTurnInstanceOSVersion: 
+    Default: "/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id"
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+  BBBTurnInstanceAMIParameter: 
     Description: Ubuntu Version to be deployed for Turn Instances 
-    Default: focal-20.04
-    Type: String
-    AllowedValues:
-      - bionic-18.04
-      - focal-20.04
+    Default: "/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id"
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
   BBBECSMaxInstances:
     Type: Number
     Description: Maximum number of ECS Worker Instances
@@ -334,8 +328,6 @@ Resources:
             - kms:RevokeGrant
             Resource: "*"
 
-
-
   BBBSystemLogsGroup:
     Type: AWS::Logs::LogGroup
     Properties: 
@@ -347,29 +339,6 @@ Resources:
     Properties: 
       LogGroupName: !Join ["", ["/", !Ref "AWS::StackName", "/applicationlogs"]]
       RetentionInDays: 7
-
-  BBBAMIFinderStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL:
-        Fn::Join:
-          - ""
-          - - "https://s3.amazonaws.com/"
-            - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
-            - "/bbb-on-aws-amifinder.template.yaml"
-      Parameters: 
-        BBBApplicationInstanceOSVersion: 
-          Ref: BBBApplicationInstanceOSVersion
-        BBBTurnInstanceOSVersion: 
-          Ref: BBBTurnInstanceOSVersion
-      Tags:
-        - Key: Name
-          Value:
-            Fn::Sub: BBBAMIFinderStack-${BBBEnvironmentName}
-        - Key: Environment
-          Value: !Ref BBBEnvironmentName
-        - Key: Stage
-          Value: !Ref BBBEnvironmentStage
 
   BBBSESProviderStack:
     Type: AWS::CloudFormation::Stack
@@ -639,8 +608,8 @@ Resources:
           Ref: BBBOperatorEMail
         BBBNotificationTopic:
           Ref: BBBNotificationTopic
-        BBBTurnInstanceOSVersion: 
-          Ref: BBBTurnInstanceOSVersion
+        BBBTurnInstanceAMI: 
+          Ref: BBBTurnInstanceAMIParameter
         BBBApplicationVersion: 
           Ref: BBBApplicationVersion
         BBBSystemLogsGroupArn:
@@ -667,11 +636,7 @@ Resources:
               - Outputs.BBBPublicApplicationSubnets
             - Fn::Join:
               - ","
-              - Ref: BBBPublicApplicationSubnets
-        BBBLatestTurnAmiId:
-          Fn::GetAtt:
-            - "BBBAMIFinderStack"
-            - Outputs.BBBTurnAMIParameter
+              - Ref: BBBPublicApplicationSubnets       
         BBBTurnInstanceType:
           Ref: BBBTurnInstanceType
         BBBTurnMaxInstances:
@@ -710,8 +675,8 @@ Resources:
           Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
         BBBOperatorEMail:
           Ref: BBBOperatorEMail
-        BBBApplicationInstanceOSVersion: 
-          Ref: BBBApplicationInstanceOSVersion
+        BBBApplicationInstanceAMI: 
+          Ref: BBBApplicationInstanceAMIParameter
         BBBTurnSecret:
           Fn::GetAtt:
             - BBBTurnStack
@@ -760,10 +725,6 @@ Resources:
           Fn::GetAtt:
             - BBBTurnStack
             - Outputs.BBBTurnHostnameParameter
-        BBBLatestApplicationAmiId:
-          Fn::GetAtt:
-            - "BBBAMIFinderStack"
-            - Outputs.BBBApplicationAMIParameter
         BBBApplicationInstanceType:
           Ref: BBBApplicationInstanceType
         BBBApplicationDataVolumeSize:
@@ -824,8 +785,8 @@ Resources:
           Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
         BBBOperatorEMail:
           Ref: BBBOperatorEMail
-        BBBApplicationInstanceOSVersion: 
-          Ref: BBBApplicationInstanceOSVersion
+        BBBApplicationInstanceAMI: 
+          Ref: BBBApplicationInstanceAMIParameter
         BBBTurnSecret:
           Fn::GetAtt:
             - BBBTurnStack
@@ -861,10 +822,8 @@ Resources:
             - Fn::Join:
               - ","
               - Ref: BBBPublicApplicationSubnets
-        BBBLatestApplicationAmiId:
-          Fn::GetAtt:
-            - "BBBAMIFinderStack"
-            - Outputs.BBBApplicationAMIParameter
+        BBBApplicationInstanceAMI:
+          Ref: BBBApplicationInstanceAMIParameter
         BBBApplicationInstanceType:
           Ref: BBBApplicationInstanceType
         BBBApplicationDataVolumeSize:

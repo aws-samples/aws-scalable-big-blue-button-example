@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - Update Scalelite to version 1.5
 - Bootstrap Scripts moved to seperate bash script files for easier access for customization and lean cfn template. 
 - Removed the Instance Class/Familie restrictions from the templates. Still you need to use valid instances though depending on which are available for Amazon EC2, Amazon Elasticache and Amazon RDS. 
+- Removed the Custom AMI finder and relate to AWS Parameter Store default offering via resolve Function
 
 ## [4.5.0] - 2022-10-06
 ### Upgrade Notes: 

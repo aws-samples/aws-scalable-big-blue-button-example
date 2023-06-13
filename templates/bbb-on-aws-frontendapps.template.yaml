@@ -661,10 +661,10 @@ Resources:
               echo $db_create
               rails db:migrate:with_data
 
-              if [[ ! "$db_create" == *"already exists"* ]]; then
-                echo ">>> Creating admin account"
+              # if [[ ! "$db_create" == *"already exists"* ]]; then
+                echo "Creating admin account ${ADMIN_LOGIN}"
                 bundle exec rake admin:create["bbbadmin","${ADMIN_LOGIN}","${ADMIN_PASSWORD}"]
-              fi
+              # fi
               
               rails s -b 0.0.0.0 -p $PORT
  
@@ -725,7 +725,6 @@ Resources:
     Condition: BBBGreenlight
     DependsOn:
       - BBBFrontendALBListener
-      #- BBBFrontendALBListenerRule
     Properties:
       Cluster: !Ref BBBECSCluster
       DesiredCount: !Ref BBBGreenlightDesiredReplicas
@@ -926,7 +925,7 @@ Resources:
           Command:
             !If
             - BBBECSFargate
-            - - "/bin/sh -c \"sed -i 's/scalelite-api/127.0.0.1/g' /etc/nginx/conf.d/scalelite-proxy.template && /etc/nginx/start -g daemon off\""
+            - - "/bin/sh -c \"sed -i 's/scalelite-api/127.0.0.1/g' /etc/nginx/http.d/scalelite-proxy.template && /etc/nginx/start -g daemon off\""
             - !Ref "AWS::NoValue"
           Links:
             !If
