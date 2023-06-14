@@ -84,14 +84,12 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 
 | Parameter Name | Default Value | Description | Comment |
 | ---- | ---- | ---- | ---- |
-| BBBApplicationVersion | xenial-22 | Big Blue Button Version to be deployed | Refer to the Big Blue Button [documentation](https://docs.bigbluebutton.org/) to check for supported versions. |
+| BBBApplicationVersion | focal-260 | Big Blue Button Version to be deployed | Refer to the Big Blue Button [documentation](https://docs.bigbluebutton.org/) to check for supported versions. |
 | BBBApplicationInstanceAMIParameter | /aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id | Big Blue Button Application Instance AMI Parameter to be resolved | Refer to the Big Blue Button [documentation](https://docs.bigbluebutton.org/) to check for supported versions of Ubuntu for the application version you set using "BBBApplicationVersion" parameter. |
-| BBBTurnInstanceAMIParameter | /aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id | Big Blue Button Turn Instance AMI Parameter to be resolved | Refer to the Big Blue Button [documentation](https://docs.bigbluebutton.org/) to check for supported versions of Ubuntu for the application version you set using "BBBApplicationVersion" parameter. |
 | BBBECSInstanceType| t3a.large| Instance size of the ECS Cluster worker nodes or "fargate" for serverless deployment | EC2 instance sizes should be aligned with the size VCPU and Memory limits of the to be deployed tasks. setting this parameter to fargate will cause a Serverless Setup using AWS Fargate |
 | BBBApplicationInstanceType| t3a.xlarge| Instance size of the Big Blue Button Application node(s) | please refer to the Big Blue Button [Documentation](https://docs.bigbluebutton.org/2.2/install.html#minimum-server-requirements) for rightsizing |
 | BBBApplicationDataVolumeSize | 20 | the size of the application data volume used for recording buffer |
 | BBBApplicationRootVolumeSize | 20 | the size of the application root volume |
-| BBBTurnInstanceType| t3.micro| Instance size of the turn server | For right sizing please refer to the Big Blue Button [Documentation](https://docs.bigbluebutton.org/2.2/setup-turn-server.html)
 | BBBDBInstanceType| db.t3.medium| Instance size of the Aurora Database Instance or "serverless" for serverless deployment | Heavily related to usage, collect metrics and test. 
 | BBBCACHEDBInstanceType| cache.t3.micro| Instance size of the Redis security token and call ID handling | Depends on usage. 
 | BBBVPC| 10.1.0.0/16 | The Cidr block or ID for the VPC created during the deployment | we deploy an own VPC for the deployment containing public and private subnets as well nas internet and nat gateways. If an ID is passed over (vpc-*) the deployment will use the existing custom VPC and it's subnets. be sure to add the subnet ids into the parameters as well! 
@@ -105,9 +103,6 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 | BBBApplicationMaxInstances| 1| The maximum amount of Big Blue Button Application servers | Set depending on the awaited load and planned instance size. | 
 | BBBApplicationMinInstances| 1| The minimum amount of Big Blue Button Application servers | As EC2 Autoscaling is currently not aware of ongoing video conferences, i recommend set min=max=desired and not use dynamic here (planned scale out/in) | 
 | BBBApplicationDesiredInstances| 1| The desired amount of Big Blue Button Application servers | As EC2 Autoscaling is currently not aware of ongoing video conferences, i recommend set min=max=desired and not use dynamic here (planned scale out/in) | 
-| BBBTurnMaxInstances| 1| The maximum amount of Turn Servers to be deployed | at the current state leave it to 1. Multiple Turn servers will need additional configuration on the turnserver
-| BBBTurnMinInstances| 1| The minimum amount of Turn Servers to be deployed | at the current state leave it to 1. Multiple Turn servers will need additional configuration on the turnserver
-| BBBTurnDesiredInstances| 1| The desired amount of Turn Servers to be deployed | at the current state leave it to 1. Multiple Turn servers will need additional configuration on the turnserver 
 | BBBDBEngineVersion| 10.7| Set the Postgres version to be used at the Amazon Aurora setup | please refer to the Amazon Aurora [documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraPostgreSQL.Updates.20180305.html) for supported versions
 | BBBEnvironmentStage| dev | can be set to "dev","stage" or "prod" | currently stage or prod does change the Amazon Aurora Setup to a Multi-AZ Setup and adds a 2nd Nat-Gateway to the deployment. 
 | BBBServerlessAuroraMinCapacity | The minimum capacity for the Amazon Aurora Serverless Cluster. | Value has to be >= 2
@@ -236,10 +231,6 @@ The Deployment consists of 2 main templates and 13 nested templates.
 
     *The template deploys the ECS cluster and EC2 Autoscaling Group with the Launch Configuration for the Amazon EC2 worker nodes. If the parameter BBBECSInstanceType is set to "fargate" the ECS Cluster will be utilizing AWS Fargate for the tasks and EC2 worker instances as well as Autoscaling Groups will not be created*
 ---
-- Add a turnserver to the stack: [bbb-on-aws-bbbturn.template.yaml](./templates/bbb-on-aws-bbbturn.template.yaml)
-
-    *We need a turn server to handle the video call if the attendees are located behind a restrictive firewall*
----
 - Initiate the frontend and inner-application load balancer to the ECS Cluster: [bbb-on-aws-frontendapps.template.yaml](./templates/bbb-on-aws-frontendapps.template.yaml)
 
   *Greenlight is providing the interface for the Users and the video conference landing page. Scalelite is the inner-application load balancer which provides conference load balancing over multiple big blue button application servers* 
@@ -251,7 +242,7 @@ The Deployment consists of 2 main templates and 13 nested templates.
 
 ## Custom scripts 
 
-During the deployment the EC2 instances will be bootstrapped using UserData. To orchestrate the turn and Big Blue Button servers we will deploy some custom scripts helping to glue the components of the system
+During the deployment the EC2 instances will be bootstrapped using UserData. 
 
 - route53-handler [systemd service](./scripts/route53-handler.service) and [script](./scripts/route53-handler.sh)
     *deployed to the application and turn server instances creates dynamic records in your hosted zone (Route53) on boot/bootstrap of an instance and removes the record from the hosted zone. <br>
@@ -259,16 +250,13 @@ During the deployment the EC2 instances will be bootstrapped using UserData. To 
 ---
 - scalelite-handler [systemd service](./scripts/scalelite-handler.service) and [script](./scripts/scalelite-handler.sh)
     *deployed to each application instance adds the instance to scalelite on boot/bootstrap as active video conference instance and evaluates/removes the instance on shutdown" 
----
-- turn-handler [systemd service/timer](./scripts/turn-handler.service) and [script](./scripts/turn-handler.sh)
-    *the turn-handler the currently active turnserver hostname can be found by the application instances. As we dynamically set hostnames the turn servername might change on scaling or termination events. the turn-handler is started via systemd timer every X seconds*
 --- 
 - scalelite post [script](./scripts/scalelite_post_publish.rb) and [config](scalelite.yml)
     *the script and config files are added to the Big Blue Button application instances to enable the recordings import into scalelite and Amazon EFS*
 
 ## Configuration adjustments (diffs from the defaults)
 
-- Cloudwatch Agent for [application](./scripts/bbb-cwagent.config) and [turn](./scripts/turn-cwagent.config) instances
+- Cloudwatch Agent for [application](./scripts/bbb-cwagent.config) instances
     *the agent is automatically setup via UserData on bootstrap. To sent valid data to the Amazon Cloudwatch Service a custom agent config is used for application and turn servers* 
 
 ## Customizing your Big Blue Button deployment
@@ -302,7 +290,7 @@ Be sure NOT to use the main branch if you want to be sure not pulling potential 
 ---
 # Troubleshooting common errors
 
-- Failed to create: [BBBTurnAutoScaling] Issue: 
+- Failed to create: [BBBApplicationAutoScaling] Issue: 
 
     One of the most common errors is, that the Hosted Zone metioned at the Prerequisites is not setup properly or you're at the state of DNS delay. Use the following commands on your command line to evaluate if your DNS Setup is working: 
 
