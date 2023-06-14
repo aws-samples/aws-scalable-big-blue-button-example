@@ -190,9 +190,12 @@ Resources:
             
             while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
             
-            apt install -y git binutils python3-pip build-essential python-dev python-setuptools jq letsencrypt
-            pip3 install -U awscli
+            apt install -y git jq 
             
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+
             while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done
 
             aws s3 cp s3://${BBBStackBucketStack}/bbb-appsingle-bootstrap.sh /tmp/bbb-bootstrap.sh

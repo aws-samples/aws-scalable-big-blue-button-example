@@ -23,6 +23,7 @@ All notable changes to this project will be documented in this file.
 - Removed the need for server-handler task to add and remove BBB Application server instances. commands are executed now directly at the scalelite-api task via the application server instance. This will speed up adding/removing of meeting servers. 
 - Removal of the seperate turn server. the turn server is now integrated into each BBB Application Server Instance seperately
 - updated cli53 version to 0.8.22
+- updated aws-cli v1 to v2
 
 
 ## [4.5.0] - 2022-10-06
