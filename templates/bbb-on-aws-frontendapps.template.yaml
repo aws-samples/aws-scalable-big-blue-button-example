@@ -962,53 +962,6 @@ Resources:
             - Name: NGINX_BEHIND_PROXY
               Value: 'true'
 
-  BBBScaleliteAddServerTaskdefinition:
-    Type: AWS::ECS::TaskDefinition
-    Properties:
-      Family: !Join [ "", [ !Ref "AWS::StackName", -scalelite-handle-server ] ]
-      ExecutionRoleArn: !Ref BBBScaleliteExecutionRole
-      NetworkMode: !If [ BBBECSFargate, awsvpc, !Ref "AWS::NoValue" ]
-      Memory: 512
-      Cpu: 256
-      RequiresCompatibilities:
-        !If
-        - BBBECSFargate
-        - - FARGATE
-        - !Ref "AWS::NoValue"
-      ContainerDefinitions:
-        - Name: scalelite-handle-server
-          Essential: true
-          Image:
-            !Join
-              - '/'
-              - - !Ref BBBECRRegistry
-                - !Ref BBBScaleliteApiImage
-          LinuxParameters: 
-            InitProcessEnabled: true
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: !Ref BBBApplicationLogsGroup
-              awslogs-region: !Ref "AWS::Region"
-              awslogs-stream-prefix: scalelite-api
-          HealthCheck:
-            Command:
-              - CMD-SHELL
-              - exit 0
-          Secrets:
-            - Name: SECRET_KEY_BASE
-              ValueFrom: !Sub "${BBBApplicationBaseSecret}:basekeyvalue::"
-            - Name: LOADBALANCER_SECRET
-              ValueFrom: !Sub "${BBBLoadbalancerSecret}:basekeyvalue::"
-            - Name: DATABASE_URL
-              ValueFrom: !Sub "${BBBRDSDBConnectionSecret}:connectionString::"
-          Environment:
-            - Name: REDIS_URL
-              Value: !Sub
-                - "redis://${BBBCacheDBAddress}:${BBBCacheDBPort}"
-                - BBBCacheDBAddress: !Ref BBBCacheDBAddress
-                  BBBCacheDBPort: !Ref BBBCacheDBPort
-
   BBBScaleliteService:
     Type: AWS::ECS::Service
     DependsOn: BBBScaleliteALBListener
@@ -1139,9 +1092,6 @@ Outputs:
   BBBScaleliteTaskdefinition:
     Description: Scalelite Task Definition
     Value: !Ref BBBScaleliteTaskdefinition
-  BBBScaleliteAddServerTaskdefinition:
-    Description: Scalelite Server Handler Task Definition
-    Value: !Ref BBBScaleliteAddServerTaskdefinition
   BBBScaleliteService:
     Description: Scalelite Service
     Value: !Ref BBBScaleliteService

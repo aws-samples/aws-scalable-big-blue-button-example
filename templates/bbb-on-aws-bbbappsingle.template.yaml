@@ -117,7 +117,7 @@ Resources:
             Action: [ "sts:AssumeRole" ]
       Path: /
       Policies:
-        - PolicyName: "root"
+        - PolicyName: "bbbawsorchestrationaccess"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:

@@ -137,7 +137,7 @@ Resources:
             Action: [ "sts:AssumeRole" ]
       Path: /
       Policies:
-        - PolicyName: "root"
+        - PolicyName: bbbawsorchestrationaccess
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -163,6 +163,7 @@ Resources:
                   - ecs:RunTask
                   - ecs:ExecuteCommand
                   - ecs:DescribeTasks
+                  - ecs:ListServices
                 Condition:
                   ArnEquals:
                     ecs:cluster: !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${BBBECSCluster}"
