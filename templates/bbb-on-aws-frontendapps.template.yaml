@@ -70,9 +70,6 @@ Parameters:
   BBBCacheDBPort:
     Description: Amazon ElastiCache Cluster port
     Type: String
-  BBBTurnSecret:
-    Description: Secret used for Turn communication
-    Type: String
   BBBGreenlightMemory:
     Description: Memory constraints for Greenlight container
     Type: Number

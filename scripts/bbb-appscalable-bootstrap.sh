@@ -1,6 +1,6 @@
 #!/bin/bash
 
-while getopts ":a:b:c:d:e:f:g:h:i:j:k:l:m:n:o:" opt; do
+while getopts ":a:b:c:e:g:h:i:j:k:l:m:n:o:" opt; do
   case $opt in
     a) BBBStackBucketStack="$OPTARG"
     ;;
@@ -8,11 +8,7 @@ while getopts ":a:b:c:d:e:f:g:h:i:j:k:l:m:n:o:" opt; do
     ;;
     c) BBBDomainName="$OPTARG"
     ;;
-    d) BBBTurnHostnameParameter="$OPTARG"
-    ;;
     e) BBBHostedZone="$OPTARG"
-    ;;
-    f) BBBTurnSecret="$OPTARG"
     ;;
     g) BBBOperatorEMail="$OPTARG"
     ;;  
@@ -70,7 +66,7 @@ instance_publichostname=vc-$instance_random
 instance_fqdn=$instance_publichostname.$BBBDomainName
 
 # register in route53
-wget --tries=10 https://github.com/barnybug/cli53/releases/download/0.8.18/cli53-linux-amd64 -O /usr/local/bin/cli53
+wget --tries=10 https://github.com/barnybug/cli53/releases/download/0.8.22/cli53-linux-amd64 -O /usr/local/bin/cli53
 sudo chmod +x /usr/local/bin/cli53
 
 # create script for route53-handler
@@ -107,12 +103,6 @@ fi
 echo "$UUID       /var/bigbluebutton   ext4    defaults,nofail        0       2" >> /etc/fstab
 mount -a
 
-turn_hostname=$(aws ssm get-parameter --region $AWSRegion --name "$BBBTurnHostnameParameter" --with-decryption --output text --query Parameter.Value)
-turn_fqdn=$turn_hostname.$BBBDomainName
-turnsecret=$(aws secretsmanager get-secret-value --region $AWSRegion --secret-id $BBBTurnSecret --query SecretString --output text | jq -r .turnkeyvalue)
-
-sleep 1m
-
 x=1
 while [ $x -le 5 ]
 do
@@ -121,11 +111,11 @@ do
 done
 
 if [[ $BBBApplicationVersion == *"25"* ]]; then
-  wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.5.sh | bash -s -- -v $BBBApplicationVersion -s $instance_fqdn -e $BBBOperatorEMail -c $turn_fqdn:$turnsecret -j
+  wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.5.sh | bash -s -- -v $BBBApplicationVersion -s $instance_fqdn -e $BBBOperatorEMail -j
 elif [[ $BBBApplicationVersion == *"26"* ]]; then
-  wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.6.sh | bash -s -- -v $BBBApplicationVersion -s $instance_fqdn -e $BBBOperatorEMail -c $turn_fqdn:$turnsecret -j
+  wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.6.sh | bash -s -- -v $BBBApplicationVersion -s $instance_fqdn -e $BBBOperatorEMail -j
 elif [[ $BBBApplicationVersion == *"27"* ]]; then
-  wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.7.sh | bash -s -- -v $BBBApplicationVersion -s $instance_fqdn -e $BBBOperatorEMail -c $turn_fqdn:$turnsecret -j
+  wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.7.sh | bash -s -- -v $BBBApplicationVersion -s $instance_fqdn -e $BBBOperatorEMail -j
 fi
 
 groupadd -g 2000 scalelite-spool
@@ -154,16 +144,3 @@ sed -i "s/TASKSGS_PLACEHOLDER/$BBBECSTaskSecurityGroup/g" /etc/systemd/system/sc
 systemctl daemon-reload
 systemctl enable scalelite-handler
 systemctl start scalelite-handler
-
-# create script for turn-handler
-aws s3 cp s3://$BBBStackBucketStack/turn-handler.service /etc/systemd/system/turn-handler.service
-aws s3 cp s3://$BBBStackBucketStack/turn-handler.timer /etc/systemd/system/turn-handler.timer
-aws s3 cp s3://$BBBStackBucketStack/turn-handler.sh /usr/local/bin/turn-handler.sh
-chmod +x /usr/local/bin/turn-handler.sh
-
-sed -i "s/AWSREGION_PLACEHOLDER/$AWSRegion/g" /etc/systemd/system/turn-handler.service
-sed -i "s|PARAMETER_PLACEHOLDER|$BBBTurnHostnameParameter|g" /etc/systemd/system/turn-handler.service
-
-systemctl daemon-reload
-systemctl enable turn-handler.timer
-systemctl start turn-handler.timer

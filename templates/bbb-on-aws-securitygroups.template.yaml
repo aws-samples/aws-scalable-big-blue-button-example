@@ -177,39 +177,14 @@ Resources:
       ToPort: 32768
       GroupId: !Ref BBBApplicationSecurityGroup
 
-  BBBApplicationSecurityGroupTurnPorts:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      SourceSecurityGroupId: !Ref BBBTurnSecurityGroup
-      IpProtocol: udp
-      FromPort: 49152
-      ToPort: 65535
-      GroupId: !Ref BBBApplicationSecurityGroup
-
-  BBBTurnSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      VpcId:
-        Ref: BBBVPCs
-      GroupDescription: Security group for the Turn Host
-
-  BBBTurnSecurityGroupWebSSLPort:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      CidrIp: 0.0.0.0/0
-      IpProtocol: tcp
-      FromPort: 443
-      ToPort: 443
-      GroupId: !Ref BBBTurnSecurityGroup
-
-  BBBTurnSecurityGroupWebPlainPort:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      CidrIp: 0.0.0.0/0
-      IpProtocol: tcp
-      FromPort: 80
-      ToPort: 80
-      GroupId: !Ref BBBTurnSecurityGroup
+  #BBBApplicationSecurityGroupTurnPorts:
+  #  Type: AWS::EC2::SecurityGroupIngress
+  #  Properties:
+  #    SourceSecurityGroupId: !Ref BBBTurnSecurityGroup
+  #    IpProtocol: udp
+  #    FromPort: 49152
+  #    ToPort: 65535
+  #    GroupId: !Ref BBBApplicationSecurityGroup
 
   BBBTurnSecurityGroupWebSSLUDPPort:
     Type: AWS::EC2::SecurityGroupIngress
@@ -218,7 +193,7 @@ Resources:
       IpProtocol: udp
       FromPort: 443
       ToPort: 443
-      GroupId: !Ref BBBTurnSecurityGroup
+      GroupId: !Ref BBBApplicationSecurityGroup
 
   BBBTurnSecurityGroupWebPlainUDPPort:
     Type: AWS::EC2::SecurityGroupIngress
@@ -227,7 +202,7 @@ Resources:
       IpProtocol: udp
       FromPort: 3478
       ToPort: 3478
-      GroupId: !Ref BBBTurnSecurityGroup
+      GroupId: !Ref BBBApplicationSecurityGroup
 
   BBBTurnSecurityGroupWebPlainTCPPort:
     Type: AWS::EC2::SecurityGroupIngress
@@ -236,7 +211,7 @@ Resources:
       IpProtocol: tcp
       FromPort: 3478
       ToPort: 3478
-      GroupId: !Ref BBBTurnSecurityGroup
+      GroupId: !Ref BBBApplicationSecurityGroup
 
   BBBSharedStorageSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -290,9 +265,6 @@ Outputs:
   BBBApplicationSecurityGroup:
     Description: A reference to the created Security Group for the Public Ports of the Application
     Value: !Ref BBBApplicationSecurityGroup
-  BBBTurnSecurityGroup:
-    Description: A reference to the created Security Group for the Public Ports of the Turn Service
-    Value: !Ref BBBTurnSecurityGroup
   BBBSharedStorageSecurityGroup:
     Condition: BBBScalableEnvironment
     Description: A reference to the created Security Group for the SharedStorage

@@ -44,10 +44,6 @@ Parameters:
     Description: Ubuntu Version to be deployed for Application Instances 
     Default: "/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id"
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-  BBBTurnInstanceAMIParameter: 
-    Description: Ubuntu Version to be deployed for Turn Instances 
-    Default: "/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id"
-    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
   BBBECSMaxInstances:
     Type: Number
     Description: Maximum number of ECS Worker Instances
@@ -71,18 +67,6 @@ Parameters:
   BBBApplicationDesiredInstances:
     Type: Number
     Description: Desired number of appserver instances
-    Default: 1
-  BBBTurnMaxInstances:
-    Type: Number
-    Description: Maximum number of turn server instance
-    Default: 1
-  BBBTurnMinInstances:
-    Type: Number
-    Description: Minimum number of turn server instance
-    Default: 1
-  BBBTurnDesiredInstances:
-    Type: Number
-    Description: Desired number of turn server instance
     Default: 1
   BBBOperatorEMail:
     Description: EMail address to notify if there are any operational issues
@@ -110,10 +94,6 @@ Parameters:
     Description: Size of the application instance data volume
     Type: Number
     Default: 20
-  BBBTurnInstanceType:
-    Description: Instance type for the turn server
-    Type: String
-    Default: t3a.medium
   BBBDBInstanceType:
     Description: DB RDS instance type
     Type: String
@@ -592,72 +572,6 @@ Resources:
         - Key: Stage
           Value: !Ref BBBEnvironmentStage
 
-  BBBTurnStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL:
-        Fn::Join:
-          - ""
-          - - "https://s3.amazonaws.com/"
-            - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
-            - "/bbb-on-aws-bbbturn.template.yaml"
-      Parameters:
-        BBBStackBucketStack:
-          Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
-        BBBOperatorEMail: 
-          Ref: BBBOperatorEMail
-        BBBNotificationTopic:
-          Ref: BBBNotificationTopic
-        BBBTurnInstanceAMI: 
-          Ref: BBBTurnInstanceAMIParameter
-        BBBApplicationVersion: 
-          Ref: BBBApplicationVersion
-        BBBSystemLogsGroupArn:
-          Fn::GetAtt:
-            - BBBSystemLogsGroup
-            - Arn 
-        BBBSystemLogsGroup:
-          Ref: BBBSystemLogsGroup
-        BBBApplicationLogsGroupArn:
-          Fn::GetAtt:
-            - BBBApplicationLogsGroup
-            - Arn 
-        BBBApplicationLogsGroup:
-          Ref: BBBApplicationLogsGroup
-        BBBTurnSecurityGroup:
-          Fn::GetAtt:
-            - BBBSecurityGroupStack
-            - Outputs.BBBTurnSecurityGroup
-        BBBPublicApplicationSubnets:
-          Fn::If:
-            - BBBNewVPC 
-            - Fn::GetAtt:
-              - BBBNetworkStack
-              - Outputs.BBBPublicApplicationSubnets
-            - Fn::Join:
-              - ","
-              - Ref: BBBPublicApplicationSubnets       
-        BBBTurnInstanceType:
-          Ref: BBBTurnInstanceType
-        BBBTurnMaxInstances:
-          Ref: BBBTurnMaxInstances
-        BBBTurnMinInstances:
-          Ref: BBBTurnMinInstances
-        BBBTurnDesiredInstances:
-          Ref: BBBTurnDesiredInstances
-        BBBHostedZone:
-          Ref: BBBHostedZone
-        BBBDomainName:
-          Ref: BBBDomainName
-      Tags:
-        - Key: Name
-          Value:
-            Fn::Sub: BBBTurnStack-${BBBEnvironmentName}
-        - Key: Environment
-          Value: !Ref BBBEnvironmentName
-        - Key: Stage
-          Value: !Ref BBBEnvironmentStage
-
   BBBAppStack:
     Type: AWS::CloudFormation::Stack
     Condition: BBBScalableEnvironment
@@ -677,10 +591,6 @@ Resources:
           Ref: BBBOperatorEMail
         BBBApplicationInstanceAMI: 
           Ref: BBBApplicationInstanceAMIParameter
-        BBBTurnSecret:
-          Fn::GetAtt:
-            - BBBTurnStack
-            - Outputs.BBBTurnSecret
         BBBNotificationTopic:
           Ref: BBBNotificationTopic
         BBBSystemLogsGroupArn:
@@ -721,10 +631,6 @@ Resources:
             - Fn::Join:
               - ","
               - Ref: BBBPrivateApplicationSubnets
-        BBBTurnHostnameParameter:
-          Fn::GetAtt:
-            - BBBTurnStack
-            - Outputs.BBBTurnHostnameParameter
         BBBApplicationInstanceType:
           Ref: BBBApplicationInstanceType
         BBBApplicationDataVolumeSize:
@@ -787,14 +693,6 @@ Resources:
           Ref: BBBOperatorEMail
         BBBApplicationInstanceAMI: 
           Ref: BBBApplicationInstanceAMIParameter
-        BBBTurnSecret:
-          Fn::GetAtt:
-            - BBBTurnStack
-            - Outputs.BBBTurnSecret
-        BBBTurnHostnameParameter:
-          Fn::GetAtt:
-            - BBBTurnStack
-            - Outputs.BBBTurnHostnameParameter
         BBBNotificationTopic:
           Ref: BBBNotificationTopic
         BBBSystemLogsGroupArn:
@@ -933,10 +831,6 @@ Resources:
           Ref: BBBHostedZone
         BBBDomainName:
           Ref: BBBDomainName
-        BBBTurnSecret:
-          Fn::GetAtt:
-            - BBBTurnStack
-            - Outputs.BBBTurnSecret
         BBBGreenlightMemory:
           Ref: BBBGreenlightMemory
         BBBGreenlightCPU:

@@ -53,9 +53,6 @@ Parameters:
     Type: Number
     Description: Desired number of appserver instances
     Default: 1
-  BBBTurnSecret:
-    Description: Secret string for the Turn server
-    Type: String
   BBBApplicationSecurityGroup:
     Description: Security Group that should be assigned for the appserver
     Type: String
@@ -67,9 +64,6 @@ Parameters:
     Type: String
   BBBStackBucketStack:
     Description: S3 Bucket Stack that contains scripts and sources
-    Type: String
-  BBBTurnHostnameParameter:
-    Description: Parameter name that is used to store the Turn server host name
     Type: String
   BBBSystemLogsGroup:
     Description: Log group to be used for the system logs
@@ -135,19 +129,9 @@ Resources:
                 Resource: !Sub "arn:aws:route53:::hostedzone/${BBBHostedZone}"
               - Effect: Allow
                 Action:
-                  - secretsmanager:GetSecretValue
-                Resource:
-                  - !Ref BBBTurnSecret
-              - Effect: Allow
-                Action:
                   - s3:GetObject
                 Resource:
                   - !Sub "arn:aws:s3:::${BBBStackBucketStack}/*"
-              - Effect: Allow
-                Action:
-                  - ssm:GetParameter
-                Resource:
-                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/turnhostname"
               - Effect: Allow
                 Action:
                   - logs:PutLogEvents
@@ -217,9 +201,7 @@ Resources:
             /tmp/bbb-bootstrap.sh -a ${BBBStackBucketStack} \
             -b ${BBBSystemLogsGroup} \
             -c ${BBBDomainName} \
-            -d ${BBBTurnHostnameParameter} \
             -e ${BBBHostedZone} \
-            -f ${BBBTurnSecret} \
             -g ${BBBOperatorEMail} \
             -h ${BBBApplicationVersion} \
             -i ${AWS::Region} 
