@@ -16,10 +16,10 @@ done
 
 turn_hostname=$(aws ssm get-parameter --region $REGION --name $PARAMETER --with-decryption --output text --query Parameter.Value)
 
-turn_uptodate=$(grep "$turn_hostname" -q /usr/share/bbb-web/WEB-INF/classes/spring/turn-stun-servers.xml && echo "UPTODATE" || echo "TOBEUPDATED")
+turn_uptodate=$(grep "$turn_hostname" -q /etc/bigbluebutton/turn-stun-servers.xml && echo "UPTODATE" || echo "TOBEUPDATED")
 
 if [[ $turn_uptodate == "TOBEUPDATED" ]]; then
-  sed -i "s/tu-[^\.]*/$turn_hostname/g" /usr/share/bbb-web/WEB-INF/classes/spring/turn-stun-servers.xml
+  sed -i "s/tu-[^\.]*/$turn_hostname/g" /etc/bigbluebutton/turn-stun-servers.xml
   usr/bin/bbb-conf --restart
 fi
 

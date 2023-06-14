@@ -171,6 +171,30 @@ aws cloudformation deploy --profile=$BBBPROFILE --stack-name $BBBSTACK \
     $(jq -r '.Parameters | to_entries | map("\(.key)=\(.value)") | join(" ")' bbb-on-aws-param.json) \
     --template ./bbb-on-aws-root.template.yaml
 
+# Set the initial admin password for the environment
+echo "Setting the intial admin password"
+echo "##################################################"
+
+#get the secrets
+ADMIN_SECRET=$(aws secretsmanager list-secrets --profile $BBBPROFILE --filter Key="name",Values="BBBAdministratorlogin" --query 'SecretList[0].Name' --output text)
+ADMIN_AUTH=$(aws secretsmanager get-secret-value --profile $BBBPROFILE --secret-id $ADMIN_SECRET)
+ADMIN_PASSWORD=$(echo "$ADMIN_AUTH" | jq -r '.SecretString | fromjson | .password')
+ADMIN_LOGIN=$(echo "$ADMIN_AUTH" | jq -r '.SecretString | fromjson | .username')
+
+#get the cluster information
+ECS_CLUSTERS=$(aws ecs --profile=$BBBPROFILE list-clusters)
+ECS_CLUSTER=$(echo "$ECS_CLUSTERS" | jq -r '.clusterArns[0] | split("/") | .[1]')
+
+# get my greenlight service
+GREENLIGHT_SERVICE=$(aws ecs list-services --profile $BBBPROFILE --cluster $ECS_CLUSTER --query "serviceArns[?contains(@, 'BBBgreenlightService')]" --output text | xargs -n 1 basename)
+GREENLIGHT_TASK=$(aws ecs list-tasks --profile $BBBPROFILE --cluster $ECS_CLUSTER --service $GREENLIGHT_SERVICE --output text | awk -F"/" '{print $NF}' | rev | awk -F"/" '{print $1}' | rev)
+
+aws ecs execute-command --profile=$BBBPROFILE --cluster $ECS_CLUSTER \
+    --task $GREENLIGHT_TASK \
+    --container greenlight \
+    --interactive \
+    --command "bundle exec rake admin:create["bbbadmin","${ADMIN_LOGIN}","${ADMIN_PASSWORD}"]"
+
 echo "##################################################"
 echo "Deployment finished"
 

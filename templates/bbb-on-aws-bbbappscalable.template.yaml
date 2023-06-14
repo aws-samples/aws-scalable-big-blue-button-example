@@ -172,6 +172,8 @@ Resources:
               - Effect: Allow
                 Action:
                   - ecs:RunTask
+                  - ecs:ExecuteCommand
+                  - ecs:DescribeTasks
                 Condition:
                   ArnEquals:
                     ecs:cluster: !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${BBBECSCluster}"
@@ -248,6 +250,10 @@ Resources:
             apt install -y git binutils python3-pip build-essential python-dev python-setuptools jq letsencrypt
             pip3 install -U awscli
             
+            cd /tmp
+            curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
+            dpkg -i session-manager-plugin.deb
+
             while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done
 
             aws s3 cp s3://${BBBStackBucketStack}/bbb-appscalable-bootstrap.sh /tmp/bbb-bootstrap.sh
@@ -265,13 +271,11 @@ Resources:
             -j ${BBBSharedStorageFS} \
             -k ${BBBSharedStorageAPspool} \
             -l ${BBBECSCluster} \
-            -m ${BBBECSInstanceType} \    
-            -n ${BBBPrivateApplicationSubnets} \
+            -m ${BBBECSInstanceType} \
+            -n "${BBBPrivateApplicationSubnets}" \
             -o ${BBBECSTaskSecurityGroup}
 
             /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBApplicationAutoScaling --region ${AWS::Region} || true
-
-
 
 Outputs:
   BBBApplicationEC2InstanceProfile:
