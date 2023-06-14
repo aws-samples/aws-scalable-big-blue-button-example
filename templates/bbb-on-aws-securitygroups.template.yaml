@@ -177,15 +177,6 @@ Resources:
       ToPort: 32768
       GroupId: !Ref BBBApplicationSecurityGroup
 
-  #BBBApplicationSecurityGroupTurnPorts:
-  #  Type: AWS::EC2::SecurityGroupIngress
-  #  Properties:
-  #    SourceSecurityGroupId: !Ref BBBTurnSecurityGroup
-  #    IpProtocol: udp
-  #    FromPort: 49152
-  #    ToPort: 65535
-  #    GroupId: !Ref BBBApplicationSecurityGroup
-
   BBBTurnSecurityGroupWebSSLUDPPort:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
