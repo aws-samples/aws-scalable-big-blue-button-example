@@ -122,7 +122,10 @@ groupadd -g 2000 scalelite-spool
 usermod -a -G scalelite-spool bigbluebutton
 
 wget --tries=10  https://raw.githubusercontent.com/blindsidenetworks/scalelite/master/bigbluebutton/scalelite_post_publish.rb -O /usr/local/bigbluebutton/core/scripts/post_publish/scalelite_post_publish.rb
-chmod +x /usr/local/bigbluebutton/core/scripts/post_publish/scalelite_post_publish.rb
+wget --tries=10  https://raw.githubusercontent.com/blindsidenetworks/scalelite/master/bigbluebutton/scalelite_batch_import.sh -O /usr/local/bigbluebutton/core/scripts/post_publish/scalelite_batch_import.sh
+wget --tries=10  https://raw.githubusercontent.com/blindsidenetworks/scalelite/master/bigbluebutton/scalelite_prune_recordings.sh -O /usr/local/bigbluebutton/core/scripts/post_publish/scalelite_prune_recordings.sh
+
+chmod +x /usr/local/bigbluebutton/core/scripts/post_publish/scalelite_post_publish.rb /usr/local/bigbluebutton/core/scripts/post_publish/scalelite_prune_recordings.sh /usr/local/bigbluebutton/core/scripts/post_publish/scalelite_batch_import.sh
 aws s3 cp s3://$BBBStackBucketStack/scalelite-config.yml /usr/local/bigbluebutton/core/scripts/scalelite.yml
 
 apt-get -y install ruby2.7-dev libsystemd-dev
