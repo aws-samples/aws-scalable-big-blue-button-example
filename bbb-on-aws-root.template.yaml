@@ -128,14 +128,6 @@ Parameters:
     Description: An environment name that is prefixed to resource names
     Type: String
     Default: bbbonaws
-#  BBBGreenlightRepositoryUri:
-#    Description: Greenlight Repository URI
-#    Type: String
-#    Default: "bigbluebutton/greenlight"
-#  BBBScaleliteRepositoryUri: 
-#    Description: Scalelite Repository URI
-#    Type: String
-#    Default: "blindsidenetwks/scalelite"
   BBBgreenlightImageTag:
     Description: Greenlight docker image identifier
     Type: String
@@ -246,7 +238,6 @@ Conditions:
   BBBGreenlight: !Equals [!Ref BBBFrontendType, Greenlight]
 
 Resources:
-
   BBBNotificationTopic:
     Type: AWS::SNS::Topic
     Properties:
@@ -697,8 +688,6 @@ Resources:
           Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
         BBBOperatorEMail:
           Ref: BBBOperatorEMail
-        BBBApplicationInstanceAMI: 
-          Ref: BBBApplicationInstanceAMIParameter
         BBBNotificationTopic:
           Ref: BBBNotificationTopic
         BBBSystemLogsGroupArn:
@@ -812,9 +801,9 @@ Resources:
             - BBBSESProviderStack
             - Outputs.BBBSMTPSecretProviderArn
         BBBScaleliteRepositoryUri:
-          Fn::ImportValue: !Sub "${BBBECRStack}-BBBScaleliteRegistryURI"
+          Fn::ImportValue: BBBScaleliteRepositoryUri
         BBBGreenlightRepositoryUri:
-          Fn::ImportValue: !Sub "${BBBECRStack}-BBBGreenlightRegistryURI"                              
+          Fn::ImportValue: BBBGreenlightRepositoryUri                           
         BBBNotificationTopic:
           Ref: BBBNotificationTopic    
         BBBgreenlightImageTag:

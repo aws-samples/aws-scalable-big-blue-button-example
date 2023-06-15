@@ -25,15 +25,13 @@ Resources:
         ScanOnPush: true
 
 Outputs: 
-  BBBGreenlightRegistryURI:
+  BBBGreenlightRepositoryUri:
     Description: Registry name for the ECR registry holding Greenlight and Scalelite Images
-    Value: 
-      GetAtt: BBBGreenlightRegistry.RepositoryUri
+    Value: !GetAtt BBBGreenlightRegistry.RepositoryUri
     Export: 
-      Name: !Sub "${AWS::StackName}-BBBGreenlightRegistryURI"      
-  BBBScaleliteRegistryURI:
+      Name: BBBGreenlightRepositoryUri     
+  BBBScaleliteRepositoryUri:
     Description: Registry name for the ECR registry holding Greenlight and Scalelite Images
-    Value: 
-      GetAtt: BBBScaleliteRegistry.RepositoryUri
+    Value: !GetAtt BBBScaleliteRegistry.RepositoryUri
     Export: 
-      Name: !Sub "${AWS::StackName}-BBBScaleliteRegistryURI"        
+      Name: BBBScaleliteRepositoryUri

@@ -233,10 +233,12 @@ Resources:
             
             while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
             
-            apt install -y git jq unzip
+            apt install -y git jq unzip python3-pip
             
             cd /tmp
 
+            pip3 install -U https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
+            
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
             unzip awscliv2.zip
             sudo ./aws/install

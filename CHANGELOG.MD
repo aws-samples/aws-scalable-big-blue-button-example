@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 - Upgrading the Amazon Aurora Postgres Engine version and/or the switch to Aurora Serverless v2 via Amazon Cloudformation is not supported. Please refer to the official [upgrade documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_UpgradeDBInstance.PostgreSQL.html) and [migrate to Aurora Serverless v2](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2.upgrade.html) if you have a already running environment using an older engine version and/or Aurora Serverless v1 to proceed with the upgrade before using the Cloudformation deployment. 
 - Greenlight Updated to version 3 which will come with some major changes to the startup scripts. 5.0.0 of the deployment will not be compatible to Greenligth version 2 based deployments anymore. If you need to stay with Greenlight version 2 please use version 4.5.0 of the deployment codebase. 
 - Due the change in how we utilize the most recent AMI for Ubuntu, double check your parameter file (bbb-on-aws-param.json) if you customized it to reflect the switch to the new parameters BBBApplicationInstanceAMIParameter and containing the path to the fitting AMI SSM Parameter Store object. 
-- seperate turn servers has been removed from the deployment. this also means big blue button versions prior 2.6 cannot be used with these templates anymore as the prior versions do not support the included turn server install.
+- seperate turn servers has been removed from the deployment. this also means big blue button versions prior 2.6 cannot be used with version 5.0.0 anymore as the prior versions do not support the included turn server install. If you want to stick on BigBlueButton 2.5 use the 4.X version of this deployment code. 
 
 ### Changed
 - Aurora Engine Version now on 14.3
@@ -20,7 +20,7 @@ All notable changes to this project will be documented in this file.
 - Removed the Instance Class/Familie restrictions from the templates. Still you need to use valid instances though depending on which are available for Amazon EC2, Amazon Elasticache and Amazon RDS. 
 - Removed the Custom AMI finder and relate to AWS Parameter Store default offering via resolve Function
 - restructured the ECR local workflow. 
-- Added scanonPush to the ECR registry for security scaning before delivery to the app servers
+- Added ScanOnPush to the ECR registry for security scaning
 - Removed the need for server-handler task to add and remove BBB Application server instances. commands are executed now directly at the scalelite-api task via the application server instance. This will speed up adding/removing of meeting servers. 
 - Removal of the seperate turn server. the turn server is now integrated into each BBB Application Server Instance seperately
 - updated cli53 version to 0.8.22
