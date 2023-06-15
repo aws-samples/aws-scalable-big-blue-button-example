@@ -125,6 +125,9 @@ wget --tries=10  https://raw.githubusercontent.com/blindsidenetworks/scalelite/m
 chmod +x /usr/local/bigbluebutton/core/scripts/post_publish/scalelite_post_publish.rb
 aws s3 cp s3://$BBBStackBucketStack/scalelite-config.yml /usr/local/bigbluebutton/core/scripts/scalelite.yml
 
+apt -y install ruby2.7-dev libsystemd-dev
+gem install redis builder nokogiri loofah open4 absolute_time journald-logger
+
 # create script for scalelite-handler
 aws s3 cp s3://$BBBStackBucketStack/scalelite-handler.service /etc/systemd/system/scalelite-handler.service
 aws s3 cp s3://$BBBStackBucketStack/scalelite-handler.sh /usr/local/bin/scalelite-handler.sh
