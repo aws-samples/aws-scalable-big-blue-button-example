@@ -78,10 +78,7 @@ aws cloudformation deploy --stack-name $BBBPREPSTACK --profile=$BBBPROFILE --tem
 echo "##################################################"
 echo "deployment done"
 
-# get the s3 bucket name out of the deployment.
-SOURCE=`aws cloudformation describe-stacks --profile=$BBBPROFILE --query "Stacks[0].Outputs[0].OutputValue" --stack-name $BBBPREPSTACK`
-
-SOURCE=`echo "${SOURCE//\"}"`
+SOURCE=$(aws cloudformation describe-stack-resources --profile $BBBPROFILE --stack-name $BBBPREPSTACK --query "StackResources[?ResourceType=='AWS::S3::Bucket'].PhysicalResourceId" --output text)
 
 # we will upload the needed CFN Templates to S3 containing the IaaC Code which deploys the actual infrastructure.
 # This will error out if the source files are missing. 
@@ -147,8 +144,6 @@ then
 
   echo "##################################################"
   echo "Registry Preperation finished"
-else
-  REGISTRY="Dockerhub"
 fi
 
 # Setting the dynamic Parameters for the Deployment
@@ -156,8 +151,7 @@ PARAMETERS=" BBBOperatorEMail=$OPERATOREMAIL \
              BBBStackBucketStack=$BBBSTACK-Sources \
              BBBDomainName=$DOMAIN \
              BBBHostedZone=$HOSTEDZONE \
-             BBBGreenlightRepositoryUri=$GREENLIGHTREGISTRY:$IMAGETAG \
-             BBBScaleliteRepositoryUri=$SCALELITEREGISTRY:$IMAGETAG"
+             BBBECRStack=$BBBSTACK-Registry"
 
 # Deploy the BBB infrastructure. 
 echo "Building the BBB Environment"

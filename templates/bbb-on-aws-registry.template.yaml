@@ -29,7 +29,11 @@ Outputs:
     Description: Registry name for the ECR registry holding Greenlight and Scalelite Images
     Value: 
       GetAtt: BBBGreenlightRegistry.RepositoryUri
+    Export: 
+      Name: !Sub "${AWS::StackName}-BBBGreenlightRegistryURI"      
   BBBScaleliteRegistryURI:
     Description: Registry name for the ECR registry holding Greenlight and Scalelite Images
     Value: 
       GetAtt: BBBScaleliteRegistry.RepositoryUri
+    Export: 
+      Name: !Sub "${AWS::StackName}-BBBScaleliteRegistryURI"        
