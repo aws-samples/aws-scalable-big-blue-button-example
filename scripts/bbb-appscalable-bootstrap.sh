@@ -57,7 +57,7 @@ cd /tmp
 git clone https://github.com/aws/efs-utils
 cd efs-utils
 ./build-deb.sh
-apt-get -y install ./build/amazon-efs-utils*deb
+apt -y install ./build/amazon-efs-utils*deb
 
 # Set instance Hostname
 instance_ipv4=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
@@ -125,7 +125,7 @@ wget --tries=10  https://raw.githubusercontent.com/blindsidenetworks/scalelite/m
 chmod +x /usr/local/bigbluebutton/core/scripts/post_publish/scalelite_post_publish.rb
 aws s3 cp s3://$BBBStackBucketStack/scalelite-config.yml /usr/local/bigbluebutton/core/scripts/scalelite.yml
 
-apt -y install ruby2.7-dev libsystemd-dev
+apt-get -y install ruby2.7-dev libsystemd-dev
 gem install redis builder nokogiri loofah open4 absolute_time journald-logger
 
 # create script for scalelite-handler
