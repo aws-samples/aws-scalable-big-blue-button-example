@@ -103,58 +103,6 @@ fi
 echo "##################################################"
 echo "File Copy finished"
 
-ENVIRONMENTTYPE=$(jq -r ".Parameters.BBBEnvironmentType" bbb-on-aws-param.json)
-
-if [ "$ENVIRONMENTTYPE" == 'scalable' ]
-then 
-  BBBECRStack="${BBBSTACK}-registry"
-  aws cloudformation deploy --profile=$BBBPROFILE --stack-name $BBBECRStack  \
-      --parameter-overrides $PARAMETERS \
-      $(jq -r '.Parameters | to_entries | map("\(.key)=\(.value)") | join(" ")' bbb-on-aws-param.json) \
-      --template ./templates/bbb-on-aws-registry.template.yaml
-
-  GREENLIGHTREGISTRY=`aws cloudformation describe-stacks --profile=$BBBPROFILE --query "Stacks[0].Outputs[0].OutputValue" --stack-name $BBBECRStack`
-  GREENLIGHTREGISTRY=`echo "${GREENLIGHTREGISTRY//\"}"`
-  SCALEILITEREGISTRY=`aws cloudformation describe-stacks --profile=$BBBPROFILE --query "Stacks[0].Outputs[1].OutputValue" --stack-name $BBBECRStack`
-  SCALEILITEREGISTRY=`echo "${SCALEILITEREGISTRY//\"}"`
-
-  # we will mirror the needed images from dockerhub and push towards ECR
-  echo "##################################################"
-  echo "Mirror docker images to ECR for further usage"
-  echo "##################################################"
-  
-  IMAGES=( BBBgreenlightImage BBBScaleliteNginxImage BBBScaleliteApiImage BBBScalelitePollerImage BBBScaleliteImporterImage )
-
-  if [[ -z "${AWS_REGION}" ]]; then
-    REGION=$(aws configure get region --profile=$BBBPROFILE)
-    echo "Using default region ${REGION} from profile ${BBBPROFILE}"
-  else
-    REGION=${AWS_REGION}
-    echo "Using region ${REGION} from AWS_REGION environment variable"
-  fi
-
-  ACCOUNTID=$(aws sts get-caller-identity --query Account --output text --profile=$BBBPROFILE)
-  REGISTRY=$ACCOUNTID.dkr.ecr.$REGION.amazonaws.com
-  SCALEILITEREGISTRY=$ACCOUNTID.dkr.ecr.$REGION.amazonaws.com/$SCALEILITEREGISTRY  
-  GREENLIGHTREGISTRY=$ACCOUNTID.dkr.ecr.$REGION.amazonaws.com/$GREENLIGHTREGISTRY  
-
-  aws ecr get-login-password --profile=$BBBPROFILE | docker login --username AWS --password-stdin $SCALEILITEREGISTRY
-  aws ecr get-login-password --profile=$BBBPROFILE | docker login --username AWS --password-stdin $GREENLIGHTREGISTRY
-
-  for IMAGE in "${IMAGES[@]}"
-  do
-    IMAGE=$(jq -r ".Parameters.$IMAGE" bbb-on-aws-param.json)
-    docker pull $IMAGE
-    docker tag $IMAGE $REGISTRY/$IMAGE
-    docker push $REGISTRY/$IMAGE
-  done
-  
-  echo "##################################################"
-  echo "Registry Preperation finished"
-else
-  REGISTRY="Dockerhub"
-fi
-
 # Setting the dynamic Parameters for the Deployment
 PARAMETERS=" BBBOperatorEMail=$OPERATOREMAIL \
              BBBStackBucketStack=$BBBSTACK-Sources \

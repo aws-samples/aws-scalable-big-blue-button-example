@@ -233,7 +233,7 @@ Resources:
             
             while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
             
-            apt install -y git jq 
+            apt install -y git jq unzip
             
             cd /tmp
 

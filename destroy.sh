@@ -33,6 +33,26 @@ fi
 echo "using AWS Profile $BBBPROFILE"
 echo "##################################################"
 
+# Empty the ECR Repository
+ENVIRONMENTTYPE=$(jq -r ".Parameters.BBBEnvironmentType" bbb-on-aws-param.json)
+if [ "$ENVIRONMENTTYPE" == 'scalable' ]
+then 
+  echo "Deleting all (cached) images from ECR repository"
+  echo "##################################################"
+  GREENLIGHTREGISTRY=$(aws ecr describe-repositories --profile=$BBBPROFILE --query 'repositories[?contains(repositoryName, `greenlight`)].repositoryName' --output text)
+  SCALELITEREGISTRY=$(aws ecr describe-repositories --profile=$BBBPROFILE --query 'repositories[?contains(repositoryName, `scalelite`)].repositoryName' --output text)
+  IMAGESGREENLIGHT=$(aws --profile $BBBPROFILE ecr describe-images --repository-name $GREENLIGHTREGISTRY --output json | jq '.[]' | jq '.[]' | jq "select (.imagePushedAt > 0)" | jq -r '.imageDigest')
+  for IMAGE in ${IMAGESGREENLIGHT[*]}; do
+      echo "Deleting $IMAGE"
+      aws ecr --profile $BBBPROFILE batch-delete-image --repository-name $GREENLIGHTREGISTRY --image-ids imageDigest=$IMAGE
+  done
+  IMAGESSCALELITE=$(aws --profile $BBBPROFILE ecr describe-images --repository-name $SCALELITEREGISTRY --output json | jq '.[]' | jq '.[]' | jq "select (.imagePushedAt > 0)" | jq -r '.imageDigest')
+  for IMAGE in ${IMAGESSCALELITE[*]}; do
+      echo "Deleting $IMAGE"
+      aws ecr --profile $BBBPROFILE batch-delete-image --repository-name $SCALELITEREGISTRY --image-ids imageDigest=$IMAGE
+  done  
+fi
+
 # Destroy the BBB infrastructure. 
 echo "Delete the BBB Environment"
 echo "##################################################"
@@ -77,35 +97,6 @@ done
 
 aws cloudformation delete-stack --stack-name $BBBPREPSTACK --profile=$BBBPROFILE
 aws cloudformation wait stack-delete-complete --profile=$BBBPROFILE --stack-name $BBBPREPSTACK
-
-ENVIRONMENTTYPE=$(jq -r ".Parameters.BBBEnvironmentType" bbb-on-aws-param.json)
-
-if [ "$ENVIRONMENTTYPE" == 'scalable' ]
-then 
-  BBBECRStack="${BBBSTACK}-registry"
-  GREENLIGHTREGISTRY=`aws cloudformation describe-stacks --profile=$BBBPROFILE --query "Stacks[0].Outputs[0].OutputValue" --stack-name $BBBECRStack`
-  GREENLIGHTREGISTRY=`echo "${GREENLIGHTREGISTRY//\"}"`
-  SCALEILITEREGISTRY=`aws cloudformation describe-stacks --profile=$BBBPROFILE --query "Stacks[0].Outputs[1].OutputValue" --stack-name $BBBECRStack`
-  SCALEILITEREGISTRY=`echo "${SCALEILITEREGISTRY//\"}"`
-
-echo $GREENLIGHTREGISTRY
-echo $SCALEILITEREGISTRY
-  echo "##################################################"
-  echo "Truncate and delete the ECR Repositories"
-  echo "##################################################"
-  IMAGESGREENLIGHT=$(aws --profile $BBBPROFILE ecr describe-images --repository-name $GREENLIGHTREGISTRY --output json | jq '.[]' | jq '.[]' | jq "select (.imagePushedAt > 0)" | jq -r '.imageDigest')
-  for IMAGE in ${IMAGESGREENLIGHT[*]}; do
-      echo "Deleting $IMAGE"
-      aws ecr --profile $BBBPROFILE batch-delete-image --repository-name $GREENLIGHTREGISTRY --image-ids imageDigest=$IMAGE
-  done
-  IMAGESSCALEILITE=$(aws --profile $BBBPROFILE ecr describe-images --repository-name $SCALEILITEREGISTRY --output json | jq '.[]' | jq '.[]' | jq "select (.imagePushedAt > 0)" | jq -r '.imageDigest')
-  for IMAGE in ${IMAGESSCALEILITE[*]}; do
-      echo "Deleting $IMAGE"
-      aws ecr --profile $BBBPROFILE batch-delete-image --repository-name $SCALEILITEREGISTRY --image-ids imageDigest=$IMAGE
-  done  
-  aws cloudformation delete-stack --profile=$BBBPROFILE --stack-name $BBBECRStack 
-  aws cloudformation wait stack-delete-complete --profile=$BBBPROFILE --stack-name $BBBECRStack
-fi
 
 echo "##################################################"
 echo "Deletion done"

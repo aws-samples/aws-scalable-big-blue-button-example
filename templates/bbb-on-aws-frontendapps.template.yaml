@@ -40,30 +40,26 @@ Parameters:
   BBBECSCluster:
     Description: Reference for the ECS Cluster in which to deploy the services
     Type: String
-  BBBgreenlightImage:
+  BBBgreenlightImageTag:
     Description: Greenlight docker image identifier
     Type: String
-    Default: "bigbluebutton/greenlight:v2"
-  BBBScaleliteApiImage:
+    Default: "v3"
+  BBBScaleliteApiImageTag:
     Description: Scalelite API docker image identifier
     Type: String
-    Default: "blindsidenetwks/scalelite:v1-api"
-  BBBScaleliteNginxImage:
+    Default: "v1-api"
+  BBBScaleliteNginxImageTag:
     Description: Scalelite NGINX docker image identifier
     Type: String
-    Default: "blindsidenetwks/scalelite:v1-nginx"
-  BBBScalelitePollerImage:
+    Default: "v1-nginx"
+  BBBScalelitePollerImageTag:
     Description: Scalelite Poller docker image identifier
     Type: String
-    Default: "blindsidenetwks/scalelite:v1-poller"
-  BBBScaleliteImporterImage:
+    Default: "v1-poller"
+  BBBScaleliteImporterImageTag:
     Description: Scalelite Importer docker image identifier
     Type: String
-    Default: "blindsidenetwks/scalelite:v1-recording-importer"
-  BBBECRRegistry: 
-    Description: ECR Registry to be used. 
-    Type: String
-    Default: ""
+    Default: "v1-recording-importer"
   BBBCacheDBAddress:
     Description: Amazon ElastiCache Cluster address
     Type: String
@@ -175,6 +171,32 @@ Conditions:
   BBBSESNotValidatedGreenlight: !And [!Equals [!Ref BBBFrontendType, Greenlight], !Equals [ false, !Ref BBBSESValidated ]]
 
 Resources:
+  BBBScaleliteRegistry:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: blindsidenetwks/scalelite
+      ImageScanningConfiguration:
+        ScanOnPush: true
+
+  BBBGreenlightRegistry:
+    Type: AWS::ECR::Repository
+    Condition: BBBGreenlight
+    Properties:
+      RepositoryName: bigbluebutton/greenlight
+      ImageScanningConfiguration:
+        ScanOnPush: true
+
+  BBBImagePullRuleGreenlight:
+    Type: AWS::ECR::PullThroughCacheRule
+    Condition: BBBGreenlight
+    Properties:
+      UpstreamRegistryUrl: 'registry.hub.docker.com'
+
+  BBBImagePullRuleScalelite:
+    Type: AWS::ECR::PullThroughCacheRule
+    Properties:
+      UpstreamRegistryUrl: 'registry.hub.docker.com'
+
   BBBSESDomainIdentity:
     Type: Custom::DomainIdentity
     Condition: BBBSESNotValidatedGreenlight
@@ -597,9 +619,9 @@ Resources:
           Essential: true
           Image: 
             !Join
-              - '/'
-              - - !Ref BBBECRRegistry
-                - !Ref BBBgreenlightImage
+              - ':'
+              - - !GetAtt BBBGreenlightRegistry.RepositoryUri
+                - !Ref BBBgreenlightImageTag
           LinuxParameters: 
             InitProcessEnabled: true
           LogConfiguration:
@@ -766,9 +788,9 @@ Resources:
           Essential: true
           Image:
             !Join
-              - '/'
-              - - !Ref BBBECRRegistry 
-                - !Ref BBBScaleliteImporterImage
+              - ':'
+              - - !GetAtt BBBScaleliteRegistry.RepositoryUri 
+                - !Ref BBBScaleliteImporterImageTag
           MountPoints:
             - ContainerPath: /var/bigbluebutton/spool
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool, !Ref AWS::StackName ] ]
@@ -812,9 +834,9 @@ Resources:
           Essential: true
           Image: 
             !Join
-              - '/'
-              - - !Ref BBBECRRegistry
-                - !Ref BBBScalelitePollerImage
+              - ':'
+              - - !GetAtt BBBScaleliteRegistry.RepositoryUri 
+                - !Ref BBBScalelitePollerImageTag
           LinuxParameters: 
             InitProcessEnabled: true
           LogConfiguration:
@@ -851,9 +873,9 @@ Resources:
               Condition: START
           Image:
             !Join
-              - '/'
-              - - !Ref BBBECRRegistry
-                - !Ref BBBScaleliteNginxImage
+              - ':'
+              - - !GetAtt BBBScaleliteRegistry.RepositoryUri 
+                - !Ref BBBScaleliteNginxImageTag
           EntryPoint:
             !If
             - BBBECSFargate
@@ -916,9 +938,9 @@ Resources:
           Essential: true
           Image: 
             !Join
-              - '/'
-              - - !Ref BBBECRRegistry
-                - !Ref BBBScaleliteApiImage
+              - ':'
+              - - !GetAtt BBBScaleliteRegistry.RepositoryUri 
+                - !Ref BBBScaleliteApiImageTag
           MountPoints:
             - ContainerPath: /var/bigbluebutton/spool
               SourceVolume: !Join [ "", [ scalelite-recordings-volume-spool, !Ref AWS::StackName ] ]

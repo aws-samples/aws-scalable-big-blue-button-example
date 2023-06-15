@@ -128,30 +128,26 @@ Parameters:
     Description: An environment name that is prefixed to resource names
     Type: String
     Default: bbbonaws
-  BBBgreenlightImage:
+  BBBgreenlightImageTag:
     Description: Greenlight docker image identifier
     Type: String
-    Default: "bigbluebutton/greenlight:v2"
-  BBBScaleliteApiImage:
+    Default: "v3"
+  BBBScaleliteApiImageTag:
     Description: Scalelite API docker image identifier
     Type: String
-    Default: "blindsidenetwks/scalelite:v1-api"
-  BBBScaleliteNginxImage:
+    Default: "v1-api"
+  BBBScaleliteNginxImageTag:
     Description: Scalelite NGINX docker image identifier
     Type: String
-    Default: "blindsidenetwks/scalelite:v1-nginx"
-  BBBScalelitePollerImage:
+    Default: "v1-nginx"
+  BBBScalelitePollerImageTag:
     Description: Scalelite Poller docker image identifier
     Type: String
-    Default: "blindsidenetwks/scalelite:v1-poller"
-  BBBScaleliteImporterImage:
+    Default: "v1-poller"
+  BBBScaleliteImporterImageTag:
     Description: Scalelite Importer docker image identifier
     Type: String
-    Default: "blindsidenetwks/scalelite:v1-recording-importer"
-  BBBECRRegistry: 
-    Description: ECR Registry to be used. 
-    Type: String
-    Default: ""
+    Default: "v1-recording-importer"
   BBBCacheAZMode:
     Description: Redis Cache AZ Mode
     Type: String
@@ -806,18 +802,16 @@ Resources:
             - Outputs.BBBSMTPSecretProviderArn        
         BBBNotificationTopic:
           Ref: BBBNotificationTopic    
-        BBBgreenlightImage:
-          Ref: BBBgreenlightImage
-        BBBScaleliteApiImage:
-          Ref: BBBScaleliteApiImage
-        BBBScaleliteNginxImage:
-          Ref: BBBScaleliteNginxImage
-        BBBScalelitePollerImage:
-          Ref: BBBScalelitePollerImage
-        BBBScaleliteImporterImage:
-          Ref: BBBScaleliteImporterImage
-        BBBECRRegistry: 
-          Ref: BBBECRRegistry
+        BBBgreenlightImageTag:
+          Ref: BBBgreenlightImageTag
+        BBBScaleliteApiImageTag:
+          Ref: BBBScaleliteApiImageTag
+        BBBScaleliteNginxImageTag:
+          Ref: BBBScaleliteNginxImageTag
+        BBBScalelitePollerImageTag:
+          Ref: BBBScalelitePollerImageTag
+        BBBScaleliteImporterImageTag:
+          Ref: BBBScaleliteImporterImageTag
         BBBCacheDBAddress:
           Fn::GetAtt:
             - BBBCacheDBStack

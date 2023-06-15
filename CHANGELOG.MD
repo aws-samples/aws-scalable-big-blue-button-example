@@ -19,7 +19,8 @@ All notable changes to this project will be documented in this file.
 - Bootstrap Scripts moved to seperate bash script files for easier access for customization and lean cfn template. 
 - Removed the Instance Class/Familie restrictions from the templates. Still you need to use valid instances though depending on which are available for Amazon EC2, Amazon Elasticache and Amazon RDS. 
 - Removed the Custom AMI finder and relate to AWS Parameter Store default offering via resolve Function
-- Switched from the docker pull, push to ECR local workflow to ECR pull through cache
+- Switched from the docker pull, push to ECR local workflow to ECR pull through cache. 
+- Added scanonPush to the ECR registry for security scaning before delivery to the app servers
 - Removed the need for server-handler task to add and remove BBB Application server instances. commands are executed now directly at the scalelite-api task via the application server instance. This will speed up adding/removing of meeting servers. 
 - Removal of the seperate turn server. the turn server is now integrated into each BBB Application Server Instance seperately
 - updated cli53 version to 0.8.22
