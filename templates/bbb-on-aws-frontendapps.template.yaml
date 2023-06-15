@@ -40,6 +40,14 @@ Parameters:
   BBBECSCluster:
     Description: Reference for the ECS Cluster in which to deploy the services
     Type: String
+  BBBGreenlightRepositoryUri:
+    Description: Greenlight Repository URI
+    Type: String
+    Default: "bigbluebutton/greenlight"
+  BBBScaleliteRepositoryUri: 
+    Description: Scalelite Repository URI
+    Type: String
+    Default: "blindsidenetwks/scalelite"    
   BBBgreenlightImageTag:
     Description: Greenlight docker image identifier
     Type: String
@@ -171,32 +179,6 @@ Conditions:
   BBBSESNotValidatedGreenlight: !And [!Equals [!Ref BBBFrontendType, Greenlight], !Equals [ false, !Ref BBBSESValidated ]]
 
 Resources:
-  BBBScaleliteRegistry:
-    Type: AWS::ECR::Repository
-    Properties:
-      RepositoryName: blindsidenetwks/scalelite
-      ImageScanningConfiguration:
-        ScanOnPush: true
-
-  BBBGreenlightRegistry:
-    Type: AWS::ECR::Repository
-    Condition: BBBGreenlight
-    Properties:
-      RepositoryName: bigbluebutton/greenlight
-      ImageScanningConfiguration:
-        ScanOnPush: true
-
-  BBBImagePullRuleGreenlight:
-    Type: AWS::ECR::PullThroughCacheRule
-    Condition: BBBGreenlight
-    Properties:
-      UpstreamRegistryUrl: 'registry.hub.docker.com'
-
-  BBBImagePullRuleScalelite:
-    Type: AWS::ECR::PullThroughCacheRule
-    Properties:
-      UpstreamRegistryUrl: 'registry.hub.docker.com'
-
   BBBSESDomainIdentity:
     Type: Custom::DomainIdentity
     Condition: BBBSESNotValidatedGreenlight
@@ -620,7 +602,7 @@ Resources:
           Image: 
             !Join
               - ':'
-              - - !GetAtt BBBGreenlightRegistry.RepositoryUri
+              - - !Ref BBBGreenlightRepositoryUri
                 - !Ref BBBgreenlightImageTag
           LinuxParameters: 
             InitProcessEnabled: true
@@ -789,7 +771,7 @@ Resources:
           Image:
             !Join
               - ':'
-              - - !GetAtt BBBScaleliteRegistry.RepositoryUri 
+              - - !Ref BBBScaleliteRepositoryUri
                 - !Ref BBBScaleliteImporterImageTag
           MountPoints:
             - ContainerPath: /var/bigbluebutton/spool
@@ -835,7 +817,7 @@ Resources:
           Image: 
             !Join
               - ':'
-              - - !GetAtt BBBScaleliteRegistry.RepositoryUri 
+              - - !Ref BBBScaleliteRepositoryUri
                 - !Ref BBBScalelitePollerImageTag
           LinuxParameters: 
             InitProcessEnabled: true
@@ -874,7 +856,7 @@ Resources:
           Image:
             !Join
               - ':'
-              - - !GetAtt BBBScaleliteRegistry.RepositoryUri 
+              - - !Ref BBBScaleliteRepositoryUri 
                 - !Ref BBBScaleliteNginxImageTag
           EntryPoint:
             !If
@@ -939,7 +921,7 @@ Resources:
           Image: 
             !Join
               - ':'
-              - - !GetAtt BBBScaleliteRegistry.RepositoryUri 
+              - - !Ref BBBScaleliteRepositoryUri
                 - !Ref BBBScaleliteApiImageTag
           MountPoints:
             - ContainerPath: /var/bigbluebutton/spool

@@ -75,7 +75,6 @@ SOURCE=`echo "${SOURCE//\"}"`
 echo "##################################################"
 echo "Truncate the S3 Bucket"
 echo "##################################################"
-#aws s3 rm --profile=$BBBPROFILE s3://$SOURCE --recursive
 
 aws s3api --profile=$BBBPROFILE list-object-versions \
           --bucket $SOURCE \

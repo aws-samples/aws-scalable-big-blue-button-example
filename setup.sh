@@ -103,12 +103,61 @@ fi
 echo "##################################################"
 echo "File Copy finished"
 
+ENVIRONMENTTYPE=$(jq -r ".Parameters.BBBEnvironmentType" bbb-on-aws-param.json)
+
+if [ "$ENVIRONMENTTYPE" == 'scalable' ]
+then 
+  BBBECRStack="${BBBSTACK}-registry"
+  aws cloudformation deploy --profile=$BBBPROFILE --stack-name $BBBECRStack  \
+      --parameter-overrides $PARAMETERS \
+      $(jq -r '.Parameters | to_entries | map("\(.key)=\(.value)") | join(" ")' bbb-on-aws-param.json) \
+      --template ./templates/bbb-on-aws-registry.template.yaml
+
+  GREENLIGHTIMAGE=$(aws ecr describe-repositories --profile=$BBBPROFILE --query 'repositories[?contains(repositoryName, `greenlight`)].repositoryName' --output text)
+  SCALELITEIMAGE=$(aws ecr describe-repositories --profile=$BBBPROFILE --query 'repositories[?contains(repositoryName, `scalelite`)].repositoryName' --output text)
+
+  SCALEILITEREGISTRY=$(aws ecr describe-repositories --profile=$BBBPROFILE --query 'repositories[?contains(repositoryName, `scalelite`)].repositoryUri' --output text)
+  GREENLIGHTREGISTRY=$(aws ecr describe-repositories --profile=$BBBPROFILE --query 'repositories[?contains(repositoryName, `greenlight`)].repositoryUri' --output text)
+
+  # we will mirror the needed images from dockerhub and push towards ECR
+  echo "##################################################"
+  echo "Mirror docker images to ECR for further usage"
+  echo "##################################################"
+  
+  SCALELITEIMAGETAGS=( BBBScaleliteNginxImageTag BBBScaleliteApiImageTag BBBScalelitePollerImageTag BBBScaleliteImporterImageTag )
+  GREENLIGHTIMAGETAGS=( BBBgreenlightImageTag )
+
+  aws ecr get-login-password --profile=$BBBPROFILE | docker login --username AWS --password-stdin $SCALEILITEREGISTRY
+  aws ecr get-login-password --profile=$BBBPROFILE | docker login --username AWS --password-stdin $GREENLIGHTREGISTRY
+
+  for IMAGETAG in "${SCALELITEIMAGETAGS[@]}"
+  do
+    IMAGETAG=$(jq -r ".Parameters.$IMAGETAG" bbb-on-aws-param.json)
+    docker pull $SCALELITEIMAGE:$IMAGETAG
+    docker tag $SCALELITEIMAGE:$IMAGETAG $SCALELITEREGISTRY:$IMAGETAG
+    docker push $SCALELITEREGISTRY:$IMAGETAG
+  done
+  for IMAGETAG in "${GREENLIGHTIMAGETAGS[@]}"
+  do
+    IMAGETAG=$(jq -r ".Parameters.$IMAGETAG" bbb-on-aws-param.json)
+    docker pull $GREENLIGHTIMAGE:$IMAGETAG
+    docker tag $GREENLIGHTIMAGE:$IMAGETAG $GREENLIGHTREGISTRY:$IMAGETAG
+    docker push $GREENLIGHTREGISTRY:$IMAGETAG
+  done
+
+  echo "##################################################"
+  echo "Registry Preperation finished"
+else
+  REGISTRY="Dockerhub"
+fi
+
 # Setting the dynamic Parameters for the Deployment
 PARAMETERS=" BBBOperatorEMail=$OPERATOREMAIL \
              BBBStackBucketStack=$BBBSTACK-Sources \
              BBBDomainName=$DOMAIN \
              BBBHostedZone=$HOSTEDZONE \
-             BBBECRRegistry=$REGISTRY"
+             BBBGreenlightRepositoryUri=$GREENLIGHTREGISTRY:$IMAGETAG \
+             BBBScaleliteRepositoryUri=$SCALELITEREGISTRY:$IMAGETAG"
 
 # Deploy the BBB infrastructure. 
 echo "Building the BBB Environment"
