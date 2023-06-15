@@ -34,6 +34,7 @@ echo "using AWS Profile $BBBPROFILE"
 echo "##################################################"
 
 # Empty the ECR Repository
+BBBECRStack="${BBBSTACK}-registry"
 ENVIRONMENTTYPE=$(jq -r ".Parameters.BBBEnvironmentType" bbb-on-aws-param.json)
 if [ "$ENVIRONMENTTYPE" == 'scalable' ]
 then 
@@ -68,9 +69,7 @@ echo "deleting the Prerequisites stacks"
 echo "##################################################"
 
 BBBPREPSTACK="${BBBSTACK}-Sources"
-SOURCE=`aws cloudformation describe-stacks --profile=$BBBPROFILE --query "Stacks[0].Outputs[0].OutputValue" --stack-name $BBBPREPSTACK`
-
-SOURCE=`echo "${SOURCE//\"}"`
+SOURCE=$(aws cloudformation describe-stack-resources --profile $BBBPROFILE --stack-name $BBBPREPSTACK --query "StackResources[?ResourceType=='AWS::S3::Bucket'].PhysicalResourceId" --output text)
 
 echo "##################################################"
 echo "Truncate the S3 Bucket"
@@ -93,6 +92,9 @@ aws s3api --profile=$BBBPROFILE list-object-versions \
           --version-id $version 
    done
 done          
+
+aws cloudformation delete-stack --stack-name $BBBECRSTACK --profile=$BBBPROFILE
+aws cloudformation wait stack-delete-complete --profile=$BBBPROFILE --stack-name $BBBECRStack
 
 aws cloudformation delete-stack --stack-name $BBBPREPSTACK --profile=$BBBPROFILE
 aws cloudformation wait stack-delete-complete --profile=$BBBPROFILE --stack-name $BBBPREPSTACK
