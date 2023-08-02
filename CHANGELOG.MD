@@ -15,7 +15,7 @@ All notable changes to this project will be documented in this file.
 - ExecutionCommand Enabled for the ECS cluster, tasks are extended to be able to use aws ecs cli commands to log into the tasks for debug purposes
 - Update Big Blue Button version to 2.6 
 - Update Greenlight to version 3
-- Update Scalelite to version 1.5
+- Update Scalelite to version 1.4
 - Bootstrap Scripts moved to seperate bash script files for easier access for customization and lean cfn template. 
 - Removed the Instance Class/Familie restrictions from the templates. Still you need to use valid instances though depending on which are available for Amazon EC2, Amazon Elasticache and Amazon RDS. 
 - Removed the Custom AMI finder and relate to AWS Parameter Store default offering via resolve Function

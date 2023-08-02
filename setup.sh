@@ -124,7 +124,7 @@ then
   SCALELITEIMAGETAGS=( BBBScaleliteNginxImageTag BBBScaleliteApiImageTag BBBScalelitePollerImageTag BBBScaleliteImporterImageTag )
   GREENLIGHTIMAGETAGS=( BBBgreenlightImageTag )
 
-  aws ecr get-login-password --profile=$BBBPROFILE | docker login --username AWS --password-stdin $SCALEILITEREGISTRY
+  aws ecr get-login-password --profile=$BBBPROFILE | docker login --username AWS --password-stdin $SCALELITEREGISTRY
   aws ecr get-login-password --profile=$BBBPROFILE | docker login --username AWS --password-stdin $GREENLIGHTREGISTRY
 
   for IMAGETAG in "${SCALELITEIMAGETAGS[@]}"
