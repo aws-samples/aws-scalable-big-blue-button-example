@@ -3,7 +3,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [5.0.1] - 2023-06-15
+## [5.0.1] - 2023-08-02
  
 ### Fixed:
 - typo at setup.sh
