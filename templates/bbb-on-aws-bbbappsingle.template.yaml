@@ -12,7 +12,7 @@ Parameters:
   BBBApplicationVersion:
     Description: Application Version for BBB
     Type: String
-    Default: focal-260
+    Default: focal-270
   BBBOperatorEMail:
     Description: E-Mail address to notify if there are any operational issues
     Type: String

@@ -9,7 +9,7 @@ Description: >
   Author: David Surey <suredavi@amazon.com>
 
 Parameters:
-  BBBVPCs:
+  BBBVPC:
     Description: Reference for the VPC
     Type: String
   BBBEnvironmentType:
@@ -41,7 +41,7 @@ Resources:
     Condition: BBBScalableEnvironment
     Properties:
       GroupDescription: ECS Instance Security Group
-      VpcId: !Ref BBBVPCs
+      VpcId: !Ref BBBVPC
 
   BBBECSTaskSecurityGroupPorts:
     Type: AWS::EC2::SecurityGroupIngress
@@ -58,7 +58,7 @@ Resources:
     Condition: BBBScalableEnvironment
     Properties:
       GroupDescription: Scalelite Security Group
-      VpcId: !Ref BBBVPCs
+      VpcId: !Ref BBBVPC
 
   BBBScaleliteELBSecurityGroupPorts:
     Type: AWS::EC2::SecurityGroupIngress
@@ -75,7 +75,7 @@ Resources:
     Condition: BBBScalableGreenlight
     Properties:
       GroupDescription: ALB Security Group
-      VpcId: !Ref BBBVPCs
+      VpcId: !Ref BBBVPC
 
   BBBECSSecurityGroupPublicports:
     Type: AWS::EC2::SecurityGroupIngress
@@ -112,7 +112,7 @@ Resources:
     Condition: BBBScalableEnvironment
     Properties:
       VpcId:
-        Ref: BBBVPCs
+        Ref: BBBVPC
       GroupDescription: Security group for the Postgres DB
 
   BBBDBSecurityGroupPorts:
@@ -130,7 +130,7 @@ Resources:
     Condition: BBBScalableEnvironment
     Properties:
       VpcId:
-        Ref: BBBVPCs
+        Ref: BBBVPC
       GroupDescription: Security group for the Redis Cache
 
   BBBCACHEDBSecurityGroupPorts:
@@ -147,7 +147,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId:
-        Ref: BBBVPCs
+        Ref: BBBVPC
       GroupDescription: Security group for the BigBlueButton Application Host
 
   BBBApplicationSecurityGroupWebSSLPort:
@@ -209,7 +209,7 @@ Resources:
     Condition: BBBScalableEnvironment
     Properties:
       VpcId:
-        Ref: BBBVPCs
+        Ref: BBBVPC
       GroupDescription: Security group for the Shared Storage
 
   BBBSharedStorageSecurityGroupApplicationPort:

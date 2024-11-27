@@ -9,7 +9,7 @@ Description: >
   Authors: David Surey <suredavi@amazon.com>
 
 Parameters:
-  BBBVPCs:
+  BBBVPCCIDR:
     Description: Please enter the IP range (CIDR notation) for the BBB VPC
     Type: String
     Default: 10.1.0.0/16
@@ -36,9 +36,11 @@ Parameters:
   BBBApplicationVersion:
     Description: Version of the Big Blue Button Application
     Type: String
-    Default: focal-260
+    Default: focal-270
     AllowedValues: 
       - focal-260
+      - focal-270
+      - focal-300
   BBBApplicationInstanceAMIParameter: 
     Description: Ubuntu Version to be deployed for Application Instances 
     Default: "/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id"
@@ -232,7 +234,7 @@ Conditions:
   BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
   BBBScalableEnvironment: !Equals [!Ref BBBEnvironmentType, scalable]
   BBBSingleEnvironment: !Equals [!Ref BBBEnvironmentType, single]
-  BBBExistingVPC: !And [ !Not [ !Equals [ !Ref BBBVPCs, "" ]], !Equals [ !Select [ 0, !Split [ vpc-, !Ref BBBVPCs ]], "" ]]
+  BBBExistingVPC: !And [ !Not [ !Equals [ !Ref BBBVPCCIDR, "" ]], !Equals [ !Select [ 0, !Split [ vpc-, !Ref BBBVPCCIDR ]], "" ]]
   BBBNewVPC: !Not [ Condition: BBBExistingVPC ]
   BBBSESNotValidated: !Equals [false, !Ref BBBSESValidated]
   BBBGreenlight: !Equals [!Ref BBBFrontendType, Greenlight]
@@ -348,22 +350,10 @@ Resources:
             - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
             - "/bbb-on-aws-network.template.yaml"
       Parameters:
-        BBBVPCs:
-          Ref: BBBVPCs
+        BBBVPCCIDR:
+          Ref: BBBVPCCIDR
         BBBNumberOfAZs:
           Ref: BBBNumberOfAZs
-        BBBPrivateApplicationSubnets:
-          Fn::Join:
-            - ","
-            - Ref: BBBPrivateApplicationSubnets
-        BBBPrivateDBSubnets:
-          Fn::Join:
-            - ","
-            - Ref: BBBPrivateDBSubnets
-        BBBPublicApplicationSubnets:
-          Fn::Join:
-            - ","
-            - Ref: BBBPublicApplicationSubnets
         BBBEnvironmentStage:
           Ref: BBBEnvironmentStage
         BBBEnvironmentType:
@@ -387,13 +377,13 @@ Resources:
             - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
             - "/bbb-on-aws-securitygroups.template.yaml"
       Parameters:
-        BBBVPCs:
+        BBBVPC:
           Fn::If:
             - BBBNewVPC 
             - Fn::GetAtt:
               - BBBNetworkStack
-              - Outputs.BBBVPCs
-            - Ref: BBBVPCs
+              - Outputs.BBBVPC
+            - Ref: BBBVPCCIDR
         BBBEnvironmentType:
           Ref: BBBEnvironmentType
         BBBECSInstanceType:
@@ -753,13 +743,13 @@ Resources:
             - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
             - "/bbb-on-aws-frontendapps.template.yaml"
       Parameters:
-        BBBVPCs:
+        BBBVPC:
           Fn::If:
             - BBBNewVPC 
             - Fn::GetAtt:
               - BBBNetworkStack
-              - Outputs.BBBVPCs
-            - Ref: BBBVPCs
+              - Outputs.BBBVPC
+            - Ref: BBBVPCCIDR
         BBBRDSDBConnectionSecret:
           Fn::GetAtt:
             - BBBDatabaseStack

@@ -2,6 +2,17 @@
 # Change Log
 
 All notable changes to this project will be documented in this file.
+## [5.5.0] - 2024-11-27
+
+### Changed
+- pin platform for docker push/pull to linux/amd64 to ensure scripts are functional for arm based deployment systems
+- upgrade of the Engine Version to 16.4
+- upgrade of the (default) BBB version to 2.7.X
+- removed the validation step of the Amazon Cloudformation templates to speed up setup. 
+- switch to valkey 7.2 
+
+### Upgrade Notes: 
+- Upgrading the Amazon Aurora Postgres Engine version and/or the switch to Aurora Serverless v2 via Amazon Cloudformation is not supported. Please refer to the official [upgrade documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_UpgradeDBInstance.PostgreSQL.html) and [migrate to Aurora Serverless v2](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2.upgrade.html) if you have a already running environment using an older engine version and/or Aurora Serverless v1 to proceed with the upgrade before using the Cloudformation deployment. 
 
 ## [5.0.1] - 2023-08-02
  

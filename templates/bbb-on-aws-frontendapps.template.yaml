@@ -31,7 +31,7 @@ Parameters:
   BBBNotificationTopic:
     Description: Topic to be used for alarm notifications
     Type: String
-  BBBVPCs:
+  BBBVPC:
     Description: Reference for the VPC
     Type: String
   BBBRDSDBConnectionSecret:
@@ -485,7 +485,7 @@ Resources:
       TargetType: !If [ BBBECSFargate, ip, instance ]
       Protocol: HTTP
       UnhealthyThresholdCount: 3
-      VpcId: !Ref BBBVPCs
+      VpcId: !Ref BBBVPC
 
   BBBFrontendALBListenerHTTP2HTTPS:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -577,7 +577,7 @@ Resources:
       TargetType: !If [ BBBECSFargate, ip, instance ]
       Protocol: HTTP
       UnhealthyThresholdCount: 2
-      VpcId: !Ref BBBVPCs
+      VpcId: !Ref BBBVPC
 
   BBBgreenlightTaskdefinition:
     Type: AWS::ECS::TaskDefinition
