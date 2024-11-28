@@ -1,62 +1,79 @@
-#!/bin/bash
+#!/bin/sh
 # BBB Application Infrastructure destruction script
 # Author: David Surey - suredavi@amazon.de
 # Disclaimer: NOT FOR PRODUCTION USE - Only for demo and testing purposes
 
 # Color codes for output formatting
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+RED=$(printf '\033[0;31m')
+GREEN=$(printf '\033[0;32m')
+YELLOW=$(printf '\033[1;33m')
+BLUE=$(printf '\033[0;34m')
+NC=$(printf '\033[0m')
 
 # Logging configuration
-declare -A LOG_LEVELS=([DEBUG]=0 [INFO]=1 [WARN]=2 [ERROR]=3)
 LOG_LEVEL=${LOG_LEVEL:-"INFO"}  # Default to INFO if not set
 LOG_FILE="/tmp/bbb-destroy-$(date +%Y%m%d-%H%M%S).log"
 
+# Get numeric value for log level
+get_log_level_value() {
+    case $1 in
+        "DEBUG") echo 0 ;;
+        "INFO")  echo 1 ;;
+        "WARN")  echo 2 ;;
+        "ERROR") echo 3 ;;
+        *)       echo 1 ;; # Default to INFO
+    esac
+}
+
 # Logging function
 log() {
-    local level=$1
+    level=$1
     shift
-    local message=$*
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    message=$*
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     
-    # Check if level exists and meets minimum level
-    [[ ${LOG_LEVELS[$level]} ]] || return 1
-    (( ${LOG_LEVELS[$level]} < ${LOG_LEVELS[$LOG_LEVEL]} )) && return 2
+    # Check if level meets minimum level
+    current_level=$(get_log_level_value "$level")
+    minimum_level=$(get_log_level_value "$LOG_LEVEL")
+    
+    if [ "$current_level" -lt "$minimum_level" ]; then
+        return 2
+    fi
 
     # Color selection based on level
-    local color=""
     case $level in
         "DEBUG") color=$BLUE ;;
         "INFO") color=$GREEN ;;
         "WARN") color=$YELLOW ;;
         "ERROR") color=$RED ;;
+        *) color=$NC ;;
     esac
 
-    # Output to console with color and to log file without color
-    echo -e "${timestamp} [${color}${level}${NC}] ${message}" | tee >(sed "s/\x1B\[[0-9;]\{1,\}[A-Za-z]//g" >> "$LOG_FILE")
+    # Output to console with color
+    printf "%s [%s%s%s] %s\\n" "$timestamp" "$color" "$level" "$NC" "$message"
+    
+    # Output to log file without color
+    printf "%s [%s] %s\\n" "$timestamp" "$level" "$message" >> "$LOG_FILE"
     
     # Exit on ERROR level messages
-    if [[ $level == "ERROR" ]]; then
+    if [ "$level" = "ERROR" ]; then
         exit 1
     fi
 }
 
 # Input validation function
 validate_input() {
-    local param_name=$1
-    local param_value=$2
+    param_name=$1
+    param_value=$2
     
-    if [[ -z "$param_value" ]]; then
+    if [ -z "$param_value" ]; then
         log "ERROR" "Parameter ${param_name} is required but not provided"
     fi
 }
 
 # Usage information
 usage() {
-    echo -e "${BLUE}Usage: $0 -p <aws-profile> -s <stack-name>${NC}"
+    echo "Usage: $0 -p <aws-profile> -s <stack-name>"
     echo "Options:"
     echo "  -p : AWS Profile"
     echo "  -s : Stack Name"
@@ -69,19 +86,17 @@ BBBPROFILE=""
 BBBSTACK=""
 
 # Parse command line arguments
-while getopts ":p:s:l:" opt; do
+while getopts "p:s:l:" opt; do
     case $opt in
         p) BBBPROFILE="$OPTARG" ;;
         s) BBBSTACK="$OPTARG" ;;
         l) 
-            if [[ ${LOG_LEVELS[$OPTARG]} ]]; then
-                LOG_LEVEL="$OPTARG"
-            else
-                log "ERROR" "Invalid log level: $OPTARG. Valid levels are: ${!LOG_LEVELS[*]}"
-            fi
+            case $OPTARG in
+                DEBUG|INFO|WARN|ERROR) LOG_LEVEL="$OPTARG" ;;
+                *) log "ERROR" "Invalid log level: $OPTARG. Valid levels are: DEBUG INFO WARN ERROR" ;;
+            esac
             ;;
-        \?) log "ERROR" "Invalid option -$OPTARG" ;;
-        :) log "ERROR" "Option -$OPTARG requires an argument" ;;
+        *) usage ;;
     esac
 done
 
@@ -92,126 +107,67 @@ validate_input "Stack Name" "$BBBSTACK"
 
 # Check for required tools
 log "DEBUG" "Checking required tools..."
-if ! command -v aws >/dev/null 2>&1; then
+if ! command -v aws > /dev/null 2>&1; then
     log "ERROR" "aws CLI is not installed"
 fi
 
-if ! command -v jq >/dev/null 2>&1; then
-    log "ERROR" "jq is not installed"
-fi
-
-# Function to clean ECR repositories
-clean_ecr_repositories() {
-    log "INFO" "Checking environment type..."
-    ENVIRONMENTTYPE=$(jq -r ".Parameters.BBBEnvironmentType" bbb-on-aws-param.json)
-    
-    if [ "$ENVIRONMENTTYPE" == 'scalable' ]; then
-        log "INFO" "Cleaning ECR repositories..."
-        
-        GREENLIGHTREGISTRY=$(aws ecr describe-repositories --profile=$BBBPROFILE --query 'repositories[?contains(repositoryName, `greenlight`)].repositoryName' --output text)
-        SCALELITEREGISTRY=$(aws ecr describe-repositories --profile=$BBBPROFILE --query 'repositories[?contains(repositoryName, `scalelite`)].repositoryName' --output text)
-        
-        log "DEBUG" "Found Greenlight registry: $GREENLIGHTREGISTRY"
-        log "DEBUG" "Found Scalelite registry: $SCALELITEREGISTRY"
-        
-        if [ -n "$GREENLIGHTREGISTRY" ]; then
-            log "INFO" "Cleaning Greenlight repository..."
-            IMAGESGREENLIGHT=$(aws --profile $BBBPROFILE ecr describe-images --repository-name $GREENLIGHTREGISTRY --output json | jq '.[].[] | select (.imagePushedAt > 0) | .imageDigest')
-            for IMAGE in ${IMAGESGREENLIGHT[*]}; do
-                log "DEBUG" "Deleting image $IMAGE from Greenlight repository"
-                aws ecr --profile $BBBPROFILE batch-delete-image --repository-name $GREENLIGHTREGISTRY --image-ids imageDigest=$IMAGE
-            done
-        fi
-
-        if [ -n "$SCALELITEREGISTRY" ]; then
-            log "INFO" "Cleaning Scalelite repository..."
-            IMAGESSCALELITE=$(aws --profile $BBBPROFILE ecr describe-images --repository-name $SCALELITEREGISTRY --output json | jq '.[].[] | select (.imagePushedAt > 0) | .imageDigest')
-            for IMAGE in ${IMAGESSCALELITE[*]}; do
-                log "DEBUG" "Deleting image $IMAGE from Scalelite repository"
-                aws ecr --profile $BBBPROFILE batch-delete-image --repository-name $SCALELITEREGISTRY --image-ids imageDigest=$IMAGE
-            done
-        fi
-    fi
-}
-
-# Function to clean S3 bucket
-clean_s3_bucket() {
-    BBBPREPSTACK="${BBBSTACK}-Sources"
-    log "INFO" "Retrieving S3 bucket name from stack $BBBPREPSTACK"
-    
-    SOURCE=$(aws cloudformation describe-stack-resources --profile $BBBPROFILE --stack-name $BBBPREPSTACK --query "StackResources[?ResourceType=='AWS::S3::Bucket'].PhysicalResourceId" --output text)
-    
-    if [ -n "$SOURCE" ]; then
-        log "INFO" "Cleaning S3 bucket: $SOURCE"
-        log "DEBUG" "Listing object versions..."
-        aws s3api --profile=$BBBPROFILE list-object-versions \
-            --bucket $SOURCE \
-            --query "Versions[].Key" \
-            --output json | jq 'unique' | jq -r '.[]' | while read key; do
-            log "DEBUG" "Processing versions of object: $key"
-            aws s3api --profile=$BBBPROFILE list-object-versions \
-                --bucket $SOURCE \
-                --prefix $key \
-                --query "Versions[].VersionId" \
-                --output json | jq 'unique' | jq -r '.[]' | while read version; do
-                log "DEBUG" "Deleting version $version of object $key"
-                aws s3api --profile=$BBBPROFILE delete-object \
-                    --bucket $SOURCE \
-                    --key $key \
-                    --version-id $version
-            done
-        done
-    else
-        log "WARN" "No S3 bucket found in stack $BBBPREPSTACK"
-    fi
-}
-
 # Main execution starts here
-log "INFO" "Starting BBB environment destruction"
-log "INFO" "Using AWS Profile: $BBBPROFILE"
+log "INFO" "Starting BBB destruction with AWS Profile: $BBBPROFILE"
 log "INFO" "##################################################"
 
-# Clean ECR repositories first
-clean_ecr_repositories
-
-# Delete main BBB stack
-log "INFO" "Deleting BBB Environment stack: $BBBSTACK"
-if ! aws cloudformation delete-stack --profile=$BBBPROFILE --stack-name $BBBSTACK; then
-    log "ERROR" "Failed to initiate deletion of stack $BBBSTACK"
-fi
-
-log "INFO" "Waiting for stack deletion to complete..."
-if ! aws cloudformation wait stack-delete-complete --profile=$BBBPROFILE --stack-name $BBBSTACK; then
-    log "ERROR" "Stack deletion failed or timed out"
-fi
-log "INFO" "BBB Environment stack deleted successfully"
-
-# Clean S3 bucket
-clean_s3_bucket
-
-# Delete prerequisite stacks
-BBBECRSTACK="${BBBSTACK}-Registry"
+# Get source bucket name
+log "INFO" "Getting source bucket name"
 BBBPREPSTACK="${BBBSTACK}-Sources"
+SOURCE=$(aws cloudformation describe-stack-resources \
+    --profile "$BBBPROFILE" \
+    --stack-name "$BBBPREPSTACK" \
+    --query "StackResources[?ResourceType=='AWS::S3::Bucket'].PhysicalResourceId" \
+    --output text)
 
-log "INFO" "Deleting ECR stack: $BBBECRSTACK"
-if ! aws cloudformation delete-stack --stack-name $BBBECRSTACK --profile=$BBBPROFILE; then
-    log "ERROR" "Failed to initiate deletion of ECR stack"
+if [ -z "$SOURCE" ]; then
+    log "WARN" "Source bucket not found, continuing with deletion"
+else
+    log "INFO" "Found source bucket: $SOURCE"
 fi
 
-log "INFO" "Deleting Sources stack: $BBBPREPSTACK"
-if ! aws cloudformation delete-stack --stack-name $BBBPREPSTACK --profile=$BBBPROFILE; then
-    log "ERROR" "Failed to initiate deletion of Sources stack"
+# Empty S3 buckets
+log "INFO" "Emptying S3 buckets"
+if [ -n "$SOURCE" ]; then
+    log "DEBUG" "Emptying source bucket: $SOURCE"
+    aws s3 rm "s3://$SOURCE" --recursive --profile "$BBBPROFILE"
 fi
 
-log "INFO" "Waiting for prerequisite stacks deletion to complete..."
-if ! aws cloudformation wait stack-delete-complete --profile=$BBBPROFILE --stack-name $BBBECRSTACK; then
-    log "WARN" "ECR stack deletion failed or timed out"
+# Delete ECR Repository
+log "INFO" "Deleting ECR Repository"
+BBBECRSTACK="${BBBSTACK}-Registry"
+if aws cloudformation describe-stacks --stack-name "$BBBECRSTACK" --profile "$BBBPROFILE" > /dev/null 2>&1; then
+    log "DEBUG" "Deleting ECR stack: $BBBECRSTACK"
+    aws cloudformation delete-stack --stack-name "$BBBECRSTACK" --profile "$BBBPROFILE"
+    aws cloudformation wait stack-delete-complete --stack-name "$BBBECRSTACK" --profile "$BBBPROFILE"
+else
+    log "WARN" "ECR stack not found: $BBBECRSTACK"
 fi
 
-if ! aws cloudformation wait stack-delete-complete --profile=$BBBPROFILE --stack-name $BBBPREPSTACK; then
-    log "WARN" "Sources stack deletion failed or timed out"
+# Delete main stack
+log "INFO" "Deleting main BBB stack"
+if aws cloudformation describe-stacks --stack-name "$BBBSTACK" --profile "$BBBPROFILE" > /dev/null 2>&1; then
+    log "DEBUG" "Deleting main stack: $BBBSTACK"
+    aws cloudformation delete-stack --stack-name "$BBBSTACK" --profile "$BBBPROFILE"
+    aws cloudformation wait stack-delete-complete --stack-name "$BBBSTACK" --profile "$BBBPROFILE"
+else
+    log "WARN" "Main stack not found: $BBBSTACK"
 fi
 
-log "INFO" "BBB environment destruction completed successfully"
+# Delete source bucket stack
+log "INFO" "Deleting source bucket stack"
+if aws cloudformation describe-stacks --stack-name "$BBBPREPSTACK" --profile "$BBBPROFILE" > /dev/null 2>&1; then
+    log "DEBUG" "Deleting source bucket stack: $BBBPREPSTACK"
+    aws cloudformation delete-stack --stack-name "$BBBPREPSTACK" --profile "$BBBPROFILE"
+    aws cloudformation wait stack-delete-complete --stack-name "$BBBPREPSTACK" --profile "$BBBPROFILE"
+else
+    log "WARN" "Source bucket stack not found: $BBBPREPSTACK"
+fi
+
+log "INFO" "Destruction completed successfully"
 log "INFO" "Log file available at: $LOG_FILE"
 exit 0

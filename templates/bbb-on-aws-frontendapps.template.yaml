@@ -22,11 +22,8 @@ Parameters:
   BBBScaleliteELBSecurityGroup:
     Description: Security Group that should be assigned for the Scalelite ELB
     Type: String
-  BBBPublicApplicationSubnets:
+  BBBApplicationSubnets:
     Description: Comma separated list of the public subnets
-    Type: CommaDelimitedList
-  BBBPrivateApplicationSubnets:
-    Description: Comma separated list of the private EC2 instance subnets
     Type: CommaDelimitedList
   BBBNotificationTopic:
     Description: Topic to be used for alarm notifications
@@ -454,7 +451,7 @@ Resources:
       LoadBalancerAttributes:
         - Key: idle_timeout.timeout_seconds
           Value: "30"
-      Subnets: !Ref BBBPublicApplicationSubnets
+      Subnets: !Ref BBBApplicationSubnets
       SecurityGroups:
         - !Ref BBBFrontendELBSecurityGroup
 
@@ -481,6 +478,8 @@ Resources:
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 60
       HealthyThresholdCount: 3
+      Matcher:
+        HttpCode: "200,301"
       Port: !If [ BBBECSFargate, 3000, 80 ]
       TargetType: !If [ BBBECSFargate, ip, instance ]
       Protocol: HTTP
@@ -536,7 +535,7 @@ Resources:
       LoadBalancerAttributes:
         - Key: idle_timeout.timeout_seconds
           Value: "30"
-      Subnets: !Ref BBBPublicApplicationSubnets
+      Subnets: !Ref BBBApplicationSubnets
       SecurityGroups:
         - !Ref BBBScaleliteELBSecurityGroup
 
@@ -679,7 +678,7 @@ Resources:
             AssignPublicIp: DISABLED
             SecurityGroups:
               - !Ref BBBECSTaskSecurityGroup
-            Subnets: !Ref BBBPrivateApplicationSubnets
+            Subnets: !Ref BBBApplicationSubnets
         - !Ref "AWS::NoValue"
       LoadBalancers:
         - ContainerName: greenlight
@@ -982,7 +981,7 @@ Resources:
             AssignPublicIp: DISABLED
             SecurityGroups:
               - !Ref BBBECSTaskSecurityGroup
-            Subnets: !Ref BBBPrivateApplicationSubnets
+            Subnets: !Ref BBBApplicationSubnets
         - !Ref "AWS::NoValue"
       LoadBalancers:
         - ContainerName: scalelite-nginx

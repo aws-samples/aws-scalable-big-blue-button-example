@@ -51,8 +51,8 @@ Resources:
       InternetGatewayId: !Ref BBBIGW
       VpcId: !Ref BBBVPC
 
-  # Dynamic Public Application Subnets
-  BBBPublicApplicationSubnet1:
+  # Dynamic Application Subnets
+  BBBApplicationSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref BBBVPC
@@ -60,7 +60,7 @@ Resources:
       MapPublicIpOnLaunch: true
       CidrBlock: !Select [0, !Cidr [!Ref BBBVPCDEF, 9, 8]]
 
-  BBBPublicApplicationSubnet2:
+  BBBApplicationSubnet2:
     Type: AWS::EC2::Subnet
     Condition: BBBBuild2AZs
     Properties:
@@ -69,7 +69,7 @@ Resources:
       MapPublicIpOnLaunch: true
       CidrBlock: !Select [1, !Cidr [!Ref BBBVPCDEF, 9, 8]]
 
-  BBBPublicApplicationSubnet3:
+  BBBApplicationSubnet3:
     Type: AWS::EC2::Subnet
     Condition: BBBBuild3AZs
     Properties:
@@ -78,36 +78,8 @@ Resources:
       MapPublicIpOnLaunch: true
       CidrBlock: !Select [2, !Cidr [!Ref BBBVPCDEF, 9, 8]]
 
-  # Dynamic Private Application Subnets
-  BBBPrivateApplicationSubnet1:
-    Type: AWS::EC2::Subnet
-    Condition: BBBScalableEnvironment
-    Properties:
-      VpcId: !Ref BBBVPC
-      AvailabilityZone: !Select [0, !GetAZs '']
-      MapPublicIpOnLaunch: false
-      CidrBlock: !Select [3, !Cidr [!Ref BBBVPCDEF, 9, 8]]
-
-  BBBPrivateApplicationSubnet2:
-    Type: AWS::EC2::Subnet
-    Condition: BBBBuild2AZs
-    Properties:
-      VpcId: !Ref BBBVPC
-      AvailabilityZone: !Select [1, !GetAZs '']
-      MapPublicIpOnLaunch: false
-      CidrBlock: !Select [4, !Cidr [!Ref BBBVPCDEF, 9, 8]]
-
-  BBBPrivateApplicationSubnet3:
-    Type: AWS::EC2::Subnet
-    Condition: BBBBuild3AZs
-    Properties:
-      VpcId: !Ref BBBVPC
-      AvailabilityZone: !Select [2, !GetAZs '']
-      MapPublicIpOnLaunch: false
-      CidrBlock: !Select [5, !Cidr [!Ref BBBVPCDEF, 9, 8]]
-
-  # Dynamic Private DB Subnets
-  BBBPrivateDBSubnet1:
+  # Dynamic Private Datastore Subnets
+  BBBDatastoreSubnet1:
     Type: AWS::EC2::Subnet
     Condition: BBBScalableEnvironment
     Properties:
@@ -116,7 +88,7 @@ Resources:
       MapPublicIpOnLaunch: false
       CidrBlock: !Select [6, !Cidr [!Ref BBBVPCDEF, 9, 8]]
 
-  BBBPrivateDBSubnet2:
+  BBBDatastoreSubnet2:
     Type: AWS::EC2::Subnet
     Condition: BBBBuild2AZs
     Properties:
@@ -125,7 +97,7 @@ Resources:
       MapPublicIpOnLaunch: false
       CidrBlock: !Select [7, !Cidr [!Ref BBBVPCDEF, 9, 8]]
 
-  BBBPrivateDBSubnet3:
+  BBBDatastoreSubnet3:
     Type: AWS::EC2::Subnet
     Condition: BBBBuild3AZs
     Properties:
@@ -134,112 +106,50 @@ Resources:
       MapPublicIpOnLaunch: false
       CidrBlock: !Select [8, !Cidr [!Ref BBBVPCDEF, 9, 8]]
 
-  # NAT Gateway Resources
-  BBBNatGateway1EIP:
-    Type: AWS::EC2::EIP
-    Condition: BBBScalableEnvironment
-    DependsOn: BBBIGWAttachment
-    Properties:
-      Domain: vpc
-
-  BBBNatGateway2EIP:
-    Type: AWS::EC2::EIP
-    Condition: BBBScalableandProdEnvironment
-    DependsOn: BBBIGWAttachment
-    Properties:
-      Domain: vpc
-
-  BBBNatGateway1:
-    Type: AWS::EC2::NatGateway
-    Condition: BBBScalableEnvironment
-    Properties:
-      AllocationId: !GetAtt BBBNatGateway1EIP.AllocationId
-      SubnetId: !Ref BBBPublicApplicationSubnet1
-
-  BBBNatGateway2:
-    Type: AWS::EC2::NatGateway
-    Condition: BBBScalableandProdEnvironment
-    Properties:
-      AllocationId: !GetAtt BBBNatGateway2EIP.AllocationId
-      SubnetId: !Ref BBBPublicApplicationSubnet2
-
   # Route Tables
-  BBBPublicRouteTable:
+  BBBRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref BBBVPC
 
-  BBBDefaultPublicRoute:
+  BBBDefaultRoute:
     Type: AWS::EC2::Route
     DependsOn: BBBIGWAttachment
     Properties:
-      RouteTableId: !Ref BBBPublicRouteTable
+      RouteTableId: !Ref BBBRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref BBBIGW
 
-  BBBPublicApplicationSubnet1RouteTableAssociation:
+  BBBApplicationSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      RouteTableId: !Ref BBBPublicRouteTable
-      SubnetId: !Ref BBBPublicApplicationSubnet1
+      RouteTableId: !Ref BBBRouteTable
+      SubnetId: !Ref BBBApplicationSubnet1
 
-  BBBPublicApplicationSubnet2RouteTableAssociation:
+  BBBApplicationSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Condition: BBBBuild2AZs
     Properties:
-      RouteTableId: !Ref BBBPublicRouteTable
-      SubnetId: !Ref BBBPublicApplicationSubnet2
+      RouteTableId: !Ref BBBRouteTable
+      SubnetId: !Ref BBBApplicationSubnet2
 
-  BBBPublicApplicationSubnet3RouteTableAssociation:
+  BBBApplicationSubnet3RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Condition: BBBBuild3AZs
     Properties:
-      RouteTableId: !Ref BBBPublicRouteTable
-      SubnetId: !Ref BBBPublicApplicationSubnet3
-
-  BBBPrivateRouteTable1:
-    Type: AWS::EC2::RouteTable
-    Condition: BBBScalableEnvironment
-    Properties:
-      VpcId: !Ref BBBVPC
-
-  BBBDefaultPrivateRoute1:
-    Type: AWS::EC2::Route
-    Condition: BBBScalableEnvironment
-    Properties:
-      RouteTableId: !Ref BBBPrivateRouteTable1
-      DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref BBBNatGateway1
-
-  BBBPrivateRouteTable2:
-    Type: AWS::EC2::RouteTable
-    Condition: BBBBuild2AZs
-    Properties:
-      VpcId: !Ref BBBVPC
-
-  BBBDefaultPrivateRoute2:
-    Type: AWS::EC2::Route
-    Condition: BBBScalableandProdEnvironment
-    Properties:
-      RouteTableId: !Ref BBBPrivateRouteTable2
-      DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref BBBNatGateway2
+      RouteTableId: !Ref BBBRouteTable
+      SubnetId: !Ref BBBApplicationSubnet3
 
 Outputs:
   BBBVPC:
     Description: VPC ID
     Value: !Ref BBBVPC
 
-  BBBPublicApplicationSubnets:
-    Description: A list of the public Application subnets
-    Value: !Join [ ",", [ !Ref BBBPublicApplicationSubnet1, !If [ BBBBuild2AZs, !Ref BBBPublicApplicationSubnet2,  !Ref "AWS::NoValue"], !If [ BBBBuild3AZs, !Ref BBBPublicApplicationSubnet3,  !Ref "AWS::NoValue"]]]
+  BBBApplicationSubnets:
+    Description: A list of the application subnets
+    Value: !Join [ ",", [ !Ref BBBApplicationSubnet1, !If [ BBBBuild2AZs, !Ref BBBApplicationSubnet2,  !Ref "AWS::NoValue"], !If [ BBBBuild3AZs, !Ref BBBApplicationSubnet3,  !Ref "AWS::NoValue"]]]
 
-  BBBPrivateApplicationSubnets:
-    Description: A list of the private Instance subnets
+  BBBDatastoreSubnets:
+    Description: A list of the database subnets
     Condition: BBBScalableEnvironment
-    Value: !Join [ ",", [ !Ref BBBPrivateApplicationSubnet1, !If [ BBBBuild2AZs, !Ref BBBPrivateApplicationSubnet2,  !Ref "AWS::NoValue"], !If [ BBBBuild3AZs, !Ref BBBPrivateApplicationSubnet3,  !Ref "AWS::NoValue"]]]
-
-  BBBPrivateDBSubnets:
-    Description: A list of the private database subnets
-    Condition: BBBScalableEnvironment
-    Value: !Join [ ",", [ !Ref BBBPrivateDBSubnet1, !If [ BBBBuild2AZs, !Ref BBBPrivateDBSubnet2,  !Ref "AWS::NoValue"], !If [ BBBBuild3AZs, !Ref BBBPrivateDBSubnet3,  !Ref "AWS::NoValue"]]]
+    Value: !Join [ ",", [ !Ref BBBDatastoreSubnet1, !If [ BBBBuild2AZs, !Ref BBBDatastoreSubnet2,  !Ref "AWS::NoValue"], !If [ BBBBuild3AZs, !Ref BBBDatastoreSubnet3,  !Ref "AWS::NoValue"]]]

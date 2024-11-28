@@ -1,56 +1,73 @@
-#!/bin/bash
+#!/bin/sh
 # BBB Application Infrastructure deployment script
 # Author: David Surey - suredavi@amazon.de
 # Disclaimer: NOT FOR PRODUCTION USE - Only for demo and testing purposes
 
 # Color codes for output formatting
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Using printf to ensure proper escape sequence interpretation
+RED=$(printf '\033[0;31m')
+GREEN=$(printf '\033[0;32m')
+YELLOW=$(printf '\033[1;33m')
+BLUE=$(printf '\033[0;34m')
+NC=$(printf '\033[0m')
 
 # Logging configuration
-declare -A LOG_LEVELS=([DEBUG]=0 [INFO]=1 [WARN]=2 [ERROR]=3)
 LOG_LEVEL=${LOG_LEVEL:-"INFO"}  # Default to INFO if not set
 LOG_FILE="/tmp/bbb-setup-$(date +%Y%m%d-%H%M%S).log"
 
+# Get numeric value for log level
+get_log_level_value() {
+    case $1 in
+        "DEBUG") echo 0 ;;
+        "INFO")  echo 1 ;;
+        "WARN")  echo 2 ;;
+        "ERROR") echo 3 ;;
+        *)       echo 1 ;; # Default to INFO
+    esac
+}
+
 # Logging function
 log() {
-    local level=$1
+    level=$1
     shift
-    local message=$*
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    message=$*
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     
-    # Check if level exists and meets minimum level
-    [[ ${LOG_LEVELS[$level]} ]] || return 1
-    (( ${LOG_LEVELS[$level]} < ${LOG_LEVELS[$LOG_LEVEL]} )) && return 2
+    # Check if level meets minimum level
+    current_level=$(get_log_level_value "$level")
+    minimum_level=$(get_log_level_value "$LOG_LEVEL")
+    
+    if [ "$current_level" -lt "$minimum_level" ]; then
+        return 2
+    fi
 
     # Color selection based on level
-    local color=""
     case $level in
         "DEBUG") color=$BLUE ;;
         "INFO") color=$GREEN ;;
         "WARN") color=$YELLOW ;;
         "ERROR") color=$RED ;;
+        *) color=$NC ;;
     esac
 
-    # Output to console with color and to log file without color
-    echo -e "${timestamp} [${color}${level}${NC}] ${message}" | tee >(sed "s/\x1B\[[0-9;]\{1,\}[A-Za-z]//g" >> "$LOG_FILE")
+    # Output to console with color
+    printf "%s [%s%s%s] %s\\n" "$timestamp" "$color" "$level" "$NC" "$message"
+    
+    # Output to log file without color
+    printf "%s [%s] %s\\n" "$timestamp" "$level" "$message" >> "$LOG_FILE"
     
     # Exit on ERROR level messages
-    if [[ $level == "ERROR" ]]; then
+    if [ "$level" = "ERROR" ]; then
         exit 1
     fi
 }
 
-
 # Input validation function
 validate_input() {
-    local param_name=$1
-    local param_value=$2
+    param_name=$1
+    param_value=$2
     
-    if [[ -z "$param_value" ]]; then
+    if [ -z "$param_value" ]; then
         log "ERROR" "Parameter ${param_name} is required but not provided"
     fi
 }
@@ -76,7 +93,7 @@ BBBSTACK=""
 DOMAIN=""
 
 # Parse command line arguments
-while getopts ":p:e:h:s:d:l:" opt; do
+while getopts "p:e:h:s:d:l:" opt; do
     case $opt in
         p) BBBPROFILE="$OPTARG" ;;
         e) OPERATOREMAIL="$OPTARG" ;;
@@ -84,14 +101,12 @@ while getopts ":p:e:h:s:d:l:" opt; do
         s) BBBSTACK="$OPTARG" ;;
         d) DOMAIN="$OPTARG" ;;
         l) 
-            if [[ ${LOG_LEVELS[$OPTARG]} ]]; then
-                LOG_LEVEL="$OPTARG"
-            else
-                log "ERROR" "Invalid log level: $OPTARG. Valid levels are: ${!LOG_LEVELS[*]}"
-            fi
+            case $OPTARG in
+                DEBUG|INFO|WARN|ERROR) LOG_LEVEL="$OPTARG" ;;
+                *) log "ERROR" "Invalid log level: $OPTARG. Valid levels are: DEBUG INFO WARN ERROR" ;;
+            esac
             ;;
-        \?) log "ERROR" "Invalid option -$OPTARG" ;;
-        :) log "ERROR" "Option -$OPTARG requires an argument" ;;
+        *) log "ERROR" "Invalid option -$OPTARG" ;;
     esac
 done
 
@@ -103,22 +118,22 @@ validate_input "Hosted Zone" "$HOSTEDZONE"
 validate_input "Stack Name" "$BBBSTACK"
 validate_input "Domain" "$DOMAIN"
 
-# Validate email format
-if ! echo "$OPERATOREMAIL" | grep -E "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" >/dev/null; then
+# Validate email format using grep
+if ! echo "$OPERATOREMAIL" | grep -E "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" > /dev/null; then
     log "ERROR" "Invalid email format: $OPERATOREMAIL"
 fi
 
 # Check for required tools
 log "DEBUG" "Checking required tools..."
-if ! command -v aws >/dev/null 2>&1; then
+if ! command -v aws > /dev/null 2>&1; then
     log "ERROR" "aws CLI is not installed"
 fi
 
-if ! docker ps >/dev/null 2>&1; then
+if ! docker ps > /dev/null 2>&1; then
     log "ERROR" "Docker is not running or not installed"
 fi
 
-if ! command -v jq >/dev/null 2>&1; then
+if ! command -v jq > /dev/null 2>&1; then
     log "ERROR" "jq is not installed"
 fi
 
@@ -155,16 +170,12 @@ else
     log "ERROR" "Required source directories (templates/ or scripts/) are missing"
 fi
 
-# Rest of your existing script with logging added...
-# For each major operation, add appropriate logging statements
-
-# Example for environment type check
+# Environment type check
 ENVIRONMENTTYPE=$(jq -r ".Parameters.BBBEnvironmentType" bbb-on-aws-param.json)
 log "DEBUG" "Environment type: $ENVIRONMENTTYPE"
 
-if [ "$ENVIRONMENTTYPE" == 'scalable' ]; then
+if [ "$ENVIRONMENTTYPE" = "scalable" ]; then
     log "INFO" "Setting up scalable environment components"
-    # ... rest of your scalable environment setup ...
 fi
 
 # Final deployment

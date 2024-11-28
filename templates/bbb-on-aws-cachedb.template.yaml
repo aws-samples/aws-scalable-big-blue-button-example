@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Redis Cluster (Amazon ElastiCache) template'
+Description: 'Amazon ElastiCache template'
 
 Parameters:
   BBBNotificationTopic:
@@ -7,12 +7,13 @@ Parameters:
     Type: String
 
   BBBCACHEDBInstanceType:
-    Description: Instance type for Amazon ElastiCache (Redis)
+    Description: Instance type for Amazon ElastiCache
     Type: String
-    Default: cache.t3.micro
+    Default: cache.t4g.micro
+    AllowedPattern: ^(cache\.(t3|t4g|m6g|m7g|r6g|r7g)\.(micro|small|medium|large|xlarge|2xlarge|4xlarge|8xlarge|12xlarge|16xlarge))$
 
-  BBBPrivateDBSubnets:
-    Description: Comma separated list of the private database subnets
+  BBBDatastoreSubnets:
+    Description: Comma separated list of the datastore subnets
     Type: CommaDelimitedList
   
   BBBCACHEDBSecurityGroup:
@@ -20,7 +21,7 @@ Parameters:
     Type: String
 
   BBBCacheAZMode:
-    Description: Redis Cache AZ Mode
+    Description: ElastiCache Cache AZ Mode
     Type: String
     Default: single-az
     AllowedValues:
@@ -29,62 +30,69 @@ Parameters:
 
 Mappings:
   CacheSettings:
-    Redis:
+    ElastiCache:
       Engine: valkey
       Version: '7.2'
       Port: 6379
       Family: valkey7
+
+Conditions:
+  IsCrossAZ: !Equals [!Ref BBBCacheAZMode, "cross-az"]
 
 Resources:
   BBBCacheSubnetGroup:
     Type: AWS::ElastiCache::SubnetGroup
     Properties:
       Description: !Sub CacheSubnetGroup-${AWS::StackName}
-      SubnetIds: !Ref BBBPrivateDBSubnets
+      SubnetIds: !Ref BBBDatastoreSubnets
 
   BBBParametersGroup:
     Type: AWS::ElastiCache::ParameterGroup
     Properties:
-      CacheParameterGroupFamily: !FindInMap [CacheSettings, Redis, Family]
-      Description: "Redis parameter group with performance optimizations"
+      CacheParameterGroupFamily: !FindInMap [CacheSettings, ElastiCache, Family]
+      Description: "ElastiCache parameter group with performance optimizations"
       Properties:
         tcp-keepalive: 60
         timeout: 900
 
-  BBBElasticacheRedis:
+  BBBElasticache:
     Type: AWS::ElastiCache::ReplicationGroup
     Properties:
-      ReplicationGroupId: !Sub ${AWS::StackName}-cache
+      ReplicationGroupId: !Sub 'bbb-${AWS::Region}-${AWS::AccountId}'
       ReplicationGroupDescription: !Sub ${AWS::StackName} Cache Cluster
       NumCacheClusters: 1
       CacheNodeType: !Ref BBBCACHEDBInstanceType
       CacheParameterGroupName: !Ref BBBParametersGroup
       CacheSubnetGroupName: !Ref BBBCacheSubnetGroup
-      Engine: !FindInMap [CacheSettings, Redis, Engine]
-      EngineVersion: !FindInMap [CacheSettings, Redis, Version]
-      Port: !FindInMap [CacheSettings, Redis, Port]
+      Engine: !FindInMap [CacheSettings, ElastiCache, Engine]
+      EngineVersion: !FindInMap [CacheSettings, ElastiCache, Version]
+      Port: !FindInMap [CacheSettings, ElastiCache, Port]
       NotificationTopicArn: !Ref BBBNotificationTopic
       SecurityGroupIds: [!Ref BBBCACHEDBSecurityGroup]
       AutomaticFailoverEnabled: false
-      MultiAZEnabled: !Equals [!Ref BBBCacheAZMode, "cross-az"]
+      TransitEncryptionEnabled: false
+      MultiAZEnabled: !If 
+        - IsCrossAZ
+        - true
+        - false
 
 Outputs:
   BBBCacheDBAddress:
     Description: The Big Blue Button Cache Database Address
-    Value: !GetAtt BBBElasticacheRedis.PrimaryEndPoint.Address
+    Value: !GetAtt BBBElasticache.PrimaryEndPoint.Address
 
   BBBCacheDBPort:
     Description: The Big Blue Button Cache Database Port
-    Value: !GetAtt BBBElasticacheRedis.PrimaryEndPoint.Port
+    Value: !GetAtt BBBElasticache.PrimaryEndPoint.Port
 
-  BBBElasticacheRedis:
-    Description: The Big Blue Button Cache Redis Cluster
-    Value: !Ref BBBElasticacheRedis
+  BBBElasticache:
+    Description: The Big Blue Button Cache ElastiCache Cluster
+    Value: !Ref BBBElasticache
 
   BBBParametersGroup:
-    Description: The Big Blue Button Cache Redis Parameter Group
+    Description: The Big Blue Button Cache ElastiCache Parameter Group
     Value: !Ref BBBParametersGroup
 
   BBBCacheSubnetGroup:
-    Description: The Big Blue Button Cache Redis Subnet Group
+    Description: The Big Blue Button Cache ElastiCache Subnet Group
     Value: !Ref BBBCacheSubnetGroup

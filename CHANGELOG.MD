@@ -10,6 +10,9 @@ All notable changes to this project will be documented in this file.
 - upgrade of the (default) BBB version to 2.7.X
 - removed the validation step of the Amazon Cloudformation templates to speed up setup. 
 - switch to valkey 7.2 
+- reorganization and optimizing the templates for better maintainability and readability
+- setup.sh and destroy.sh are now shell agnostic and improved
+- stripped down new to create vpc to the minimum needed to remove complexity for the sample code
 
 ### Upgrade Notes: 
 - Upgrading the Amazon Aurora Postgres Engine version and/or the switch to Aurora Serverless v2 via Amazon Cloudformation is not supported. Please refer to the official [upgrade documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_UpgradeDBInstance.PostgreSQL.html) and [migrate to Aurora Serverless v2](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2.upgrade.html) if you have a already running environment using an older engine version and/or Aurora Serverless v1 to proceed with the upgrade before using the Cloudformation deployment. 

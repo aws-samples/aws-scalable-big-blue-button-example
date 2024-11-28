@@ -34,10 +34,12 @@ Parameters:
   BBBApplicationInstanceAMI: 
     Description: Ubuntu AMI ID for Application Instances 
     Type: String
-  BBBApplicationInstanceType:
-    Description: Instance type for the appserver
+   BBBApplicationInstanceType:
+    Description: Instance type for BBB Application Server (x86_64 only)
     Type: String
-    Default: t3a.xlarge
+    Default: c5.2xlarge
+    AllowedPattern: ^(t3|t3a|m5|m5a|m5n|m5zn|m6i|m6a|m6in|c5|c5a|c5n|c6i|c6a|c6in|r5|r5a|r5b|r5n|r6i|r6a|r6in)\.(medium|large|xlarge|2xlarge|4xlarge|8xlarge|12xlarge|16xlarge|24xlarge)$
+    ConstraintDescription: Must be a valid x86_64 EC2 instance type with at least 2 vCPUs. Example: c5.2xlarge, m5.2xlarge
   BBBApplicationDataVolumeSize:
     Description: Size of the application instance data volume
     Type: Number
@@ -233,7 +235,7 @@ Resources:
             
             while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
             
-            apt install -y git jq unzip python3-pip
+            apt install -y git jq unzip python3-pip binutils rustc cargo pkg-config libssl-dev gettext
             
             cd /tmp
 

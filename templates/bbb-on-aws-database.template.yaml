@@ -13,9 +13,10 @@ Parameters:
     Type: Number
     Default: 5432
   BBBDBInstanceType:
-    Description: DB RDS instance type
+    Description: DB instance type for Aurora PostgreSQL
     Type: String
     Default: db.serverless
+    AllowedPattern: ^(db\.(serverless|(t3|t4g|r5|r6g|r6i|r7g)\.(medium|large|xlarge|2xlarge|4xlarge|8xlarge|12xlarge|16xlarge|24xlarge)))$
   BBBServerlessAuroraMinCapacity:
     Description: The minimum capacity for the Amazon Aurora Serverless Cluster
     Type: Number
@@ -24,7 +25,7 @@ Parameters:
     Description: The maximum capacity for the Amazon Aurora Serverless Cluster
     Type: Number
     Default: 4
-  BBBPrivateDBSubnets:
+  BBBDatastoreSubnets:
     Description: Comma separated list of the private database subnets
     Type: CommaDelimitedList
   BBBDBEngineVersion:
@@ -106,7 +107,7 @@ Resources:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
       DBSubnetGroupDescription: Subnet Group for RDS Deployment
-      SubnetIds: !Ref BBBPrivateDBSubnets
+      SubnetIds: !Ref BBBDatastoreSubnets
 
   BBBRDSDBSecret:
     Type: AWS::SecretsManager::Secret
