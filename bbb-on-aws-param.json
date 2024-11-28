@@ -10,7 +10,7 @@
     "BBBServerlessAuroraMinCapacity": 0.5,
     "BBBServerlessAuroraMaxCapacity": 2,
     "BBBCACHEDBInstanceType": "cache.t3.micro",
-    "BBBVPCCIDR": "10.1.0.0/16",
+    "BBBVPCDEF": "10.1.0.0/16",
     "BBBNumberOfAZs": 3,
     "BBBECSMaxInstances": 3,
     "BBBECSMinInstances": 1,

@@ -9,7 +9,7 @@ Description: >
   Authors: David Surey <suredavi@amazon.com>
 
 Parameters:
-  BBBVPCCIDR:
+  BBBVPCDEF:
     Description: Please enter the IP range (CIDR notation) for the BBB VPC
     Type: String
     Default: 10.1.0.0/16
@@ -234,7 +234,7 @@ Conditions:
   BBBStageEnvironment: !Not [!Equals [!Ref BBBEnvironmentStage, prod]]
   BBBScalableEnvironment: !Equals [!Ref BBBEnvironmentType, scalable]
   BBBSingleEnvironment: !Equals [!Ref BBBEnvironmentType, single]
-  BBBExistingVPC: !And [ !Not [ !Equals [ !Ref BBBVPCCIDR, "" ]], !Equals [ !Select [ 0, !Split [ vpc-, !Ref BBBVPCCIDR ]], "" ]]
+  BBBExistingVPC: !And [ !Not [ !Equals [ !Ref BBBVPCDEF, "" ]], !Equals [ !Select [ 0, !Split [ vpc-, !Ref BBBVPCDEF ]], "" ]]
   BBBNewVPC: !Not [ Condition: BBBExistingVPC ]
   BBBSESNotValidated: !Equals [false, !Ref BBBSESValidated]
   BBBGreenlight: !Equals [!Ref BBBFrontendType, Greenlight]
@@ -350,8 +350,8 @@ Resources:
             - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
             - "/bbb-on-aws-network.template.yaml"
       Parameters:
-        BBBVPCCIDR:
-          Ref: BBBVPCCIDR
+        BBBVPCDEF:
+          Ref: BBBVPCDEF
         BBBNumberOfAZs:
           Ref: BBBNumberOfAZs
         BBBEnvironmentStage:
@@ -383,7 +383,7 @@ Resources:
             - Fn::GetAtt:
               - BBBNetworkStack
               - Outputs.BBBVPC
-            - Ref: BBBVPCCIDR
+            - Ref: BBBVPCDEF
         BBBEnvironmentType:
           Ref: BBBEnvironmentType
         BBBECSInstanceType:
@@ -749,7 +749,7 @@ Resources:
             - Fn::GetAtt:
               - BBBNetworkStack
               - Outputs.BBBVPC
-            - Ref: BBBVPCCIDR
+            - Ref: BBBVPCDEF
         BBBRDSDBConnectionSecret:
           Fn::GetAtt:
             - BBBDatabaseStack

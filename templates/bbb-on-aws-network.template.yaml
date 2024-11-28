@@ -4,7 +4,7 @@ Description: >
   Disclaimer: Not for production use. Demo and testing purposes only.
 
 Parameters:
-  BBBVPCCIDR:
+  BBBVPCDEF:
     Description: IP range (CIDR notation) for the VPC
     Type: String
     Default: 10.1.0.0/16
@@ -38,7 +38,7 @@ Resources:
   BBBVPC:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: !Ref BBBVPCCIDR
+      CidrBlock: !Ref BBBVPCDEF
       EnableDnsSupport: true
       EnableDnsHostnames: true
 
@@ -58,7 +58,7 @@ Resources:
       VpcId: !Ref BBBVPC
       AvailabilityZone: !Select [0, !GetAZs '']
       MapPublicIpOnLaunch: true
-      CidrBlock: !Select [0, !Cidr [!Ref BBBVPCCIDR, 9, 8]]
+      CidrBlock: !Select [0, !Cidr [!Ref BBBVPCDEF, 9, 8]]
 
   BBBPublicApplicationSubnet2:
     Type: AWS::EC2::Subnet
@@ -67,7 +67,7 @@ Resources:
       VpcId: !Ref BBBVPC
       AvailabilityZone: !Select [1, !GetAZs '']
       MapPublicIpOnLaunch: true
-      CidrBlock: !Select [1, !Cidr [!Ref BBBVPCCIDR, 9, 8]]
+      CidrBlock: !Select [1, !Cidr [!Ref BBBVPCDEF, 9, 8]]
 
   BBBPublicApplicationSubnet3:
     Type: AWS::EC2::Subnet
@@ -76,7 +76,7 @@ Resources:
       VpcId: !Ref BBBVPC
       AvailabilityZone: !Select [2, !GetAZs '']
       MapPublicIpOnLaunch: true
-      CidrBlock: !Select [2, !Cidr [!Ref BBBVPCCIDR, 9, 8]]
+      CidrBlock: !Select [2, !Cidr [!Ref BBBVPCDEF, 9, 8]]
 
   # Dynamic Private Application Subnets
   BBBPrivateApplicationSubnet1:
@@ -86,7 +86,7 @@ Resources:
       VpcId: !Ref BBBVPC
       AvailabilityZone: !Select [0, !GetAZs '']
       MapPublicIpOnLaunch: false
-      CidrBlock: !Select [3, !Cidr [!Ref BBBVPCCIDR, 9, 8]]
+      CidrBlock: !Select [3, !Cidr [!Ref BBBVPCDEF, 9, 8]]
 
   BBBPrivateApplicationSubnet2:
     Type: AWS::EC2::Subnet
@@ -95,7 +95,7 @@ Resources:
       VpcId: !Ref BBBVPC
       AvailabilityZone: !Select [1, !GetAZs '']
       MapPublicIpOnLaunch: false
-      CidrBlock: !Select [4, !Cidr [!Ref BBBVPCCIDR, 9, 8]]
+      CidrBlock: !Select [4, !Cidr [!Ref BBBVPCDEF, 9, 8]]
 
   BBBPrivateApplicationSubnet3:
     Type: AWS::EC2::Subnet
@@ -104,7 +104,7 @@ Resources:
       VpcId: !Ref BBBVPC
       AvailabilityZone: !Select [2, !GetAZs '']
       MapPublicIpOnLaunch: false
-      CidrBlock: !Select [5, !Cidr [!Ref BBBVPCCIDR, 9, 8]]
+      CidrBlock: !Select [5, !Cidr [!Ref BBBVPCDEF, 9, 8]]
 
   # Dynamic Private DB Subnets
   BBBPrivateDBSubnet1:
@@ -114,7 +114,7 @@ Resources:
       VpcId: !Ref BBBVPC
       AvailabilityZone: !Select [0, !GetAZs '']
       MapPublicIpOnLaunch: false
-      CidrBlock: !Select [6, !Cidr [!Ref BBBVPCCIDR, 9, 8]]
+      CidrBlock: !Select [6, !Cidr [!Ref BBBVPCDEF, 9, 8]]
 
   BBBPrivateDBSubnet2:
     Type: AWS::EC2::Subnet
@@ -123,7 +123,7 @@ Resources:
       VpcId: !Ref BBBVPC
       AvailabilityZone: !Select [1, !GetAZs '']
       MapPublicIpOnLaunch: false
-      CidrBlock: !Select [7, !Cidr [!Ref BBBVPCCIDR, 9, 8]]
+      CidrBlock: !Select [7, !Cidr [!Ref BBBVPCDEF, 9, 8]]
 
   BBBPrivateDBSubnet3:
     Type: AWS::EC2::Subnet
@@ -132,7 +132,7 @@ Resources:
       VpcId: !Ref BBBVPC
       AvailabilityZone: !Select [2, !GetAZs '']
       MapPublicIpOnLaunch: false
-      CidrBlock: !Select [8, !Cidr [!Ref BBBVPCCIDR, 9, 8]]
+      CidrBlock: !Select [8, !Cidr [!Ref BBBVPCDEF, 9, 8]]
 
   # NAT Gateway Resources
   BBBNatGateway1EIP:
