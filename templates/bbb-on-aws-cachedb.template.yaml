@@ -37,7 +37,7 @@ Mappings:
       Family: valkey7
 
 Conditions:
-  IsCrossAZ: !Equals [!Ref BBBCacheAZMode, "cross-az"]
+  BBBIsCrossAZ: !Equals [!Ref BBBCacheAZMode, "cross-az"]
 
 Resources:
   BBBCacheSubnetGroup:
@@ -72,7 +72,7 @@ Resources:
       AutomaticFailoverEnabled: false
       TransitEncryptionEnabled: false
       MultiAZEnabled: !If 
-        - IsCrossAZ
+        - BBBIsCrossAZ
         - true
         - false
 

@@ -49,13 +49,6 @@ Parameters:
   BBBDBSecurityGroup:
     Description: Security Group that should be assigned for the database
     Type: String
-  BBBEnvironmentStage:
-    Type: String
-    Description: Select the appropriate environment
-    AllowedValues:
-      - stage
-      - prod
-      - dev
 
 Mappings:
   AuroraEngineMap:
@@ -86,20 +79,7 @@ Mappings:
     "16.4":
       Family: "aurora-postgresql16"
 
-  EnvironmentSettings:
-    dev:
-      BackupRetentionPeriod: 1
-      DeletionProtection: false
-    stage:
-      BackupRetentionPeriod: 7
-      DeletionProtection: false
-    prod:
-      BackupRetentionPeriod: 35
-      DeletionProtection: true
-
 Conditions:
-  BBBProdEnvironment: !Equals [ !Ref BBBEnvironmentStage, prod ]
-  BBBNonProdEnvironment: !Not [ Condition: BBBProdEnvironment ]
   BBBServerlessAurora: !Equals [ !Ref BBBDBInstanceType, db.serverless ]
 
 Resources:
@@ -156,6 +136,7 @@ Resources:
 
   BBBRDSCluster:
     Type: AWS::RDS::DBCluster
+    DeletionPolicy: Delete
     Properties:
       MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}']]
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}']]
@@ -173,11 +154,10 @@ Resources:
         - MinCapacity: !Ref BBBServerlessAuroraMinCapacity
           MaxCapacity: !Ref BBBServerlessAuroraMaxCapacity
         - !Ref AWS::NoValue
-      BackupRetentionPeriod: !FindInMap [EnvironmentSettings, !Ref BBBEnvironmentStage, BackupRetentionPeriod]
-      DeletionProtection: !FindInMap [EnvironmentSettings, !Ref BBBEnvironmentStage, DeletionProtection]
 
   BBBRDSDBInstance1:
     Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
     Properties:
       AllowMajorVersionUpgrade: false
       AutoMinorVersionUpgrade: true
@@ -192,7 +172,7 @@ Resources:
 
   BBBRDSDBInstance2:
     Type: AWS::RDS::DBInstance
-    Condition: BBBProdEnvironment
+    DeletionPolicy: Delete
     Properties:
       AllowMajorVersionUpgrade: false
       AutoMinorVersionUpgrade: true
@@ -238,7 +218,6 @@ Outputs:
     Description: The Big Blue Button DB Instance 1
     Value: !Ref BBBRDSDBInstance1
   BBBRDSDBInstance2:
-    Condition: BBBProdEnvironment
     Description: The Big Blue Button DB Instance 2
     Value: !Ref BBBRDSDBInstance2
   BBBRDSDBParameterGroup:

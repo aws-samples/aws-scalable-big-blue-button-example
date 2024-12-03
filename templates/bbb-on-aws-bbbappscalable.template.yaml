@@ -22,24 +22,20 @@ Parameters:
   BBBNotificationTopic:
     Description: Topic to be used for alarm notifications
     Type: String
-  BBBPublicApplicationSubnets:
+  BBBApplicationSubnets:
     Description: Comma separated list of the appserver's subnets
     Type: CommaDelimitedList
-  BBBPrivateApplicationSubnets:
-    Description: Comma separated list of the private EC2 instance subnets
-    Type: String
   BBBECSTaskSecurityGroup:
     Description: Security Group that should be assigned for the Task Instances
     Type: String
   BBBApplicationInstanceAMI: 
     Description: Ubuntu AMI ID for Application Instances 
     Type: String
-   BBBApplicationInstanceType:
+  BBBApplicationInstanceType:
     Description: Instance type for BBB Application Server (x86_64 only)
     Type: String
     Default: c5.2xlarge
     AllowedPattern: ^(t3|t3a|m5|m5a|m5n|m5zn|m6i|m6a|m6in|c5|c5a|c5n|c6i|c6a|c6in|r5|r5a|r5b|r5n|r6i|r6a|r6in)\.(medium|large|xlarge|2xlarge|4xlarge|8xlarge|12xlarge|16xlarge|24xlarge)$
-    ConstraintDescription: Must be a valid x86_64 EC2 instance type with at least 2 vCPUs. Example: c5.2xlarge, m5.2xlarge
   BBBApplicationDataVolumeSize:
     Description: Size of the application instance data volume
     Type: Number
@@ -104,7 +100,7 @@ Resources:
   BBBApplicationAutoScaling:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      VPCZoneIdentifier: !Ref BBBPublicApplicationSubnets
+      VPCZoneIdentifier: !Ref BBBApplicationSubnets
       LaunchTemplate:
         LaunchTemplateId: !Ref BBBApplicationInstanceLaunchTemplate
         Version: !GetAtt BBBApplicationInstanceLaunchTemplate.LatestVersionNumber
@@ -221,7 +217,8 @@ Resources:
             Groups:
               - !Ref BBBApplicationSecurityGroup
         UserData:
-          Fn::Base64: !Sub |
+          Fn::Base64: !Sub 
+          - |
             #!/bin/bash -xe
 
             apt update -y
@@ -264,11 +261,11 @@ Resources:
             -k ${BBBSharedStorageAPspool} \
             -l ${BBBECSCluster} \
             -m ${BBBECSInstanceType} \
-            -n "${BBBPrivateApplicationSubnets}" \
+            -n "${BBBApplicationSubnetsString}" \
             -o ${BBBECSTaskSecurityGroup}
 
             /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBApplicationAutoScaling --region ${AWS::Region} || true
-
+          - BBBApplicationSubnetsString: !Join [",", !Ref BBBApplicationSubnets]
 Outputs:
   BBBApplicationEC2InstanceProfile:
     Description: Big Blue Button Application Instance Profile

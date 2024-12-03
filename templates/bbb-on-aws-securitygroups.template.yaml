@@ -12,12 +12,6 @@ Parameters:
   BBBVPC:
     Description: Reference for the VPC
     Type: String
-  BBBEnvironmentType:
-    Description: 'Defines the environment type. Allowed values: scalable, single'
-    AllowedValues:
-      - scalable
-      - single
-    Type: String
   BBBECSInstanceType: 
     Description: Set the ECS Cluster Type to either EC2 based or Fargate based deployments
     Type: String
@@ -29,23 +23,19 @@ Parameters:
       - External
 
 Conditions:
-  BBBScalableEnvironment: !Equals [!Ref BBBEnvironmentType, scalable]
   BBBECSFargate: !Equals [!Ref BBBECSInstanceType, fargate]
   BBBECSEC2: !Not [!Equals [!Ref BBBECSInstanceType, fargate]]
   BBBGreenlight: !Equals [!Ref BBBFrontendType, Greenlight]
-  BBBScalableGreenlight: !And [!Equals [!Ref BBBFrontendType, Greenlight], !Equals [!Ref BBBEnvironmentType, scalable]]
 
 Resources:
   BBBECSTaskSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Condition: BBBScalableEnvironment
     Properties:
       GroupDescription: ECS Instance Security Group
       VpcId: !Ref BBBVPC
 
   BBBECSTaskSecurityGroupPorts:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
     Properties:
       GroupId: !Ref BBBECSTaskSecurityGroup
       IpProtocol: tcp
@@ -55,14 +45,12 @@ Resources:
 
   BBBScaleliteELBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Condition: BBBScalableEnvironment
     Properties:
       GroupDescription: Scalelite Security Group
       VpcId: !Ref BBBVPC
 
   BBBScaleliteELBSecurityGroupPorts:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
     Properties:
       GroupId: !Ref BBBScaleliteELBSecurityGroup
       IpProtocol: tcp
@@ -72,14 +60,12 @@ Resources:
 
   BBBFrontendELBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Condition: BBBScalableGreenlight
     Properties:
       GroupDescription: ALB Security Group
       VpcId: !Ref BBBVPC
 
   BBBECSSecurityGroupPublicports:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableGreenlight
     Properties:
       CidrIp: 0.0.0.0/0
       IpProtocol: tcp
@@ -89,7 +75,6 @@ Resources:
 
   BBBECSSecurityGroupPublicHTTP:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableGreenlight
     Properties:
       CidrIp: 0.0.0.0/0
       IpProtocol: tcp
@@ -99,7 +84,6 @@ Resources:
 
   BBBFrontendSecurityGroupALBports:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableGreenlight
     Properties:
       GroupId: !Ref BBBECSTaskSecurityGroup
       IpProtocol: tcp
@@ -109,7 +93,6 @@ Resources:
 
   BBBDBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Condition: BBBScalableEnvironment
     Properties:
       VpcId:
         Ref: BBBVPC
@@ -117,7 +100,6 @@ Resources:
 
   BBBDBSecurityGroupPorts:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
     Properties:
       SourceSecurityGroupId: !Ref BBBECSTaskSecurityGroup
       IpProtocol: tcp
@@ -127,7 +109,6 @@ Resources:
 
   BBBCACHEDBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Condition: BBBScalableEnvironment
     Properties:
       VpcId:
         Ref: BBBVPC
@@ -135,7 +116,6 @@ Resources:
 
   BBBCACHEDBSecurityGroupPorts:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
     Properties:
       SourceSecurityGroupId: !Ref BBBECSTaskSecurityGroup
       IpProtocol: tcp
@@ -206,7 +186,6 @@ Resources:
 
   BBBSharedStorageSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Condition: BBBScalableEnvironment
     Properties:
       VpcId:
         Ref: BBBVPC
@@ -214,7 +193,6 @@ Resources:
 
   BBBSharedStorageSecurityGroupApplicationPort:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
     Properties:
       SourceSecurityGroupId: !Ref BBBApplicationSecurityGroup
       IpProtocol: tcp
@@ -224,7 +202,6 @@ Resources:
 
   BBBSharedStorageSecurityGroupECSPort:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: BBBScalableEnvironment
     Properties:
       SourceSecurityGroupId: !Ref BBBECSTaskSecurityGroup
       IpProtocol: tcp
@@ -234,29 +211,23 @@ Resources:
 
 Outputs:
   BBBECSTaskSecurityGroup:
-    Condition: BBBScalableEnvironment
     Description: A reference to the created Security Group for ECS
     Value: !Ref BBBECSTaskSecurityGroup
   BBBFrontendELBSecurityGroup:
-    Condition: BBBScalableGreenlight
     Description: A reference to the created Security Group for ELB
     Value: !Ref BBBFrontendELBSecurityGroup
   BBBScaleliteELBSecurityGroup:
-    Condition: BBBScalableEnvironment
     Description: A reference to the created Security Group for the Scalelite Load Balancer
     Value: !Ref BBBScaleliteELBSecurityGroup
   BBBDBSecurityGroup:
-    Condition: BBBScalableEnvironment
     Description: A reference to the created Security Group for the Database
     Value: !Ref BBBDBSecurityGroup
   BBBCACHEDBSecurityGroup:
-    Condition: BBBScalableEnvironment
     Description: A reference to the created Security Group for the Redis Cache
     Value: !Ref BBBCACHEDBSecurityGroup
   BBBApplicationSecurityGroup:
     Description: A reference to the created Security Group for the Public Ports of the Application
     Value: !Ref BBBApplicationSecurityGroup
   BBBSharedStorageSecurityGroup:
-    Condition: BBBScalableEnvironment
     Description: A reference to the created Security Group for the SharedStorage
     Value: !Ref BBBSharedStorageSecurityGroup

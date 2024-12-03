@@ -15,22 +15,8 @@ Parameters:
     Type: Number
     AllowedValues: [1, 2, 3]
     Default: 3
-  
-  BBBEnvironmentType:
-    Description: 'Defines the environment type'
-    AllowedValues: [scalable, single]
-    Type: String
-  
-  BBBEnvironmentStage:
-    Type: String
-    Description: Select the appropriate environment
-    AllowedValues: [stage, prod, dev]
 
 Conditions: 
-  BBBScalableEnvironment: !Equals [!Ref BBBEnvironmentType, scalable]
-  BBBScalableandProdEnvironment: !And 
-    - !Equals [!Ref BBBEnvironmentType, scalable]
-    - !Equals [!Ref BBBEnvironmentStage, prod]
   BBBBuild2AZs: !Not [!Equals [!Ref BBBNumberOfAZs, 1]]
   BBBBuild3AZs: !Equals [!Ref BBBNumberOfAZs, 3]
 
@@ -81,7 +67,6 @@ Resources:
   # Dynamic Private Datastore Subnets
   BBBDatastoreSubnet1:
     Type: AWS::EC2::Subnet
-    Condition: BBBScalableEnvironment
     Properties:
       VpcId: !Ref BBBVPC
       AvailabilityZone: !Select [0, !GetAZs '']
@@ -151,5 +136,4 @@ Outputs:
 
   BBBDatastoreSubnets:
     Description: A list of the database subnets
-    Condition: BBBScalableEnvironment
     Value: !Join [ ",", [ !Ref BBBDatastoreSubnet1, !If [ BBBBuild2AZs, !Ref BBBDatastoreSubnet2,  !Ref "AWS::NoValue"], !If [ BBBBuild3AZs, !Ref BBBDatastoreSubnet3,  !Ref "AWS::NoValue"]]]

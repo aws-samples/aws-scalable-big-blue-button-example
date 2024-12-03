@@ -165,6 +165,12 @@ Parameters:
     AllowedValues:
       - Greenlight
       - External
+  BBBUsePublicApplicationIP:
+    Type: String
+    AllowedValues: 
+      - ENABLED
+      - DISABLED
+    Default: ENABLED
 
 Conditions:
   BBBSESRegionSet: !Not [ !Equals [ !Ref BBBSesRegion, "AWS::NoValue" ] ]
@@ -675,7 +681,7 @@ Resources:
         !If
         - BBBECSFargate
         - AwsvpcConfiguration:
-            AssignPublicIp: DISABLED
+            AssignPublicIp: !Ref BBBUsePublicApplicationIP
             SecurityGroups:
               - !Ref BBBECSTaskSecurityGroup
             Subnets: !Ref BBBApplicationSubnets
@@ -978,7 +984,7 @@ Resources:
         !If
         - BBBECSFargate
         - AwsvpcConfiguration:
-            AssignPublicIp: DISABLED
+            AssignPublicIp: !Ref BBBUsePublicApplicationIP
             SecurityGroups:
               - !Ref BBBECSTaskSecurityGroup
             Subnets: !Ref BBBApplicationSubnets

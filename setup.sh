@@ -51,14 +51,79 @@ log() {
     esac
 
     # Output to console with color
-    printf "%s [%s%s%s] %s\\n" "$timestamp" "$color" "$level" "$NC" "$message"
+    printf "%s [%s%s%s] %s\n" "$timestamp" "$color" "$level" "$NC" "$message"
     
     # Output to log file without color
-    printf "%s [%s] %s\\n" "$timestamp" "$level" "$message" >> "$LOG_FILE"
+    printf "%s [%s] %s\n" "$timestamp" "$level" "$message" >> "$LOG_FILE"
     
     # Exit on ERROR level messages
     if [ "$level" = "ERROR" ]; then
         exit 1
+    fi
+}
+
+# Function to monitor CloudFormation stack events in real-time
+monitor_stack() {
+    local stack_name=$1
+    local last_event_time
+    last_event_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    log "DEBUG" "Starting stack monitoring for: $stack_name"
+    
+    while true; do
+        events=$(aws cloudformation describe-stack-events \
+            --profile "$BBBPROFILE" \
+            --stack-name "$stack_name" \
+            --query 'StackEvents[?contains(ResourceStatus, `IN_PROGRESS`) || contains(ResourceStatus, `COMPLETE`) || contains(ResourceStatus, `FAILED`)]')
+        
+        echo "$events" | jq -r --arg timestamp "$last_event_time" '.[] | select(.Timestamp > $timestamp) | "\(.Timestamp) [\(.LogicalResourceId)] \(.ResourceStatus) - \(.ResourceStatusReason // "No reason provided")"' | while read -r line; do
+            log "DEBUG" "$line"
+        done
+        
+        # Get stack status
+        stack_status=$(aws cloudformation describe-stacks \
+            --profile "$BBBPROFILE" \
+            --stack-name "$stack_name" \
+            --query 'Stacks[0].StackStatus' \
+            --output text)
+        
+        if [[ ! $stack_status =~ .*IN_PROGRESS$ ]]; then
+            if [[ $stack_status =~ .*FAILED$ || $stack_status =~ .*ROLLBACK.* ]]; then
+                log "ERROR" "Stack deployment failed with status: $stack_status"
+                return 1
+            elif [[ $stack_status =~ .*COMPLETE$ ]]; then
+                log "INFO" "Stack deployment completed successfully with status: $stack_status"
+                return 0
+            fi
+        fi
+        
+        last_event_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        sleep 5
+    done
+}
+
+# Modified deployment function
+deploy_stack() {
+    local stack_name=$1
+    local template=$2
+    shift 2
+    local params=("$@")
+
+    log "INFO" "Starting deployment for stack: $stack_name"
+    log "DEBUG" "Using template: $template"
+    
+    if aws cloudformation deploy \
+        --profile "$BBBPROFILE" \
+        --stack-name "$stack_name" \
+        "${params[@]}" \
+        --template "$template" \
+        --no-fail-on-empty-changeset; then
+        
+        monitor_stack "$stack_name"
+        return $?
+    else
+        log "ERROR" "Failed to initiate stack deployment for $stack_name"
+        return 1
     fi
 }
 
@@ -144,9 +209,8 @@ log "INFO" "##################################################"
 # Deploy Prerequisites
 log "INFO" "Deploying Prerequisites for BBB Environment"
 BBBPREPSTACK="${BBBSTACK}-Sources"
-if ! aws cloudformation deploy --stack-name "$BBBPREPSTACK" \
-    --profile="$BBBPROFILE" \
-    --template ./templates/bbb-on-aws-buildbuckets.template.yaml; then
+if ! deploy_stack "$BBBPREPSTACK" \
+    "./templates/bbb-on-aws-buildbuckets.template.yaml"; then
     log "ERROR" "Failed to deploy prerequisites stack"
 fi
 log "INFO" "Prerequisites deployment completed"
@@ -170,28 +234,89 @@ else
     log "ERROR" "Required source directories (templates/ or scripts/) are missing"
 fi
 
-# Environment type check
-ENVIRONMENTTYPE=$(jq -r ".Parameters.BBBEnvironmentType" bbb-on-aws-param.json)
-log "DEBUG" "Environment type: $ENVIRONMENTTYPE"
+# Deploy registry stack
+deploy_registry_stack() {
+    log "INFO" "Deploying ECR registry stack..."
+    BBBECRSTACK="${BBBSTACK}-registry"
 
-if [ "$ENVIRONMENTTYPE" = "scalable" ]; then
-    log "INFO" "Setting up scalable environment components"
+    if ! deploy_stack "$BBBECRSTACK" \
+        "./templates/bbb-on-aws-registry.template.yaml" \
+        --capabilities CAPABILITY_IAM; then
+        log "ERROR" "Failed to deploy ECR registry stack"
+        return 1
+    fi
+
+    log "INFO" "ECR registry stack deployed successfully"
+    return 0
+}
+
+# Deploy the registry stack
+log "INFO" "Deploying ECR registry stack"
+if ! deploy_registry_stack; then
+    log "ERROR" "Failed to deploy ECR registry stack"
+    exit 1
 fi
+
+# Get repository information and mirror images
+log "INFO" "Getting repository information and mirroring images"
+GREENLIGHTIMAGE=$(aws ecr describe-repositories --profile="$BBBPROFILE" --query 'repositories[?contains(repositoryName, `greenlight`)].repositoryName' --output text)
+SCALELITEIMAGE=$(aws ecr describe-repositories --profile="$BBBPROFILE" --query 'repositories[?contains(repositoryName, `scalelite`)].repositoryName' --output text)
+
+SCALELITEREGISTRY=$(aws ecr describe-repositories --profile="$BBBPROFILE" --query 'repositories[?contains(repositoryName, `scalelite`)].repositoryUri' --output text)
+GREENLIGHTREGISTRY=$(aws ecr describe-repositories --profile="$BBBPROFILE" --query 'repositories[?contains(repositoryName, `greenlight`)].repositoryUri' --output text)
+
+log "INFO" "##################################################"
+log "INFO" "Mirror docker images to ECR for further usage"
+log "INFO" "##################################################"
+
+SCALELITEIMAGETAGS=("BBBScaleliteNginxImageTag" "BBBScaleliteApiImageTag" "BBBScalelitePollerImageTag" "BBBScaleliteImporterImageTag")
+GREENLIGHTIMAGETAGS=("BBBgreenlightImageTag")
+
+# Authenticate with ECR
+if ! aws ecr get-login-password --profile="$BBBPROFILE" | docker login --username AWS --password-stdin "$SCALELITEREGISTRY"; then
+    log "ERROR" "Failed to authenticate with Scalelite ECR registry"
+fi
+if ! aws ecr get-login-password --profile="$BBBPROFILE" | docker login --username AWS --password-stdin "$GREENLIGHTREGISTRY"; then
+    log "ERROR" "Failed to authenticate with Greenlight ECR registry"
+fi
+
+# Process Scalelite images
+for IMAGETAG in "${SCALELITEIMAGETAGS[@]}"
+do
+    TAGVALUE=$(jq -r ".Parameters.$IMAGETAG" bbb-on-aws-param.json)
+    log "DEBUG" "Processing Scalelite image with tag: $TAGVALUE"
+    docker pull --platform linux/amd64 "$SCALELITEIMAGE:$TAGVALUE"
+    docker tag "$SCALELITEIMAGE:$TAGVALUE" "$SCALELITEREGISTRY:$TAGVALUE"
+    docker push "$SCALELITEREGISTRY:$TAGVALUE"
+done
+
+# Process Greenlight images
+for IMAGETAG in "${GREENLIGHTIMAGETAGS[@]}"
+do
+    TAGVALUE=$(jq -r ".Parameters.$IMAGETAG" bbb-on-aws-param.json)
+    log "DEBUG" "Processing Greenlight image with tag: $TAGVALUE"
+    docker pull --platform linux/amd64 "$GREENLIGHTIMAGE:$TAGVALUE"
+    docker tag "$GREENLIGHTIMAGE:$TAGVALUE" "$GREENLIGHTREGISTRY:$TAGVALUE"
+    docker push "$GREENLIGHTREGISTRY:$TAGVALUE"
+done
+
+log "INFO" "##################################################"
+log "INFO" "Registry Preparation finished"
+log "INFO" "##################################################"
+
 
 # Final deployment
 log "INFO" "Deploying main BBB infrastructure"
-if ! aws cloudformation deploy \
-    --profile="$BBBPROFILE" \
-    --stack-name "$BBBSTACK" \
+if ! deploy_stack "$BBBSTACK" \
+    "./bbb-on-aws-root.template.yaml" \
     --capabilities CAPABILITY_NAMED_IAM \
     --parameter-overrides \
         "BBBOperatorEMail=$OPERATOREMAIL" \
         "BBBStackBucketStack=$BBBSTACK-Sources" \
         "BBBDomainName=$DOMAIN" \
         "BBBHostedZone=$HOSTEDZONE" \
-        "BBBECRStack=$BBBSTACK-Registry" \
-    $(jq -r '.Parameters | to_entries | map("\(.key)=\(.value)") | join(" ")' bbb-on-aws-param.json) \
-    --template ./bbb-on-aws-root.template.yaml; then
+        "BBBECRStack=$BBBSTACK-registry" \
+        $(jq -r '.Parameters | to_entries | map("\(.key)=\(.value)") | join(" ")' bbb-on-aws-param.json); then
     log "ERROR" "Main infrastructure deployment failed"
 fi
 
