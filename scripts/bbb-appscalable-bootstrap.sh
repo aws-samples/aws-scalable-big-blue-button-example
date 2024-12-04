@@ -449,12 +449,11 @@ setup_scalelite() {
     local SCRIPTS=(
         "scalelite_post_publish.rb"
         "scalelite_batch_import.sh"
-        "scalelite_prune_recordings.sh"
     )
     
     for script in "${SCRIPTS[@]}"; do
         log "DEBUG" "Downloading ${script}..."
-        if ! wget --tries=10 --timeout=20 "https://raw.githubusercontent.com/blindsidenetworks/scalelite/refs/heads/master/bigbluebutton/${script}" \
+        if ! wget --tries=10 --timeout=20 "https://raw.githubusercontent.com/blindsidenetworks/scalelite/master/bigbluebutton/${script}" \
             -O "/usr/local/bigbluebutton/core/scripts/post_publish/${script}"; then
             log "ERROR" "Failed to download ${script}"
             return 1
@@ -464,6 +463,14 @@ setup_scalelite() {
     # Set permissions
     chmod +x /usr/local/bigbluebutton/core/scripts/post_publish/*.{rb,sh}
 
+    # Setup daily cron
+    if ! wget --tries=10 --timeout=20 "https://raw.githubusercontent.com/blindsidenetworks/scalelite/master/bigbluebutton/scalelite_prune_recordings" \
+            -O "/etc/cron.daily/scalelite_prune_recordings"; then
+            log "ERROR" "Failed to download scalelite_prune_recordings"
+            return 1
+    fi
+    chmod +x /etc/cron.daily/scalelite_prune_recordings
+
     # Download and configure Scalelite config
     if ! aws s3 cp "s3://${BBBStackBucketStack}/scalelite-config.yml" /usr/local/bigbluebutton/core/scripts/scalelite.yml; then
         log "ERROR" "Failed to download Scalelite config"
@@ -472,12 +479,12 @@ setup_scalelite() {
 
     # Install required packages
     log "DEBUG" "Installing required packages..."
-    if ! apt-get -y install ruby2.7-dev libsystemd-dev; then
+    if ! apt-get -y install ruby-dev libsystemd-dev; then
         log "ERROR" "Failed to install required system packages"
         return 1
     fi
     
-    if ! gem install redis builder nokogiri loofah open4 absolute_time journald-logger; then
+    if ! gem install redis builder nokogiri:1.15.7 loofah open4 absolute_time journald-logger; then
         log "ERROR" "Failed to install required gems"
         return 1
     fi
