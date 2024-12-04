@@ -524,7 +524,7 @@ Resources:
           - ""
           - - "https://s3.amazonaws.com/"
             - Fn::ImportValue: !Sub "${BBBStackBucketStack}-BBBStackBucket"
-            - "/bbb-on-aws-bbbappscalable.template.yaml"
+            - "/bbb-on-aws-application.template.yaml"
       Parameters:
         BBBApplicationVersion:
           Ref: BBBApplicationVersion

@@ -21,7 +21,7 @@
     "BBBApplicationDesiredInstances": 1,
     "BBBDBEngineVersion": "16.4",
     "BBBEnvironmentName": "bbbonaws",
-    "BBBgreenlightImageTag": "v3",
+    "BBBgreenlightImageTag": "v3.4.2",
     "BBBScaleliteApiImageTag": "v1.6-api",
     "BBBScaleliteNginxImageTag": "v1.6-nginx",
     "BBBScalelitePollerImageTag": "v1.6-poller",

@@ -247,7 +247,7 @@ Resources:
 
             while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done
 
-            aws s3 cp s3://${BBBStackBucketStack}/bbb-appscalable-bootstrap.sh /tmp/bbb-bootstrap.sh
+            aws s3 cp s3://${BBBStackBucketStack}/bbb-bootstrap.sh /tmp/bbb-bootstrap.sh
             chmod +x /tmp/bbb-bootstrap.sh 
             
             /tmp/bbb-bootstrap.sh -a ${BBBStackBucketStack} \

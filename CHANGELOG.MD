@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - route53-handler script does its work again
 - fixed install script step
 - fixed links for scalelite downloads when bootstrapping
+- Greenlight user creation and bootup fixed
 
 ### Changed
 - pin platform for docker push/pull to linux/amd64 to ensure scripts are functional for arm based deployment systems
