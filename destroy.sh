@@ -249,18 +249,16 @@ fi
 # Function to delete ECR repository and its images
 cleanup_ecr_repository() {
     local repository_name=$1
-    log "INFO" "Force deleting ECR repository: $repository_name"
+    log "INFO" "Attempting to delete ECR repository: $repository_name"
     
     # Force delete the repository and all images
-    if ! aws ecr delete-repository \
+    aws ecr delete-repository \
         --repository-name "$repository_name" \
         --force \
-        --profile "$BBBPROFILE"; then
-        log "ERROR" "Failed to force delete ECR repository $repository_name"
-        return 1
-    fi
+        --profile "$BBBPROFILE" >/dev/null 2>&1 || {
+        log "DEBUG" "Repository $repository_name does not exist or already deleted"
+    }
     
-    log "INFO" "Successfully deleted ECR repository: $repository_name"
     return 0
 }
 
@@ -289,14 +287,13 @@ else
     log "WARN" "No ECR repositories found, continuing with deletion"
 fi
 
-# Delete ECR Repository stack
-log "INFO" "Deleting ECR Repository stack"
-delete_stack "$BBBECRSTACK"
-
 # Delete main stack
 log "INFO" "Deleting main BBB stack"
 delete_stack "$BBBSTACK"
 
+# Delete ECR Repository stack
+log "INFO" "Deleting ECR Repository stack"
+delete_stack "$BBBECRSTACK"
 
 # Delete source bucket stack
 log "INFO" "Deleting source bucket stack"

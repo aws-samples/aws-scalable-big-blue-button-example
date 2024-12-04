@@ -424,7 +424,7 @@ install_bbb() {
     log "DEBUG" "Using BBB install script from branch: ${bbb_uri_version}"
     
     # Install BBB using the correct version format
-    if ! wget -qO- "https://raw.githubusercontent.com/bigbluebutton/bbb-install/${bbb_uri_version}/bbb-install.sh" | bash -s -- -v "${BBBApplicationVersion}" -s "${instance_fqdn}" -e "${BBBOperatorEmail}" -w; then
+    if ! wget -qO- "https://raw.githubusercontent.com/bigbluebutton/bbb-install/${bbb_uri_version}/bbb-install.sh" | bash -s -- -v "${BBBApplicationVersion}" -s "${instance_fqdn}" -e "${BBBOperatorEmail}" -j; then
         log "ERROR" "Failed to install BBB"
         return 1
     fi
