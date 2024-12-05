@@ -10,18 +10,34 @@ log() {
 get_scalelite_task() {
     local region=$1
     local cluster=$2
-    
-    local task=$(aws ecs list-tasks \
-        --region "$region" \
-        --cluster "$cluster" \
-        --service-name "BBBScaleliteService" \
-        --output text | awk -F"/" '{print $NF}')
+    local profile=$3
+    # First, find the service containing 'BBBScaleliteService' in its name
+    local service_arn=$(aws ecs list-services \
+        --profile "$PROFILE" \
+        --cluster "$CLUSTER" \
+        --output text \
+        --query "serviceArns[?contains(@, 'BBBScaleliteService')]")
 
-    if [ -z "$task" ]; then
-        log "ERROR: Failed to get Scalelite task"
-        exit 1
+    if [ -z "$service_arn" ]; then
+        echo "ERROR: Could not find Scalelite service in cluster $CLUSTER" >&2
+        return 1
     fi
-    echo "$task"
+
+    # Get the tasks for the found service
+    local task_arns=$(aws ecs list-tasks \
+        --profile "$PROFILE" \
+        --cluster "$CLUSTER" \
+        --service-name "$(basename "$service_arn")" \
+        --output text \
+        --query 'taskArns[*]')
+
+    if [ -z "$task_arns" ]; then
+        echo "ERROR: No tasks found for Scalelite service" >&2
+        return 1
+    fi
+
+    # Return the first task ARN
+    echo "$(basename "$task_arns")"
 }
 
 # Function to execute interactive shell
@@ -29,11 +45,13 @@ debug_shell() {
     local region=$1
     local cluster=$2
     local task=$3
+    local profile=$4
 
     log "Opening interactive shell..."
     aws ecs execute-command \
         --region "$region" \
         --cluster "$cluster" \
+        --profile "$profile" \
         --task "$task" \
         --container scalelite-api \
         --interactive \
@@ -46,6 +64,7 @@ delete_server() {
     local cluster=$2
     local task=$3
     local server_id=$4
+    local profile=$5
 
     if [ -z "$server_id" ]; then
         log "Listing available servers..."
@@ -53,6 +72,7 @@ delete_server() {
             --region "$region" \
             --cluster "$cluster" \
             --task "$task" \
+            --profile "$profile" \
             --container scalelite-api \
             --interactive \
             --command "/bin/sh -c 'bin/rake servers'"
@@ -70,6 +90,7 @@ delete_server() {
         --region "$region" \
         --cluster "$cluster" \
         --task "$task" \
+        --profile "$profile" \
         --container scalelite-api \
         --interactive \
         --command "/bin/sh -c 'bin/rake servers:panic[$server_id] && bin/rake servers:remove[$server_id]'"
@@ -80,24 +101,27 @@ prune_all() {
     local region=$1
     local cluster=$2
     local task=$3
+    local profile=$4
 
     log "Pruning all servers..."
     aws ecs execute-command \
         --region "$region" \
         --cluster "$cluster" \
         --task "$task" \
+        --profile "$profile" \   
         --container scalelite-api \
         --interactive \
         --command "/bin/sh -c 'for id in \$(bin/rake servers | grep \"id: \" | sed \"s/id: //\"); do bin/rake servers:panic[\$id] && bin/rake servers:remove[\$id]; done'"
 }
 
 # Parse command line arguments
-while getopts ":r:c:m:i:" opt; do
+while getopts ":r:c:m:i:p:" opt; do
     case $opt in
         r) REGION="${OPTARG}" ;;
         c) CLUSTER="${OPTARG}" ;;
         m) METHOD="${OPTARG}" ;;
         i) SERVER_ID="${OPTARG}" ;;
+        p) PROFILE="${OPTARG}" ;;
         \?) echo "Invalid option -$OPTARG" >&2; exit 1 ;;
     esac
 done
@@ -109,18 +133,18 @@ if [ -z "$REGION" ] || [ -z "$CLUSTER" ]; then
 fi
 
 # Get Scalelite task
-TASK=$(get_scalelite_task "$REGION" "$CLUSTER")
+TASK=$(get_scalelite_task "$REGION" "$CLUSTER" "$PROFILE")
 
 # Execute requested method
 case $METHOD in
     "debug")
-        debug_shell "$REGION" "$CLUSTER" "$TASK"
+        debug_shell "$REGION" "$CLUSTER" "$TASK" "$PROFILE"
         ;;
     "delete")
-        delete_server "$REGION" "$CLUSTER" "$TASK" "$SERVER_ID"
+        delete_server "$REGION" "$CLUSTER" "$TASK" "$SERVER_ID" "$PROFILE"
         ;;
     "prune")
-        prune_all "$REGION" "$CLUSTER" "$TASK"
+        prune_all "$REGION" "$CLUSTER" "$TASK" "$PROFILE"
         ;;
     *)
         echo "Invalid method. Use 'debug', 'delete', or 'prune'"
