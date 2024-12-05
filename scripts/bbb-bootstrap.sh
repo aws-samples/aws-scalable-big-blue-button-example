@@ -385,7 +385,6 @@ setup_standard_storage() {
 }
 
 # Function to wait for DNS propagation
-# Function to wait for DNS propagation
 wait_for_dns() {
     local instance_fqdn=$(cat /tmp/instance_fqdn)
     local instance_ipv4=$(cat /tmp/instance_ipv4)
@@ -397,12 +396,12 @@ wait_for_dns() {
     
     while [ $attempt -le $max_attempts ]; do
         log "DEBUG" "DNS check attempt $attempt of $max_attempts"
-        sleep $wait_time
-        # Fixed grep command with escaped hyphen or quoted string
-        if host "$instance_fqdn" | grep -m 1 -F "has address $instance_ipv4"; then
+        
+        if [ "$(dig +short "$instance_fqdn")" = "$instance_ipv4" ]; then
             log "INFO" "DNS propagation completed successfully"
             return 0
         fi
+        
         log "DEBUG" "Waiting ${wait_time} seconds for DNS propagation..."
         sleep $wait_time
         attempt=$((attempt + 1))
@@ -411,7 +410,6 @@ wait_for_dns() {
     log "ERROR" "DNS propagation timed out after $((max_attempts * wait_time)) seconds"
     return 1
 }
-
 
 # Function to install BigBlueButton
 install_bbb() {
@@ -438,41 +436,59 @@ install_bbb() {
     fi
 }
 
+
 check_and_reinstall_bbb() {
     local instance_fqdn=$(cat /tmp/instance_fqdn)
     local cert_dir="/etc/letsencrypt/live/${instance_fqdn}"
     local formatted_version=$(echo "$BBBApplicationVersion" | sed 's/focal-//' | sed 's/\([0-9]\)\([0-9]\)\([0-9]\)/\1.\2/')
     local bbb_uri_version="v${formatted_version}.x-release"
-    local needs_reinstall=false
+    local max_attempts=5
+    local attempt=1
+    local wait_time=30  # 0.5 minutes in seconds
 
-    # Check if certificate directory exists and is not empty
-    if [ ! -d "$cert_dir" ] || [ -z "$(ls -A $cert_dir 2>/dev/null)" ]; then
-        log "WARN" "Let's Encrypt certificate directory missing or empty for ${instance_fqdn}"
-        needs_reinstall=true
+    # Function to check installation status
+    check_installation() {
+        # Check if certificate directory exists and is not empty
+        if [ ! -d "$cert_dir" ] || [ -z "$(ls -A $cert_dir 2>/dev/null)" ]; then
+            log "WARN" "Let's Encrypt certificate directory missing or empty for ${instance_fqdn}"
+            return 1
+        fi
+
+        # Check if nginx is listening on port 443
+        if ! netstat -tuln | grep -q ':443 '; then
+            log "WARN" "Nginx not listening on port 443"
+            return 1
+        fi
+
+        return 0
+    }
+
+    # Initial check
+    if check_installation; then
+        log "INFO" "BBB installation appears to be correct"
+        return 0
     fi
 
-    # Check if nginx is listening on port 443
-    if ! netstat -tuln | grep -q ':443 '; then
-        log "WARN" "Nginx not listening on port 443"
-        needs_reinstall=true
-    fi
+    log "WARN" "Installation issues detected, starting reinstallation loop"
 
-    if [ "$needs_reinstall" = true ]; then
-        log "INFO" "Waiting 5 minutes before attempting reinstallation..."
+    # Installation loop
+    while [ $attempt -le $max_attempts ]; do
+        log "INFO" "Installation attempt $attempt of $max_attempts"
         
-        # Wait 5 minutes with progress indication
-        #for i in {300..1}; do
-        #    if [ $((i % 60)) -eq 0 ]; then
-        #        log "INFO" "$(($i / 60)) minutes remaining before reinstall..."
-        #    fi
-        #    sleep 1
-        #done
+        # Wait before attempting installation
+        log "INFO" "Waiting ${wait_time} seconds before attempt..."
+        for i in $(seq $wait_time -60 1); do
+            if [ $i -gt 0 ]; then
+                log "INFO" "$(($i / 60)) minutes remaining before next attempt..."
+                sleep 60
+            fi
+        done
 
-        log "INFO" "Proceeding with BBB reinstallation to fix SSL/nginx issues..."
+        log "INFO" "Starting BBB installation..."
         
-        # Run the installer and capture output while showing it in real-time
+        # Run the installer
         wget -qO- "https://raw.githubusercontent.com/bigbluebutton/bbb-install/${bbb_uri_version}/bbb-install.sh" | \
-        bash -s -- -v "${BBBApplicationVersion}" -s "${instance_fqdn}" -e "${BBBOperatorEmail}" -j 2>&1 | \
+        bash -s -- -v "${BBBApplicationVersion}" -s "${instance_fqdn}" -e "${BBBOperatorEmail}" -j -l 2>&1 | \
         tee /tmp/bbb-install.log | while IFS= read -r line; do
             if echo "$line" | grep -i "let's encrypt" > /dev/null; then
                 log "INFO" "Let's Encrypt: $line"
@@ -480,25 +496,19 @@ check_and_reinstall_bbb() {
             echo "$line"
         done
 
-        # Check if reinstall was successful
-        if [ ! -d "$cert_dir" ] || [ -z "$(ls -A $cert_dir 2>/dev/null)" ]; then
-            log "ERROR" "Let's Encrypt certificate still missing after reinstall"
-            return 1
+        # Check if installation was successful
+        if check_installation; then
+            log "INFO" "BBB installation successful on attempt $attempt"
+            return 0
         fi
 
-        if ! netstat -tuln | grep -q ':443 '; then
-            log "ERROR" "Nginx still not listening on port 443 after reinstall"
-            return 1
-        fi
+        log "WARN" "Installation attempt $attempt failed"
+        attempt=$((attempt + 1))
+    done
 
-        log "INFO" "BBB reinstallation completed successfully"
-    else
-        log "INFO" "SSL certificate and nginx configuration appear to be correct"
-    fi
-
-    return 0
+    log "ERROR" "Failed to install BBB after $max_attempts attempts"
+    return 1
 }
-
 
 # Function to setup Scalelite
 setup_scalelite() {

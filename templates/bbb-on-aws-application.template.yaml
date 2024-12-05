@@ -232,7 +232,7 @@ Resources:
             
             while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
             
-            apt install -y net-tools git jq unzip python3-pip binutils rustc cargo pkg-config libssl-dev gettext
+            apt install -y dnsutils net-tools git jq unzip python3-pip binutils rustc cargo pkg-config libssl-dev gettext
             
             cd /tmp
 

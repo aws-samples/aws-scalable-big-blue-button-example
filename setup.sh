@@ -391,20 +391,25 @@ if [ -z "$GREENLIGHT_TASK" ]; then
     log "ERROR" "Failed to retrieve Greenlight task"
 fi
 
-
-
-# Execute the admin creation command
-log "INFO" "Creating admin user in Greenlight"
-if ! debug_exec aws ecs execute-command \
+# Create admin user in Greenlight
+log "INFO" "Creating admin user in Greenlight..."
+output=$(debug_exec aws ecs execute-command \
     --profile="$BBBPROFILE" \
     --cluster "$ECS_CLUSTER" \
     --task "$GREENLIGHT_TASK" \
     --container greenlight \
     --interactive \
-    --command "bundle exec rake admin:create[\"bbbadmin\",\"${ADMIN_LOGIN}\",\"${ADMIN_PASSWORD}\"]"; then
-    
-    log "ERROR" "Failed to create admin user in Greenlight"
+    --command "bundle exec rake admin:create[\"bbbadmin\",\"${ADMIN_LOGIN}\",\"${ADMIN_PASSWORD}\"]" 2>&1)
+
+if echo "$output" | grep -q "Email has already been taken"; then
+    log "DEBUG" "Admin user already exists, continuing..."
+elif echo "$output" | grep -q "error\|Error\|ERROR" && ! echo "$output" | grep -q "Email has already been taken"; then
+    log "ERROR" "Failed to create admin user: $output"
+    exit 1
+else
+    log "INFO" "Admin user created successfully"
 fi
+
 
 log "INFO" "Admin user creation process completed"
 log "INFO" "##################################################"
