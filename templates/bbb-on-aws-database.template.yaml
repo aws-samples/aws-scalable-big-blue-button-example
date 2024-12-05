@@ -1,11 +1,7 @@
----
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
-
   This Cloudformation Template deploys the Database Cluster (Amazon Aurora) for the BigBlueButton application infrastructure.
-
   Disclaimer: Not for production use. Demo and testing purposes only.
-
   Author: David Surey <suredavi@amazon.com>
 
 Parameters:
@@ -17,38 +13,73 @@ Parameters:
     Type: Number
     Default: 5432
   BBBDBInstanceType:
-    Description: DB RDS instance type
+    Description: DB instance type for Aurora PostgreSQL
     Type: String
     Default: db.serverless
+    AllowedPattern: ^(db\.(serverless|(t3|t4g|r5|r6g|r6i|r7g)\.(medium|large|xlarge|2xlarge|4xlarge|8xlarge|12xlarge|16xlarge|24xlarge)))$
   BBBServerlessAuroraMinCapacity:
-    Description: The minimum capacity for the Amazon Aurora Serverless Cluster.
+    Description: The minimum capacity for the Amazon Aurora Serverless Cluster
     Type: Number
     Default: 2
   BBBServerlessAuroraMaxCapacity:
     Description: The maximum capacity for the Amazon Aurora Serverless Cluster
     Type: Number
     Default: 4
-  BBBPrivateDBSubnets:
+  BBBDatastoreSubnets:
     Description: Comma separated list of the private database subnets
     Type: CommaDelimitedList
   BBBDBEngineVersion:
     Description: Database engine version for Aurora PostgreSQL
     Type: String
-    Default: 14.3
+    Default: 16.4
+    AllowedValues:
+      - 14.3
+      - 14.4
+      - 14.5
+      - 14.6
+      - 14.7
+      - 14.8
+      - 15.3
+      - 15.4
+      - 15.5
+      - 16.1
+      - 16.2
+      - 16.3
+      - 16.4
   BBBDBSecurityGroup:
     Description: Security Group that should be assigned for the database
     Type: String
-  BBBEnvironmentStage:
-    Type: String
-    Description: Select the appropriate environment
-    AllowedValues:
-      - stage
-      - prod
-      - dev
+
+Mappings:
+  AuroraEngineMap:
+    "14.3":
+      Family: "aurora-postgresql14"
+    "14.4":
+      Family: "aurora-postgresql14"
+    "14.5":
+      Family: "aurora-postgresql14"
+    "14.6":
+      Family: "aurora-postgresql14"
+    "14.7":
+      Family: "aurora-postgresql14"
+    "14.8":
+      Family: "aurora-postgresql14"
+    "15.3":
+      Family: "aurora-postgresql15"
+    "15.4":
+      Family: "aurora-postgresql15"
+    "15.5":
+      Family: "aurora-postgresql15"
+    "16.1":
+      Family: "aurora-postgresql16"
+    "16.2":
+      Family: "aurora-postgresql16"
+    "16.3":
+      Family: "aurora-postgresql16"
+    "16.4":
+      Family: "aurora-postgresql16"
 
 Conditions:
-  BBBProdEnvironment: !Equals [ !Ref BBBEnvironmentStage, prod ]
-  BBBNonProdEnvironment: !Not [ Condition: BBBProdEnvironment ]
   BBBServerlessAurora: !Equals [ !Ref BBBDBInstanceType, db.serverless ]
 
 Resources:
@@ -56,8 +87,7 @@ Resources:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
       DBSubnetGroupDescription: Subnet Group for RDS Deployment
-      SubnetIds:
-        Ref: BBBPrivateDBSubnets
+      SubnetIds: !Ref BBBDatastoreSubnets
 
   BBBRDSDBSecret:
     Type: AWS::SecretsManager::Secret
@@ -67,7 +97,7 @@ Resources:
         SecretStringTemplate: '{"username": "BBBDBUsr"}'
         GenerateStringKey: 'password'
         PasswordLength: 16
-        ExcludePunctuation: 'true'
+        ExcludePunctuation: true
 
   BBBRDSDBConnectionSecret:
     Type: AWS::SecretsManager::Secret
@@ -75,16 +105,10 @@ Resources:
       Description: 'This is the BBB Database cluster url secret'
       SecretString: !Sub
         - '{"hostname": "${HOSTNAME}", "port": ${PORT}, "connectionString": "postgresql://${BBBDBUser}:${BBBDBPassword}@${HOSTNAME}:${PORT}"}'
-        - HOSTNAME:
-            Fn::GetAtt:
-              - BBBRDSCluster
-              - Endpoint.Address
-          PORT:
-            Fn::GetAtt:
-              - BBBRDSCluster
-              - Endpoint.Port
-          BBBDBUser: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
-          BBBDBPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
+        - HOSTNAME: !GetAtt BBBRDSCluster.Endpoint.Address
+          PORT: !GetAtt BBBRDSCluster.Endpoint.Port
+          BBBDBUser: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}']]
+          BBBDBPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}']]
 
   BBBDatabaseName:
     Type: AWS::SecretsManager::Secret
@@ -96,154 +120,106 @@ Resources:
         PasswordLength: 16
         ExcludePunctuation: true
 
+  BBBRDSDBParameterGroupPostgres:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: Aurora PG Database Instance Parameter Group
+      Family: !FindInMap [AuroraEngineMap, !Ref BBBDBEngineVersion, Family]
+
+  BBBRDSDBClusterParameterGroupPostgres:
+    Type: AWS::RDS::DBClusterParameterGroup
+    Properties:
+      Description: Aurora PG Database Cluster Parameter Group
+      Family: !FindInMap [AuroraEngineMap, !Ref BBBDBEngineVersion, Family]
+      Parameters:
+        timezone: Europe/Berlin
+
   BBBRDSCluster:
     Type: AWS::RDS::DBCluster
+    DeletionPolicy: Delete
     Properties:
-      MasterUsername: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}' ] ]
-      MasterUserPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}' ] ]
-      DatabaseName: !Join [ '', [ 'BBB', '{{resolve:secretsmanager:', !Ref BBBDatabaseName, ':SecretString:DBName}}' ] ]
-      Port:
-        Ref: BBBDBPort
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:username}}']]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref BBBRDSDBSecret, ':SecretString:password}}']]
+      DatabaseName: !Join ['', ['BBB', '{{resolve:secretsmanager:', !Ref BBBDatabaseName, ':SecretString:DBName}}']]
+      Port: !Ref BBBDBPort
       Engine: aurora-postgresql
-      EngineVersion:
-        Ref: BBBDBEngineVersion
-      StorageEncrypted: 'true'
-      DBSubnetGroupName:
-        Ref: BBBDBSubnetGroup
-      DBClusterParameterGroupName:
-        Ref: "BBBRDSDBClusterParameterGroupPostgres"
-      VpcSecurityGroupIds:
-        - Ref: BBBDBSecurityGroup
+      EngineVersion: !Ref BBBDBEngineVersion
+      StorageEncrypted: true
+      DBSubnetGroupName: !Ref BBBDBSubnetGroup
+      DBClusterParameterGroupName: !Ref BBBRDSDBClusterParameterGroupPostgres
+      VpcSecurityGroupIds: [!Ref BBBDBSecurityGroup]
       ServerlessV2ScalingConfiguration:
         !If
         - BBBServerlessAurora
         - MinCapacity: !Ref BBBServerlessAuroraMinCapacity
           MaxCapacity: !Ref BBBServerlessAuroraMaxCapacity
-        - !Ref "AWS::NoValue"
+        - !Ref AWS::NoValue
 
   BBBRDSDBInstance1:
     Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
     Properties:
-      AllowMajorVersionUpgrade: 'false'
-      AutoMinorVersionUpgrade: 'true'
-      CopyTagsToSnapshot: 'true'
-      DBSubnetGroupName:
-        Ref: BBBDBSubnetGroup
+      AllowMajorVersionUpgrade: false
+      AutoMinorVersionUpgrade: true
+      CopyTagsToSnapshot: true
+      DBSubnetGroupName: !Ref BBBDBSubnetGroup
       Engine: aurora-postgresql
-      EngineVersion:
-        Ref: BBBDBEngineVersion
-      DBClusterIdentifier:
-        Ref: BBBRDSCluster
-      DBParameterGroupName:
-        Ref: BBBRDSDBParameterGroupPostgres
-      AvailabilityZone:
-        Fn::Select:
-          - '0'
-          - Fn::GetAZs:
-              Ref: AWS::Region
-      DBInstanceClass:
-        Ref: BBBDBInstanceType
+      EngineVersion: !Ref BBBDBEngineVersion
+      DBClusterIdentifier: !Ref BBBRDSCluster
+      DBParameterGroupName: !Ref BBBRDSDBParameterGroupPostgres
+      AvailabilityZone: !Select [0, !GetAZs '']
+      DBInstanceClass: !Ref BBBDBInstanceType
 
   BBBRDSDBInstance2:
     Type: AWS::RDS::DBInstance
-    Condition: BBBProdEnvironment
+    DeletionPolicy: Delete
     Properties:
-      AllowMajorVersionUpgrade: 'false'
-      AutoMinorVersionUpgrade: 'true'
-      CopyTagsToSnapshot: 'true'
-      DBSubnetGroupName:
-        Ref: BBBDBSubnetGroup
+      AllowMajorVersionUpgrade: false
+      AutoMinorVersionUpgrade: true
+      CopyTagsToSnapshot: true
+      DBSubnetGroupName: !Ref BBBDBSubnetGroup
       Engine: aurora-postgresql
-      EngineVersion:
-        Ref: BBBDBEngineVersion
-      DBClusterIdentifier:
-        Ref: BBBRDSCluster
-      AvailabilityZone:
-        Fn::Select:
-          - '1'
-          - Fn::GetAZs:
-              Ref: AWS::Region
-      DBInstanceClass:
-        Ref: BBBDBInstanceType
-
-  BBBRDSDBParameterGroupPostgres:
-    Type: AWS::RDS::DBParameterGroup
-    Properties:
-      Description: Aurora PG 14 Database Instance Parameter Group for Cloudformation Stack
-      Family: !If [ BBBServerlessAurora, aurora-postgresql14, aurora-postgresql14 ]
-      Parameters:
-        shared_preload_libraries: auto_explain,pg_stat_statements,pg_hint_plan,pgaudit
-        log_statement: "ddl"
-        log_connections: 1
-        log_disconnections: 1
-        log_lock_waits: 1
-        log_min_duration_statement: 5000
-        auto_explain.log_min_duration: 5000
-        auto_explain.log_verbose: 1
-        log_rotation_age: 1440
-        log_rotation_size: 102400
-        rds.log_retention_period: 10080
-        random_page_cost: 1
-        track_activity_query_size: 16384
-        idle_in_transaction_session_timeout: 7200000
-        statement_timeout: 7200000
-        search_path: '"$user",public'
-
-  BBBRDSDBClusterParameterGroupPostgres:
-    Type: AWS::RDS::DBClusterParameterGroup
-    Properties:
-      Description: CloudFormation Sample Aurora Cluster PG Parameter Group
-      Family: !If [ BBBServerlessAurora, aurora-postgresql14, aurora-postgresql14 ]
-      Parameters:
-        timezone: Europe/Berlin
+      EngineVersion: !Ref BBBDBEngineVersion
+      DBClusterIdentifier: !Ref BBBRDSCluster
+      DBParameterGroupName: !Ref BBBRDSDBParameterGroupPostgres
+      AvailabilityZone: !Select [1, !GetAZs '']
+      DBInstanceClass: !Ref BBBDBInstanceType
 
   DBClusterEventSubscription:
-    Type: 'AWS::RDS::EventSubscription'
+    Type: AWS::RDS::EventSubscription
     Properties:
       EventCategories:
         - failover
         - failure
         - notification
-      SnsTopicArn:
-        Ref: BBBNotificationTopic
-      SourceIds:
-        - Ref: BBBRDSCluster
-      SourceType: 'db-cluster'
+      SnsTopicArn: !Ref BBBNotificationTopic
+      SourceIds: [!Ref BBBRDSCluster]
+      SourceType: db-cluster
 
 Outputs:
-  BBBDBName: 
-    Value: 
-      !Join [ '_', [ 'APPDB', !Ref AWS::StackName ] ]
+  BBBDBName:
+    Value: !Join ['_', ['APPDB', !Ref 'AWS::StackName']]
   BBBDB:
     Description: The Big Blue Button Database Created
-    Value:
-      Ref: BBBRDSCluster
+    Value: !Ref BBBRDSCluster
   BBBRDSDBConnectionSecret:
     Description: The Big Blue Button DB Connection Data
-    Value:
-      Ref: BBBRDSDBConnectionSecret
+    Value: !Ref BBBRDSDBConnectionSecret
   BBBRDSDBClusterParameterGroup:
     Description: The Big Blue Button DB Cluster Parameter Group
-    Value:
-      Ref: "BBBRDSDBClusterParameterGroupPostgres"
+    Value: !Ref BBBRDSDBClusterParameterGroupPostgres
   BBBDBSubnetGroup:
     Description: The Big Blue Button DB Subnet Group
-    Value:
-      Ref: BBBDBSubnetGroup
+    Value: !Ref BBBDBSubnetGroup
   BBBRDSCluster:
     Description: The Big Blue Button DB Cluster
-    Value:
-      Ref: BBBRDSCluster
+    Value: !Ref BBBRDSCluster
   BBBRDSDBInstance1:
     Description: The Big Blue Button DB Instance 1
-    Value:
-      Ref: BBBRDSDBInstance1
+    Value: !Ref BBBRDSDBInstance1
   BBBRDSDBInstance2:
-    Condition: BBBProdEnvironment
     Description: The Big Blue Button DB Instance 2
-    Value:
-      Ref: BBBRDSDBInstance2
+    Value: !Ref BBBRDSDBInstance2
   BBBRDSDBParameterGroup:
     Description: The Big Blue Button DB Parameter Group
-    Value:
-      Ref: "BBBRDSDBParameterGroupPostgres"
+    Value: !Ref BBBRDSDBParameterGroupPostgres

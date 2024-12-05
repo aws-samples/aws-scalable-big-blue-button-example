@@ -1,192 +1,419 @@
-#!/bin/bash
-# This is a simple bash script for the BBB Application Infrastructure deployment. 
-# It basically glues together the parts running in loose coupeling during the deployment and helps to speed things up which
-# otherwise would have to be noted down and put into the command line. 
-# This can be migrated into real orchestration / automation toolsets if needed (e.g. Ansible, Puppet or Terraform)
+#!/bin/sh
+# BBB Application Infrastructure deployment script
+# Author: David Surey - suredavi@amazon.de
+# Disclaimer: NOT FOR PRODUCTION USE - Only for demo and testing purposes
 
-# created by David Surey - suredavi@amazon.de
-# Disclaimber: NOT FOR PRODUCTION USE - Only for demo and testing purposes
+# Color codes for output formatting
+# Using printf to ensure proper escape sequence interpretation
+RED=$(printf '\033[0;31m')
+GREEN=$(printf '\033[0;32m')
+YELLOW=$(printf '\033[1;33m')
+BLUE=$(printf '\033[0;34m')
+NC=$(printf '\033[0m')
 
-ERROR_COUNT=0; 
+# Logging configuration
+LOG_LEVEL=${LOG_LEVEL:-"INFO"}  # Default to INFO if not set
+LOG_FILE="/tmp/bbb-setup-$(date +%Y%m%d-%H%M%S).log"
 
-if [[ $# -lt 5 ]] ; then
-    echo 'arguments missing, please provide at least email (-e), the aws profile string (-p), the domain name (-d), the deployment Stack Name (-s) and the hosted zone to be used (-h)'
+# Get numeric value for log level
+get_log_level_value() {
+    case $1 in
+        "DEBUG") echo 0 ;;
+        "INFO")  echo 1 ;;
+        "WARN")  echo 2 ;;
+        "ERROR") echo 3 ;;
+        *)       echo 1 ;; # Default to INFO
+    esac
+}
+
+# Logging function
+log() {
+    level=$1
+    shift
+    message=$*
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    
+    # Check if level meets minimum level
+    current_level=$(get_log_level_value "$level")
+    minimum_level=$(get_log_level_value "$LOG_LEVEL")
+    
+    if [ "$current_level" -lt "$minimum_level" ]; then
+        return 2
+    fi
+
+    # Color selection based on level
+    case $level in
+        "DEBUG") color=$BLUE ;;
+        "INFO") color=$GREEN ;;
+        "WARN") color=$YELLOW ;;
+        "ERROR") color=$RED ;;
+        *) color=$NC ;;
+    esac
+
+    # Output to console with color
+    printf "%s [%s%s%s] %s\n" "$timestamp" "$color" "$level" "$NC" "$message"
+    
+    # Output to log file without color
+    printf "%s [%s] %s\n" "$timestamp" "$level" "$message" >> "$LOG_FILE"
+    
+    # Exit on ERROR level messages
+    if [ "$level" = "ERROR" ]; then
+        exit 1
+    fi
+}
+
+debug_exec() {
+    if [ "$LOG_LEVEL" = "DEBUG" ]; then
+        "$@" 2>&1 | tee -a "$LOG_FILE"
+    else
+        "$@" >/dev/null 2>&1
+    fi
+}
+
+# Function to monitor CloudFormation stack events in real-time
+monitor_stack() {
+    local stack_name=$1
+    local last_event_time
+    last_event_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    log "DEBUG" "Starting stack monitoring for: $stack_name"
+    
+    while true; do
+        events=$(aws cloudformation describe-stack-events \
+            --profile "$BBBPROFILE" \
+            --stack-name "$stack_name" \
+            --query 'StackEvents[?contains(ResourceStatus, `IN_PROGRESS`) || contains(ResourceStatus, `COMPLETE`) || contains(ResourceStatus, `FAILED`)]')
+        
+        echo "$events" | jq -r --arg timestamp "$last_event_time" '.[] | select(.Timestamp > $timestamp) | "\(.Timestamp) [\(.LogicalResourceId)] \(.ResourceStatus) - \(.ResourceStatusReason // "No reason provided")"' | while read -r line; do
+            log "DEBUG" "$line"
+        done
+        
+        # Get stack status
+        stack_status=$(aws cloudformation describe-stacks \
+            --profile "$BBBPROFILE" \
+            --stack-name "$stack_name" \
+            --query 'Stacks[0].StackStatus' \
+            --output text)
+        
+        if [[ ! $stack_status =~ .*IN_PROGRESS$ ]]; then
+            if [[ $stack_status =~ .*FAILED$ || $stack_status =~ .*ROLLBACK.* ]]; then
+                log "ERROR" "Stack deployment failed with status: $stack_status"
+                return 1
+            elif [[ $stack_status =~ .*COMPLETE$ ]]; then
+                log "INFO" "Stack deployment completed successfully with status: $stack_status"
+                return 0
+            fi
+        fi
+        
+        last_event_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        sleep 5
+    done
+}
+
+# Modified deployment function
+deploy_stack() {
+    local stack_name=$1
+    local template=$2
+    shift 2
+    local params=("$@")
+
+    log "INFO" "Starting deployment for stack: $stack_name"
+    log "DEBUG" "Using template: $template"
+    
+    if aws cloudformation deploy \
+        --profile "$BBBPROFILE" \
+        --stack-name "$stack_name" \
+        "${params[@]}" \
+        --template "$template" \
+        --no-fail-on-empty-changeset; then
+        
+        monitor_stack "$stack_name"
+        return $?
+    else
+        log "ERROR" "Failed to initiate stack deployment for $stack_name"
+        return 1
+    fi
+}
+
+# Input validation function
+validate_input() {
+    param_name=$1
+    param_value=$2
+    
+    if [ -z "$param_value" ]; then
+        log "ERROR" "Parameter ${param_name} is required but not provided"
+    fi
+}
+
+# Usage information
+usage() {
+    echo "Usage: $0 -p <aws-profile> -e <operator-email> -h <hosted-zone> -s <stack-name> -d <domain-name>"
+    echo "Options:"
+    echo "  -p : AWS Profile"
+    echo "  -e : Operator Email"
+    echo "  -h : Hosted Zone"
+    echo "  -s : Stack Name"
+    echo "  -d : Domain Name"
+    echo "  -l : Log Level (DEBUG|INFO|WARN|ERROR) - default: INFO"
     exit 1
-fi
+}
 
-while getopts ":p:e:h:s:d:" opt; do
-  case $opt in
-    p) BBBPROFILE="$OPTARG"
-    ;;
-    e) OPERATOREMAIL="$OPTARG"
-    ;;
-    h) HOSTEDZONE="$OPTARG"
-    ;;
-    s) BBBSTACK="$OPTARG"
-    ;;
-    d) DOMAIN="$OPTARG"
-    ;;
-    \?) echo "Invalid option -$OPTARG" >&2
-    ;;
-  esac
+# Initialize variables
+BBBPROFILE=""
+OPERATOREMAIL=""
+HOSTEDZONE=""
+BBBSTACK=""
+DOMAIN=""
+
+# Parse command line arguments
+while getopts "p:e:h:s:d:l:" opt; do
+    case $opt in
+        p) BBBPROFILE="$OPTARG" ;;
+        e) OPERATOREMAIL="$OPTARG" ;;
+        h) HOSTEDZONE="$OPTARG" ;;
+        s) BBBSTACK="$OPTARG" ;;
+        d) DOMAIN="$OPTARG" ;;
+        l) 
+            case $OPTARG in
+                DEBUG|INFO|WARN|ERROR) LOG_LEVEL="$OPTARG" ;;
+                *) log "ERROR" "Invalid log level: $OPTARG. Valid levels are: DEBUG INFO WARN ERROR" ;;
+            esac
+            ;;
+        *) log "ERROR" "Invalid option -$OPTARG" ;;
+    esac
 done
 
-if ! [ -x "$(command -v aws)" ]; then
-  echo 'ERROR: aws cli is not installed.' >&2
-  exit 1
+# Validate all required parameters
+log "DEBUG" "Validating input parameters..."
+validate_input "AWS Profile" "$BBBPROFILE"
+validate_input "Operator Email" "$OPERATOREMAIL"
+validate_input "Hosted Zone" "$HOSTEDZONE"
+validate_input "Stack Name" "$BBBSTACK"
+validate_input "Domain" "$DOMAIN"
+
+# Validate email format using grep
+if ! echo "$OPERATOREMAIL" | grep -E "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" > /dev/null; then
+    log "ERROR" "Invalid email format: $OPERATOREMAIL"
 fi
 
-if ! docker ps -q 2>/dev/null; then
- echo "ERROR: Docker is not running. Please start the docker runtime on your system and try again"
- exit 1
+# Check for required tools
+log "DEBUG" "Checking required tools..."
+if ! debug_exec command -v aws; then
+    log "ERROR" "aws CLI is not installed"
 fi
 
-echo "using AWS Profile $BBBPROFILE"
-echo "##################################################"
-
-echo "Validating AWS CloudFormation templates..."
-echo "##################################################"
-# Loop through the YAML templates in this repository
-for TEMPLATE in $(find . -name 'bbb-on-aws-*.template.yaml'); do 
-
-    # Validate the template with CloudFormation
-    ERRORS=$(aws cloudformation validate-template --profile=$BBBPROFILE --template-body file://$TEMPLATE 2>&1 >/dev/null); 
-    if [ "$?" -gt "0" ]; then 
-        ((ERROR_COUNT++));
-        echo "[fail] $TEMPLATE: $ERRORS";
-    else 
-        echo "[pass] $TEMPLATE";
-    fi; 
-    
-done; 
-
-# Error out if templates are not validate. 
-echo "$ERROR_COUNT template validation error(s)"; 
-if [ "$ERROR_COUNT" -gt 0 ]; 
-    then exit 1; 
+if ! debug_exec docker ps; then
+    log "ERROR" "Docker is not running or not installed"
 fi
 
-echo "##################################################"
-echo "Validating of AWS CloudFormation templates finished"
-echo "##################################################"
+if ! debug_exec command -v jq; then
+    log "ERROR" "jq is not installed"
+fi
 
-# Deploy the Needed Buckets for the later build 
-echo "deploy the Prerequisites of the BBB Environment and Application if needed"
-echo "##################################################"
+# Main execution starts here
+log "INFO" "Starting BBB deployment with AWS Profile: $BBBPROFILE"
+log "INFO" "##################################################"
+
+# Deploy Prerequisites
+log "INFO" "Deploying Prerequisites for BBB Environment"
 BBBPREPSTACK="${BBBSTACK}-Sources"
-aws cloudformation deploy --stack-name $BBBPREPSTACK --profile=$BBBPROFILE --template ./templates/bbb-on-aws-buildbuckets.template.yaml
-echo "##################################################"
-echo "deployment done"
+if ! debug_exec deploy_stack "$BBBPREPSTACK" \
+    "./templates/bbb-on-aws-buildbuckets.template.yaml"; then
+    log "ERROR" "Failed to deploy prerequisites stack"
+fi
 
-SOURCE=$(aws cloudformation describe-stack-resources --profile $BBBPROFILE --stack-name $BBBPREPSTACK --query "StackResources[?ResourceType=='AWS::S3::Bucket'].PhysicalResourceId" --output text)
+# Get source bucket
+SOURCE=$(aws cloudformation describe-stack-resources \
+    --profile "$BBBPROFILE" \
+    --stack-name "$BBBPREPSTACK" \
+    --query "StackResources[?ResourceType=='AWS::S3::Bucket'].PhysicalResourceId" \
+    --output text)
 
-# we will upload the needed CFN Templates to S3 containing the IaaC Code which deploys the actual infrastructure.
-# This will error out if the source files are missing. 
-echo "##################################################"
-echo "Copy Files to the S3 Bucket for further usage"
-echo "##################################################"
-if [ -e . ]
-then
-    echo "##################################################"
-    echo "copy BBB code source file"
-    aws s3 sync --profile=$BBBPROFILE --exclude=".DS_Store" ./templates s3://$SOURCE
-    aws s3 sync --profile=$BBBPROFILE --exclude=".DS_Store" ./scripts s3://$SOURCE
-    echo "##################################################"
+log "DEBUG" "Source bucket: $SOURCE"
+
+# Copy files to S3
+log "INFO" "Copying files to S3 bucket"
+if [ -d "./templates" ] && [ -d "./scripts" ]; then
+    log "DEBUG" "Syncing templates and scripts to S3"
+    debug_exec aws s3 sync --profile="$BBBPROFILE" --exclude=".DS_Store" ./templates "s3://$SOURCE"
+    debug_exec aws s3 sync --profile="$BBBPROFILE" --exclude=".DS_Store" ./scripts "s3://$SOURCE"
 else
-    echo "BBB code source file missing"
-    echo "##################################################"
+    log "ERROR" "Required source directories (templates/ or scripts/) are missing"
+fi
+
+# Deploy registry stack
+deploy_registry_stack() {
+    log "INFO" "Deploying ECR registry stack..."
+    BBBECRSTACK="${BBBSTACK}-registry"
+
+    if ! debug_exec deploy_stack "$BBBECRSTACK" \
+        "./templates/bbb-on-aws-registry.template.yaml" \
+        --capabilities CAPABILITY_IAM; then
+        log "ERROR" "Failed to deploy ECR registry stack"
+        return 1
+    fi
+
+    log "INFO" "ECR registry stack deployed successfully"
+    return 0
+}
+
+# Deploy the registry stack
+log "INFO" "Deploying ECR registry stack"
+if ! debug_exec deploy_registry_stack; then
+    log "ERROR" "Failed to deploy ECR registry stack"
     exit 1
 fi
-echo "##################################################"
-echo "File Copy finished"
 
-ENVIRONMENTTYPE=$(jq -r ".Parameters.BBBEnvironmentType" bbb-on-aws-param.json)
+# Get repository information and mirror images
+log "INFO" "Getting repository information and mirroring images"
+GREENLIGHTIMAGE=$(aws ecr describe-repositories --profile="$BBBPROFILE" --query 'repositories[?contains(repositoryName, `greenlight`)].repositoryName' --output text)
+SCALELITEIMAGE=$(aws ecr describe-repositories --profile="$BBBPROFILE" --query 'repositories[?contains(repositoryName, `scalelite`)].repositoryName' --output text)
 
-if [ "$ENVIRONMENTTYPE" == 'scalable' ]
-then 
-  BBBECRStack="${BBBSTACK}-registry"
-  aws cloudformation deploy --profile=$BBBPROFILE --stack-name $BBBECRStack  \
-      --parameter-overrides $PARAMETERS \
-      $(jq -r '.Parameters | to_entries | map("\(.key)=\(.value)") | join(" ")' bbb-on-aws-param.json) \
-      --template ./templates/bbb-on-aws-registry.template.yaml
+SCALELITEREGISTRY=$(aws ecr describe-repositories --profile="$BBBPROFILE" --query 'repositories[?contains(repositoryName, `scalelite`)].repositoryUri' --output text)
+GREENLIGHTREGISTRY=$(aws ecr describe-repositories --profile="$BBBPROFILE" --query 'repositories[?contains(repositoryName, `greenlight`)].repositoryUri' --output text)
 
-  GREENLIGHTIMAGE=$(aws ecr describe-repositories --profile=$BBBPROFILE --query 'repositories[?contains(repositoryName, `greenlight`)].repositoryName' --output text)
-  SCALELITEIMAGE=$(aws ecr describe-repositories --profile=$BBBPROFILE --query 'repositories[?contains(repositoryName, `scalelite`)].repositoryName' --output text)
+log "INFO" "##################################################"
+log "INFO" "Mirror docker images to ECR for further usage"
+log "INFO" "##################################################"
 
-  SCALELITEREGISTRY=$(aws ecr describe-repositories --profile=$BBBPROFILE --query 'repositories[?contains(repositoryName, `scalelite`)].repositoryUri' --output text)
-  GREENLIGHTREGISTRY=$(aws ecr describe-repositories --profile=$BBBPROFILE --query 'repositories[?contains(repositoryName, `greenlight`)].repositoryUri' --output text)
+SCALELITEIMAGETAGS=("BBBScaleliteNginxImageTag" "BBBScaleliteApiImageTag" "BBBScalelitePollerImageTag" "BBBScaleliteImporterImageTag")
+GREENLIGHTIMAGETAGS=("BBBgreenlightImageTag")
 
-  # we will mirror the needed images from dockerhub and push towards ECR
-  echo "##################################################"
-  echo "Mirror docker images to ECR for further usage"
-  echo "##################################################"
-  
-  SCALELITEIMAGETAGS=( BBBScaleliteNginxImageTag BBBScaleliteApiImageTag BBBScalelitePollerImageTag BBBScaleliteImporterImageTag )
-  GREENLIGHTIMAGETAGS=( BBBgreenlightImageTag )
-
-  aws ecr get-login-password --profile=$BBBPROFILE | docker login --username AWS --password-stdin $SCALELITEREGISTRY
-  aws ecr get-login-password --profile=$BBBPROFILE | docker login --username AWS --password-stdin $GREENLIGHTREGISTRY
-
-  for IMAGETAG in "${SCALELITEIMAGETAGS[@]}"
-  do
-    IMAGETAG=$(jq -r ".Parameters.$IMAGETAG" bbb-on-aws-param.json)
-    docker pull $SCALELITEIMAGE:$IMAGETAG
-    docker tag $SCALELITEIMAGE:$IMAGETAG $SCALELITEREGISTRY:$IMAGETAG
-    docker push $SCALELITEREGISTRY:$IMAGETAG
-  done
-  for IMAGETAG in "${GREENLIGHTIMAGETAGS[@]}"
-  do
-    IMAGETAG=$(jq -r ".Parameters.$IMAGETAG" bbb-on-aws-param.json)
-    docker pull $GREENLIGHTIMAGE:$IMAGETAG
-    docker tag $GREENLIGHTIMAGE:$IMAGETAG $GREENLIGHTREGISTRY:$IMAGETAG
-    docker push $GREENLIGHTREGISTRY:$IMAGETAG
-  done
-
-  echo "##################################################"
-  echo "Registry Preperation finished"
+# Authenticate with ECR
+if ! debug_exec aws ecr get-login-password --profile="$BBBPROFILE" | debug_exec docker login --username AWS --password-stdin "$SCALELITEREGISTRY"; then
+    log "ERROR" "Failed to authenticate with Scalelite ECR registry"
+fi
+if ! debug_exec aws ecr get-login-password --profile="$BBBPROFILE" | debug_exec docker login --username AWS --password-stdin "$GREENLIGHTREGISTRY"; then
+    log "ERROR" "Failed to authenticate with Greenlight ECR registry"
 fi
 
-# Setting the dynamic Parameters for the Deployment
-PARAMETERS=" BBBOperatorEMail=$OPERATOREMAIL \
-             BBBStackBucketStack=$BBBSTACK-Sources \
-             BBBDomainName=$DOMAIN \
-             BBBHostedZone=$HOSTEDZONE \
-             BBBECRStack=$BBBSTACK-Registry"
+# Process Scalelite images
+for IMAGETAG in "${SCALELITEIMAGETAGS[@]}"
+do
+    TAGVALUE=$(jq -r ".Parameters.$IMAGETAG" bbb-on-aws-param.json)
+    log "DEBUG" "Processing Scalelite image with tag: $TAGVALUE"
+    debug_exec docker pull --platform linux/amd64 "$SCALELITEIMAGE:$TAGVALUE"
+    debug_exec docker tag "$SCALELITEIMAGE:$TAGVALUE" "$SCALELITEREGISTRY:$TAGVALUE"
+    debug_exec docker push "$SCALELITEREGISTRY:$TAGVALUE"
+done
 
-# Deploy the BBB infrastructure. 
-echo "Building the BBB Environment"
-echo "##################################################"
-aws cloudformation deploy --profile=$BBBPROFILE --stack-name $BBBSTACK \
+for IMAGETAG in "${GREENLIGHTIMAGETAGS[@]}"
+do
+    TAGVALUE=$(jq -r ".Parameters.$IMAGETAG" bbb-on-aws-param.json)
+    log "DEBUG" "Processing Greenlight image with tag: $TAGVALUE"
+    debug_exec docker pull --platform linux/amd64 "$GREENLIGHTIMAGE:$TAGVALUE"
+    debug_exec docker tag "$GREENLIGHTIMAGE:$TAGVALUE" "$GREENLIGHTREGISTRY:$TAGVALUE"
+    debug_exec docker push "$GREENLIGHTREGISTRY:$TAGVALUE"
+done
+
+log "INFO" "##################################################"
+log "INFO" "Registry Preparation finished"
+log "INFO" "##################################################"
+
+
+# Final deployment
+log "INFO" "Deploying main BBB infrastructure"
+if ! debug_exec deploy_stack "$BBBSTACK" \
+    "./bbb-on-aws-root.template.yaml" \
     --capabilities CAPABILITY_NAMED_IAM \
-    --parameter-overrides $PARAMETERS \
-    $(jq -r '.Parameters | to_entries | map("\(.key)=\(.value)") | join(" ")' bbb-on-aws-param.json) \
-    --template ./bbb-on-aws-root.template.yaml
+    --parameter-overrides \
+        "BBBOperatorEMail=$OPERATOREMAIL" \
+        "BBBStackBucketStack=$BBBSTACK-Sources" \
+        "BBBDomainName=$DOMAIN" \
+        "BBBHostedZone=$HOSTEDZONE" \
+        "BBBECRStack=$BBBSTACK-registry" \
+        $(jq -r '.Parameters | to_entries | map("\(.key)=\(.value)") | join(" ")' bbb-on-aws-param.json); then
+    log "ERROR" "Main infrastructure deployment failed"
+fi
 
 # Set the initial admin password for the environment
-echo "Setting the intial admin password"
-echo "##################################################"
+log "INFO" "Setting the initial admin password"
+log "INFO" "##################################################"
 
-#get the secrets
-ADMIN_SECRET=$(aws secretsmanager list-secrets --profile $BBBPROFILE --filter Key="name",Values="BBBAdministratorlogin" --query 'SecretList[0].Name' --output text)
-ADMIN_AUTH=$(aws secretsmanager get-secret-value --profile $BBBPROFILE --secret-id $ADMIN_SECRET)
-ADMIN_PASSWORD=$(echo "$ADMIN_AUTH" | jq -r '.SecretString | fromjson | .password')
-ADMIN_LOGIN=$(echo "$ADMIN_AUTH" | jq -r '.SecretString | fromjson | .username')
+# Get the secrets
+log "DEBUG" "Retrieving administrator credentials from Secrets Manager"
+ADMIN_SECRET=$(debug_exec aws secretsmanager list-secrets \
+    --profile "$BBBPROFILE" \
+    --filter Key="name",Values="BBBAdministratorlogin" \
+    --query 'SecretList[0].Name' \
+    --output text)
 
-#get the cluster information
-ECS_CLUSTERS=$(aws ecs --profile=$BBBPROFILE list-clusters)
+if [ -z "$ADMIN_SECRET" ]; then
+    log "ERROR" "Failed to retrieve admin secret from Secrets Manager"
+fi
+
+ADMIN_PASSWORD=$(debug_exec aws secretsmanager get-secret-value \
+    --profile "$BBBPROFILE" \
+    --secret-id "$ADMIN_SECRET" \
+    --query 'SecretString' \
+    --output text | jq -r '.password')
+
+ADMIN_LOGIN=$(debug_exec aws secretsmanager get-secret-value \
+    --profile "$BBBPROFILE" \
+    --secret-id "$ADMIN_SECRET" \
+    --query 'SecretString' \
+    --output text | jq -r '.username')
+
+if [ -z "$ADMIN_PASSWORD" ] || [ -z "$ADMIN_LOGIN" ]; then
+    log "ERROR" "Failed to retrieve admin credentials"
+    exit 1
+fi
+
+# Get the cluster information
+log "DEBUG" "Retrieving ECS cluster information"
+ECS_CLUSTERS=$(debug_exec aws ecs --profile="$BBBPROFILE" list-clusters)
 ECS_CLUSTER=$(echo "$ECS_CLUSTERS" | jq -r '.clusterArns[0] | split("/") | .[1]')
 
-# get my greenlight service
-GREENLIGHT_SERVICE=$(aws ecs list-services --profile $BBBPROFILE --cluster $ECS_CLUSTER --query "serviceArns[?contains(@, 'BBBgreenlightService')]" --output text | xargs -n 1 basename)
-GREENLIGHT_TASK=$(aws ecs list-tasks --profile $BBBPROFILE --cluster $ECS_CLUSTER --service $GREENLIGHT_SERVICE --output text | awk -F"/" '{print $NF}' | rev | awk -F"/" '{print $1}' | rev)
+if [ -z "$ECS_CLUSTER" ]; then
+    log "ERROR" "Failed to retrieve ECS cluster information"
+fi
 
-aws ecs execute-command --profile=$BBBPROFILE --cluster $ECS_CLUSTER \
-    --task $GREENLIGHT_TASK \
+# Get Greenlight service and task
+log "DEBUG" "Retrieving Greenlight service information"
+GREENLIGHT_SERVICE=$(debug_exec aws ecs list-services \
+    --profile "$BBBPROFILE" \
+    --cluster "$ECS_CLUSTER" \
+    --query "serviceArns[?contains(@, 'BBBgreenlightService')]" \
+    --output text | xargs -n 1 basename)
+
+if [ -z "$GREENLIGHT_SERVICE" ]; then
+    log "ERROR" "Failed to retrieve Greenlight service"
+fi
+
+log "DEBUG" "Retrieving Greenlight task information"
+GREENLIGHT_TASK=$(debug_exec aws ecs list-tasks \
+    --profile "$BBBPROFILE" \
+    --cluster "$ECS_CLUSTER" \
+    --service "$GREENLIGHT_SERVICE" \
+    --output text | awk -F"/" '{print $NF}' | rev | awk -F"/" '{print $1}' | rev)
+
+if [ -z "$GREENLIGHT_TASK" ]; then
+    log "ERROR" "Failed to retrieve Greenlight task"
+fi
+
+# Create admin user in Greenlight
+log "INFO" "Creating admin user in Greenlight..."
+output=$(debug_exec aws ecs execute-command \
+    --profile="$BBBPROFILE" \
+    --cluster "$ECS_CLUSTER" \
+    --task "$GREENLIGHT_TASK" \
     --container greenlight \
     --interactive \
-    --command "bundle exec rake admin:create["bbbadmin","${ADMIN_LOGIN}","${ADMIN_PASSWORD}"]"
+    --command "bundle exec rake admin:create[\"bbbadmin\",\"${ADMIN_LOGIN}\",\"${ADMIN_PASSWORD}\"]" 2>&1)
 
-echo "##################################################"
-echo "Deployment finished"
+if echo "$output" | grep -q "Email has already been taken"; then
+    log "DEBUG" "Admin user already exists, continuing..."
+elif echo "$output" | grep -q "error\|Error\|ERROR" && ! echo "$output" | grep -q "Email has already been taken"; then
+    log "ERROR" "Failed to create admin user: $output"
+    exit 1
+else
+    log "INFO" "Admin user created successfully"
+fi
 
+
+log "INFO" "Admin user creation process completed"
+log "INFO" "##################################################"
+
+log "INFO" "Deployment completed successfully"
+log "INFO" "Log file available at: $LOG_FILE"
 exit 0

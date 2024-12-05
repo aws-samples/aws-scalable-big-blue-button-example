@@ -2,7 +2,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
 
-  This Cloudformation Template deploys the single server option of the BigBlueButton application server.
+  This Cloudformation Template deploys the scalable option of the BigBlueButton application server.
 
   Disclaimer: Not for production use. Demo and testing purposes only.
 
@@ -12,7 +12,7 @@ Parameters:
   BBBApplicationVersion:
     Description: Application Version for BBB
     Type: String
-    Default: focal-260
+    Default: focal-270
   BBBOperatorEMail:
     Description: E-Mail address to notify if there are any operational issues
     Type: String
@@ -22,17 +22,20 @@ Parameters:
   BBBNotificationTopic:
     Description: Topic to be used for alarm notifications
     Type: String
-  BBBPublicApplicationSubnets:
+  BBBApplicationSubnets:
     Description: Comma separated list of the appserver's subnets
     Type: CommaDelimitedList
+  BBBECSTaskSecurityGroup:
+    Description: Security Group that should be assigned for the Task Instances
+    Type: String
   BBBApplicationInstanceAMI: 
-    Description: Ubuntu Version to be deployed for Application Instances 
-    Default: focal-20.04
+    Description: Ubuntu AMI ID for Application Instances 
     Type: String
   BBBApplicationInstanceType:
-    Description: Instance type for the appserver
+    Description: Instance type for BBB Application Server (x86_64 only)
     Type: String
-    Default: t3a.xlarge
+    Default: c5.2xlarge
+    AllowedPattern: ^(t3|t3a|m5|m5a|m5n|m5zn|m6i|m6a|m6in|c5|c5a|c5n|c6i|c6a|c6in|r5|r5a|r5b|r5n|r6i|r6a|r6in)\.(medium|large|xlarge|2xlarge|4xlarge|8xlarge|12xlarge|16xlarge|24xlarge)$
   BBBApplicationDataVolumeSize:
     Description: Size of the application instance data volume
     Type: Number
@@ -53,6 +56,12 @@ Parameters:
     Type: Number
     Description: Desired number of appserver instances
     Default: 1
+  BBBSharedStorageFS:
+    Description: File system id for the Amazon EFS volume to be mounted
+    Type: String
+  BBBSharedStorageAPspool:
+    Description: Access Point id for the Amazon EFS volume to be mounted
+    Type: String
   BBBApplicationSecurityGroup:
     Description: Security Group that should be assigned for the appserver
     Type: String
@@ -64,6 +73,12 @@ Parameters:
     Type: String
   BBBStackBucketStack:
     Description: S3 Bucket Stack that contains scripts and sources
+    Type: String
+  BBBECSCluster:
+    Description: ECS Cluster reference
+    Type: String
+  BBBScaleliteTaskExecutionRole:
+    Description: Task execution role used by the Scalelite ECS task
     Type: String
   BBBSystemLogsGroup:
     Description: Log group to be used for the system logs
@@ -77,12 +92,15 @@ Parameters:
   BBBApplicationLogsGroupArn:
     Description: Log group to be used for the Application logs
     Type: String
+  BBBECSInstanceType:
+    Description: EC2 instance type for ECS Cluster worker nodes
+    Type: String
 
 Resources:
   BBBApplicationAutoScaling:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      VPCZoneIdentifier: !Ref BBBPublicApplicationSubnets
+      VPCZoneIdentifier: !Ref BBBApplicationSubnets
       LaunchTemplate:
         LaunchTemplateId: !Ref BBBApplicationInstanceLaunchTemplate
         Version: !GetAtt BBBApplicationInstanceLaunchTemplate.LatestVersionNumber
@@ -117,7 +135,7 @@ Resources:
             Action: [ "sts:AssumeRole" ]
       Path: /
       Policies:
-        - PolicyName: "bbbawsorchestrationaccess"
+        - PolicyName: bbbawsorchestrationaccess
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -132,6 +150,29 @@ Resources:
                   - s3:GetObject
                 Resource:
                   - !Sub "arn:aws:s3:::${BBBStackBucketStack}/*"
+              - Effect: Allow
+                Action:
+                  - ecs:ListTaskDefinitions
+                  - ecs:ListClusters
+                  - ecs:ListTasks
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - ecs:RunTask
+                  - ecs:ExecuteCommand
+                  - ecs:DescribeTasks
+                  - ecs:ListServices
+                Condition:
+                  ArnEquals:
+                    ecs:cluster: !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${BBBECSCluster}"
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource:
+                  - !Ref BBBScaleliteTaskExecutionRole
               - Effect: Allow
                 Action:
                   - logs:PutLogEvents
@@ -176,7 +217,8 @@ Resources:
             Groups:
               - !Ref BBBApplicationSecurityGroup
         UserData:
-          Fn::Base64: !Sub |
+          Fn::Base64: !Sub 
+          - |
             #!/bin/bash -xe
 
             apt update -y
@@ -190,19 +232,20 @@ Resources:
             
             while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
             
-            apt install -y git jq unzip python3-pip
+            apt install -y dnsutils net-tools git jq unzip python3-pip binutils rustc cargo pkg-config libssl-dev gettext
             
             cd /tmp
 
             pip3 install -U https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
+            
+            snap install aws-cli --classic
                         
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            sudo ./aws/install
+            curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
+            dpkg -i session-manager-plugin.deb
 
             while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done
 
-            aws s3 cp s3://${BBBStackBucketStack}/bbb-appsingle-bootstrap.sh /tmp/bbb-bootstrap.sh
+            aws s3 cp s3://${BBBStackBucketStack}/bbb-bootstrap.sh /tmp/bbb-bootstrap.sh
             chmod +x /tmp/bbb-bootstrap.sh 
             
             /tmp/bbb-bootstrap.sh -a ${BBBStackBucketStack} \
@@ -211,10 +254,16 @@ Resources:
             -e ${BBBHostedZone} \
             -g ${BBBOperatorEMail} \
             -h ${BBBApplicationVersion} \
-            -i ${AWS::Region} 
+            -i ${AWS::Region} \
+            -j ${BBBSharedStorageFS} \
+            -k ${BBBSharedStorageAPspool} \
+            -l ${BBBECSCluster} \
+            -m ${BBBECSInstanceType} \
+            -n "${BBBApplicationSubnetsString}" \
+            -o ${BBBECSTaskSecurityGroup}
 
             /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BBBApplicationAutoScaling --region ${AWS::Region} || true
-
+          - BBBApplicationSubnetsString: !Join [",", !Ref BBBApplicationSubnets]
 Outputs:
   BBBApplicationEC2InstanceProfile:
     Description: Big Blue Button Application Instance Profile

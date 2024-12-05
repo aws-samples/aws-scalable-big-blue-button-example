@@ -76,7 +76,7 @@ These parameters you have to pass to the [setup script](./setup.sh)
 | -h | the hosted zone ID the DNS records to be added | 
 | -s | the Cloudformation stack name you want to use |
 | -d | the FQDN for (aligned to the hosted zone ) |
-
+| -l | the log level choose DEBUG, INFO, WARN, ERROR |
 
 **Deployment parameters:**
 
@@ -84,18 +84,17 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 
 | Parameter Name | Default Value | Description | Comment |
 | ---- | ---- | ---- | ---- |
-| BBBApplicationVersion | focal-260 | Big Blue Button Version to be deployed | Refer to the Big Blue Button [documentation](https://docs.bigbluebutton.org/) to check for supported versions. |
+| BBBApplicationVersion | focal-270 | Big Blue Button Version to be deployed | Refer to the Big Blue Button [documentation](https://docs.bigbluebutton.org/) to check for supported versions. |
 | BBBApplicationInstanceAMIParameter | /aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id | Big Blue Button Application Instance AMI Parameter to be resolved | Refer to the Big Blue Button [documentation](https://docs.bigbluebutton.org/) to check for supported versions of Ubuntu for the application version you set using "BBBApplicationVersion" parameter. |
-| BBBECSInstanceType| t3a.large| Instance size of the ECS Cluster worker nodes or "fargate" for serverless deployment | EC2 instance sizes should be aligned with the size VCPU and Memory limits of the to be deployed tasks. setting this parameter to fargate will cause a Serverless Setup using AWS Fargate |
+| BBBECSInstanceType| fargate | Instance size of the ECS Cluster worker nodes or "fargate" for serverless deployment | EC2 instance sizes should be aligned with the size VCPU and Memory limits of the to be deployed tasks. setting this parameter to fargate will cause a Serverless Setup using AWS Fargate |
 | BBBApplicationInstanceType| t3a.xlarge| Instance size of the Big Blue Button Application node(s) | please refer to the Big Blue Button [Documentation](https://docs.bigbluebutton.org/2.2/install.html#minimum-server-requirements) for rightsizing |
 | BBBApplicationDataVolumeSize | 20 | the size of the application data volume used for recording buffer |
 | BBBApplicationRootVolumeSize | 20 | the size of the application root volume |
-| BBBDBInstanceType| db.t3.medium| Instance size of the Aurora Database Instance or "serverless" for serverless deployment | Heavily related to usage, collect metrics and test. 
-| BBBCACHEDBInstanceType| cache.t3.micro| Instance size of the Redis security token and call ID handling | Depends on usage. 
+| BBBDBInstanceType | db.t3.medium| Instance size of the Aurora Database Instance or "serverless" for serverless deployment | Heavily related to usage, collect metrics and test. 
+| BBBCACHEDBInstanceType | cache.t3.micro| Instance size of the Amazon ElastiCache for security token and call ID handling | Depends on usage. 
 | BBBVPC| 10.1.0.0/16 | The Cidr block or ID for the VPC created during the deployment | we deploy an own VPC for the deployment containing public and private subnets as well nas internet and nat gateways. If an ID is passed over (vpc-*) the deployment will use the existing custom VPC and it's subnets. be sure to add the subnet ids into the parameters as well! 
-| BBBPrivateApplicationSubnets| 10.1.5.0/24,10.1.6.0/24,10.1.7.0/24 | The cidr blocks or IDs of subnets within the VPC for the non-public components of the application deployment | count have to be = BBBNumberOfAZs
-| BBBPrivateDBSubnets| 10.1.9.0/24,10.1.10.0/24,10.1.11.0/24| The cidr blocks or IDs of subnets within the VPC for the database backend. | count have to be = BBBNumberOfAZs
-| BBBPublicApplicationSubnets| 10.1.15.0/24,10.1.16.0/24,10.1.17.0/24| The cidr blocks or IDs of subnets within the VPC for the direct public accessible application components | count have to be = BBBNumberOfAZs
+| BBBApplicationSubnets | 10.1.5.0/24,10.1.6.0/24,10.1.7.0/24 | The cidr blocks or IDs of subnets within the VPC for the components of the application deployment | count have to be = BBBNumberOfAZs only to set for existing VPCs
+| BBBDatastoreSubnets | 10.1.9.0/24,10.1.10.0/24,10.1.11.0/24| The cidr blocks or IDs of subnets within the VPC for the database backend. | count have to be = BBBNumberOfAZs only set for existing VPCS
 | BBBNumberOfAZs | 3 | Number of AZs to be utilized by the deployment | valid value 1,2 or 3 
 | BBBECSMaxInstances| 10| The maximum amount of instances the ECS cluster should scale out to | set a reasonable maximum to prevent cost explosion on unexpected usage
 | BBBECSMinInstances| 1| The minimum amount of worker instances at the ECS cluster| 
@@ -103,18 +102,16 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 | BBBApplicationMaxInstances| 1| The maximum amount of Big Blue Button Application servers | Set depending on the awaited load and planned instance size. | 
 | BBBApplicationMinInstances| 1| The minimum amount of Big Blue Button Application servers | As EC2 Autoscaling is currently not aware of ongoing video conferences, i recommend set min=max=desired and not use dynamic here (planned scale out/in) | 
 | BBBApplicationDesiredInstances| 1| The desired amount of Big Blue Button Application servers | As EC2 Autoscaling is currently not aware of ongoing video conferences, i recommend set min=max=desired and not use dynamic here (planned scale out/in) | 
-| BBBDBEngineVersion| 10.7| Set the Postgres version to be used at the Amazon Aurora setup | please refer to the Amazon Aurora [documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraPostgreSQL.Updates.20180305.html) for supported versions
-| BBBEnvironmentStage| dev | can be set to "dev","stage" or "prod" | currently stage or prod does change the Amazon Aurora Setup to a Multi-AZ Setup and adds a 2nd Nat-Gateway to the deployment. 
+| BBBDBEngineVersion| 16.4| Set the Postgres version to be used at the Amazon Aurora setup | please refer to the Amazon Aurora [documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraPostgreSQL.Updates.20180305.html) for supported versions
 | BBBServerlessAuroraMinCapacity | The minimum capacity for the Amazon Aurora Serverless Cluster. | Value has to be >= 2
 | BBBServerlessAuroraMaxCapacity | The maximum capacity for the Amazon Aurora Serverless Cluster.
-| BBBEnvironmentName| bbbonaws| the name of the environment 
-| BBBEnvironmentType| scalable| can be either "scalable" or "single" | scalable for full scalable deployments. Single does leave out the ECS cluster, scalelite inner-application load balancer and Databases and installs Big Blue Button and Greenlight on a single EC2 instance and a turn server instance. 
-| BBBgreenlightImage| bigbluebutton/greenlight:v2| greenlight container image to be used 
-| BBBScaleliteApiImage| blindsidenetwks/scalelite:v1-api| scalelite api container image to be used
-| BBBScaleliteNginxImage| blindsidenetwks/scalelite:v1-nginx| scalelite nginx container image to be used
-| BBBScalelitePollerImage| blindsidenetwks/scalelite:v1-poller| scalelite poller container image to be used
-| BBBScaleliteImporterImage| blindsidenetwks/scalelite:v1-recording-importer| scalelite recording importer container image to be used
-| BBBCacheAZMode| cross-az| Deploy the Redis cluster cross-az or single-az | only cross-az supported atm
+| BBBEnvironmentName | bbbonaws| the name of the environment 
+| BBBgreenlightImage | bigbluebutton/greenlight:v3.4.1| greenlight container image to be used 
+| BBBScaleliteApiImage | blindsidenetwks/scalelite:v1.6-api| scalelite api container image to be used
+| BBBScaleliteNginxImage | blindsidenetwks/scalelite:v1.6-nginx| scalelite nginx container image to be used
+| BBBScalelitePollerImage | blindsidenetwks/scalelite:v1.6-poller| scalelite poller container image to be used
+| BBBScaleliteImporterImage | blindsidenetwks/scalelite:v1.6-recording-importer| scalelite recording importer container image to be used
+| BBBCacheAZMode| cross-az | Deploy the Amazon Elasticcache cluster cross-az or single-az | only cross-az supported atm
 | BBBGreenlightMemory| 1024 | memory limit of the Greenlight task 
 | BBBGreenlightCPU| 512| vCPU limit of the Greenlight task 
 | BBBScaleliteMemory | 2048 | Memory limit for the Scalelite tasks | setting per task for all inheritated containers
@@ -123,7 +120,7 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 | BBBSESValidated| false | controls if a pre validated SES domain is used | set to true if you setup the SES domain outside of this deployment 
 | BBBACMCertArn | - | existing SSL/TLS Certificate ARN for HTTPS | add your Certificate ARN here. e.g. if you imported your own Cert into ACM. 
 | BBBFrontendType | Greenlight | choose "Greenlight" for deploying a scalable Greenlight Frontend and "External" to only get the Scalelite API endpoint to be able to connect an externally managed LMS" 
-
+| BBBUsePublicApplicationIP | ENABLED | Automatic Public IPs for ECS Tasks ENABLED/DISABLED - enabled for default deployment incl VPC creation
 # Deployment
 
 ## Automatic
@@ -223,9 +220,9 @@ The Deployment consists of 2 main templates and 13 nested templates.
 
     *The deployment of Amazon Aurora is needed to provide a database for Greenlight and Scalelite where the video conference schedules, user data and recording information are persistent*
 ---
-- Deploy Amazon Elasticache (Redis): [bbb-on-aws-cachedb.template.yaml](./templates/bbb-on-aws-cachedb.template.yaml)
+- Deploy Amazon Elasticache: [bbb-on-aws-cachedb.template.yaml](./templates/bbb-on-aws-cachedb.template.yaml)
 
-  *This template deploys an Amazon Elasticache (redis) cluster where security token and conference IDs are located for the call handling via Scalelite*
+  *This template deploys an Amazon Elasticache cluster where security token and conference IDs are located for the call handling via Scalelite*
 --- 
 - Fire up the ECS Cluster: [bbb-on-aws-ecs.template.yaml](./templates/bbb-on-aws-ecs.template.yaml)
 

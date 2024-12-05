@@ -22,16 +22,13 @@ Parameters:
   BBBScaleliteELBSecurityGroup:
     Description: Security Group that should be assigned for the Scalelite ELB
     Type: String
-  BBBPublicApplicationSubnets:
+  BBBApplicationSubnets:
     Description: Comma separated list of the public subnets
-    Type: CommaDelimitedList
-  BBBPrivateApplicationSubnets:
-    Description: Comma separated list of the private EC2 instance subnets
     Type: CommaDelimitedList
   BBBNotificationTopic:
     Description: Topic to be used for alarm notifications
     Type: String
-  BBBVPCs:
+  BBBVPC:
     Description: Reference for the VPC
     Type: String
   BBBRDSDBConnectionSecret:
@@ -168,6 +165,12 @@ Parameters:
     AllowedValues:
       - Greenlight
       - External
+  BBBUsePublicApplicationIP:
+    Type: String
+    AllowedValues: 
+      - ENABLED
+      - DISABLED
+    Default: ENABLED
 
 Conditions:
   BBBSESRegionSet: !Not [ !Equals [ !Ref BBBSesRegion, "AWS::NoValue" ] ]
@@ -454,7 +457,7 @@ Resources:
       LoadBalancerAttributes:
         - Key: idle_timeout.timeout_seconds
           Value: "30"
-      Subnets: !Ref BBBPublicApplicationSubnets
+      Subnets: !Ref BBBApplicationSubnets
       SecurityGroups:
         - !Ref BBBFrontendELBSecurityGroup
 
@@ -481,11 +484,13 @@ Resources:
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 60
       HealthyThresholdCount: 3
+      Matcher:
+        HttpCode: "200,301"
       Port: !If [ BBBECSFargate, 3000, 80 ]
       TargetType: !If [ BBBECSFargate, ip, instance ]
       Protocol: HTTP
       UnhealthyThresholdCount: 3
-      VpcId: !Ref BBBVPCs
+      VpcId: !Ref BBBVPC
 
   BBBFrontendALBListenerHTTP2HTTPS:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -536,7 +541,7 @@ Resources:
       LoadBalancerAttributes:
         - Key: idle_timeout.timeout_seconds
           Value: "30"
-      Subnets: !Ref BBBPublicApplicationSubnets
+      Subnets: !Ref BBBApplicationSubnets
       SecurityGroups:
         - !Ref BBBScaleliteELBSecurityGroup
 
@@ -577,7 +582,7 @@ Resources:
       TargetType: !If [ BBBECSFargate, ip, instance ]
       Protocol: HTTP
       UnhealthyThresholdCount: 2
-      VpcId: !Ref BBBVPCs
+      VpcId: !Ref BBBVPC
 
   BBBgreenlightTaskdefinition:
     Type: AWS::ECS::TaskDefinition
@@ -614,7 +619,7 @@ Resources:
               awslogs-stream-prefix: greenlight
           PortMappings:
             - ContainerPort: 3000
-          Secrets:
+          Secrets:        
             - Name: SECRET_KEY_BASE
               ValueFrom: !Sub "${BBBApplicationBaseSecret}:basekeyvalue::"
             - Name: BIGBLUEBUTTON_SECRET
@@ -661,6 +666,8 @@ Resources:
                 - "redis://${BBBCacheDBAddress}:${BBBCacheDBPort}"
                 - BBBCacheDBAddress: !Ref BBBCacheDBAddress
                   BBBCacheDBPort: !Ref BBBCacheDBPort
+            - Name: LOGLEVEL
+              Value: DEBUG
 
   BBBgreenlightService:
     Type: AWS::ECS::Service
@@ -676,10 +683,10 @@ Resources:
         !If
         - BBBECSFargate
         - AwsvpcConfiguration:
-            AssignPublicIp: DISABLED
+            AssignPublicIp: !Ref BBBUsePublicApplicationIP
             SecurityGroups:
               - !Ref BBBECSTaskSecurityGroup
-            Subnets: !Ref BBBPrivateApplicationSubnets
+            Subnets: !Ref BBBApplicationSubnets
         - !Ref "AWS::NoValue"
       LoadBalancers:
         - ContainerName: greenlight
@@ -979,10 +986,10 @@ Resources:
         !If
         - BBBECSFargate
         - AwsvpcConfiguration:
-            AssignPublicIp: DISABLED
+            AssignPublicIp: !Ref BBBUsePublicApplicationIP
             SecurityGroups:
               - !Ref BBBECSTaskSecurityGroup
-            Subnets: !Ref BBBPrivateApplicationSubnets
+            Subnets: !Ref BBBApplicationSubnets
         - !Ref "AWS::NoValue"
       LoadBalancers:
         - ContainerName: scalelite-nginx

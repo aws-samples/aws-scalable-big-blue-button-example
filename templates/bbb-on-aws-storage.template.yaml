@@ -12,7 +12,7 @@ Parameters:
   BBBSharedStorageSecurityGroup:
     Type: String
     Description: Security Group that should be assigned to the shared storage
-  BBBPrivateApplicationSubnets:
+  BBBDatastoreSubnets:
     Type: CommaDelimitedList
     Description: Comma separated list of the private instance subnets
   BBBNumberOfAZs:
@@ -60,7 +60,7 @@ Resources:
     Properties:
       FileSystemId:
         Ref: BBBSharedStorageFS
-      SubnetId: !Select [0, !Ref BBBPrivateApplicationSubnets]
+      SubnetId: !Select [0, !Ref BBBDatastoreSubnets]
       SecurityGroups:
         - !Ref BBBSharedStorageSecurityGroup
 
@@ -70,7 +70,7 @@ Resources:
     Properties:
       FileSystemId:
         Ref: BBBSharedStorageFS
-      SubnetId: !Select [1, !Ref BBBPrivateApplicationSubnets]
+      SubnetId: !Select [1, !Ref BBBDatastoreSubnets]
       SecurityGroups:
         - !Ref BBBSharedStorageSecurityGroup
 
@@ -80,7 +80,7 @@ Resources:
     Properties:
       FileSystemId:
         Ref: BBBSharedStorageFS
-      SubnetId: !Select [2, !Ref BBBPrivateApplicationSubnets]
+      SubnetId: !Select [2, !Ref BBBDatastoreSubnets]
       SecurityGroups:
         - !Ref BBBSharedStorageSecurityGroup
 

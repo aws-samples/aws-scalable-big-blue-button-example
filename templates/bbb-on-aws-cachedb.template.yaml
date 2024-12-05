@@ -1,155 +1,98 @@
----
 AWSTemplateFormatVersion: '2010-09-09'
-Description: >
-
-  This Cloudformation Template deploys the Redis Cluster (Amazon ElastiCache) used by the Scalelite load balancer.
-
-  Disclaimer: Not for production use. Demo and testing purposes only.
-
-  Author: David Surey <suredavi@amazon.com>
+Description: 'Amazon ElastiCache template'
 
 Parameters:
   BBBNotificationTopic:
     Description: Topic to be used for alarm notifications
     Type: String
+
   BBBCACHEDBInstanceType:
-    Description: Instance type for Amazon ElastiCache (Redis)
+    Description: Instance type for Amazon ElastiCache
     Type: String
-    Default: cache.t3.micro
-  BBBPrivateDBSubnets:
-    Description: Comma separated list of the private database subnets
+    Default: cache.t4g.micro
+    AllowedPattern: ^(cache\.(t3|t4g|m6g|m7g|r6g|r7g)\.(micro|small|medium|large|xlarge|2xlarge|4xlarge|8xlarge|12xlarge|16xlarge))$
+
+  BBBDatastoreSubnets:
+    Description: Comma separated list of the datastore subnets
     Type: CommaDelimitedList
+  
   BBBCACHEDBSecurityGroup:
     Description: Security Group that should be assigned for cache database
     Type: String
+
   BBBCacheAZMode:
-    Description: Redis Cache AZ Mode
+    Description: ElastiCache Cache AZ Mode
     Type: String
     Default: single-az
     AllowedValues:
       - single-az
       - cross-az
 
+Mappings:
+  CacheSettings:
+    ElastiCache:
+      Engine: valkey
+      Version: '7.2'
+      Port: 6379
+      Family: valkey7
+
+Conditions:
+  BBBIsCrossAZ: !Equals [!Ref BBBCacheAZMode, "cross-az"]
+
 Resources:
   BBBCacheSubnetGroup:
     Type: AWS::ElastiCache::SubnetGroup
     Properties:
       Description: !Sub CacheSubnetGroup-${AWS::StackName}
-      SubnetIds: !Ref BBBPrivateDBSubnets
+      SubnetIds: !Ref BBBDatastoreSubnets
 
   BBBParametersGroup:
     Type: AWS::ElastiCache::ParameterGroup
     Properties:
-      CacheParameterGroupFamily: "redis7"
-      Description: "Modifications to support better performance"
+      CacheParameterGroupFamily: !FindInMap [CacheSettings, ElastiCache, Family]
+      Description: "ElastiCache parameter group with performance optimizations"
       Properties:
         tcp-keepalive: 60
         timeout: 900
 
-  BBBElasticacheRedis:
-    Type: AWS::ElastiCache::CacheCluster
+  BBBElasticache:
+    Type: AWS::ElastiCache::ReplicationGroup
     Properties:
-      NumCacheNodes: 1
-      CacheNodeType:
-        Ref: BBBCACHEDBInstanceType
-      CacheParameterGroupName:
-        Ref: BBBParametersGroup
+      ReplicationGroupId: !Sub 'bbb-${AWS::Region}-${AWS::AccountId}'
+      ReplicationGroupDescription: !Sub ${AWS::StackName} Cache Cluster
+      NumCacheClusters: 1
+      CacheNodeType: !Ref BBBCACHEDBInstanceType
+      CacheParameterGroupName: !Ref BBBParametersGroup
       CacheSubnetGroupName: !Ref BBBCacheSubnetGroup
-      AZMode: !Ref BBBCacheAZMode
-      Engine: "redis"
-      EngineVersion: "7.0"
+      Engine: !FindInMap [CacheSettings, ElastiCache, Engine]
+      EngineVersion: !FindInMap [CacheSettings, ElastiCache, Version]
+      Port: !FindInMap [CacheSettings, ElastiCache, Port]
       NotificationTopicArn: !Ref BBBNotificationTopic
-      VpcSecurityGroupIds:
-        - Ref: BBBCACHEDBSecurityGroup
-
-  BBBDatabaseACPUUtilizationTooHighAlarm:
-    Type: 'AWS::CloudWatch::Alarm'
-    Properties:
-      AlarmActions:
-        - Ref: BBBNotificationTopic
-      AlarmDescription: 'Average Cache-Node CPU utilization over last 10 minutes too high.'
-      ComparisonOperator: GreaterThanThreshold
-      Dimensions:
-        - Name: CacheClusterId
-          Value:
-            Ref: BBBElasticacheRedis
-        - Name: CacheNodeId
-          Value: 0001
-      EvaluationPeriods: 1
-      MetricName: CPUUtilization
-      Namespace: 'AWS/ElastiCache'
-      OKActions:
-        - Ref: BBBNotificationTopic
-      Period: 600
-      Statistic: Average
-      Threshold: 80
-
-  BBBCacheACPUCreditBalanceTooLowAlarm:
-    Type: 'AWS::CloudWatch::Alarm'
-    Properties:
-      AlarmActions:
-        - Ref: BBBNotificationTopic
-      AlarmDescription: 'Average Cache-Node CPU credit balance over last 10 minutes too low, expect a significant performance drop soon.'
-      ComparisonOperator: LessThanThreshold
-      Dimensions:
-        - Name: CacheClusterId
-          Value:
-            Ref: BBBElasticacheRedis
-        - Name: CacheNodeId
-          Value: 0001
-      EvaluationPeriods: 1
-      MetricName: CPUCreditBalance
-      Namespace: 'AWS/ElastiCache'
-      OKActions:
-        - Ref: BBBNotificationTopic
-      Period: 600
-      Statistic: Average
-      Threshold: 20
-
-  BBBCacheAFreeableMemoryTooLowAlarm:
-    Type: 'AWS::CloudWatch::Alarm'
-    Properties:
-      AlarmActions:
-        - Ref: BBBNotificationTopic
-      AlarmDescription: 'Average Cache-Node freeable memory over last 10 minutes too low, performance may suffer.'
-      ComparisonOperator: LessThanThreshold
-      Dimensions:
-        - Name: CacheClusterId
-          Value:
-            Ref: BBBElasticacheRedis
-        - Name: CacheNodeId
-          Value: 0001
-      EvaluationPeriods: 1
-      MetricName: FreeableMemory
-      Namespace: 'AWS/ElastiCache'
-      OKActions:
-        - Ref: BBBNotificationTopic
-      Period: 600
-      Statistic: Average
-      Threshold: 64000000 
+      SecurityGroupIds: [!Ref BBBCACHEDBSecurityGroup]
+      AutomaticFailoverEnabled: false
+      TransitEncryptionEnabled: false
+      MultiAZEnabled: !If 
+        - BBBIsCrossAZ
+        - true
+        - false
 
 Outputs:
   BBBCacheDBAddress:
     Description: The Big Blue Button Cache Database Address
-    Value:
-      Fn::GetAtt:
-        - BBBElasticacheRedis
-        - RedisEndpoint.Address
+    Value: !GetAtt BBBElasticache.PrimaryEndPoint.Address
+
   BBBCacheDBPort:
     Description: The Big Blue Button Cache Database Port
-    Value:
-      Fn::GetAtt:
-        - BBBElasticacheRedis
-        - RedisEndpoint.Port
-  BBBElasticacheRedis: 
-    Description: The Big Blue Button Cache Redis Cluster
-    Value:
-      Ref: BBBElasticacheRedis
-  BBBParametersGroup: 
-    Description: The Big Blue Button Cache Redis Parameter Group
-    Value:
-      Ref: BBBParametersGroup
-  BBBCacheSubnetGroup: 
-    Description: The Big Blue Button Cache Redis Subnet Group
-    Value:
-      Ref: BBBCacheSubnetGroup
+    Value: !GetAtt BBBElasticache.PrimaryEndPoint.Port
+
+  BBBElasticache:
+    Description: The Big Blue Button Cache ElastiCache Cluster
+    Value: !Ref BBBElasticache
+
+  BBBParametersGroup:
+    Description: The Big Blue Button Cache ElastiCache Parameter Group
+    Value: !Ref BBBParametersGroup
+
+  BBBCacheSubnetGroup:
+    Description: The Big Blue Button Cache ElastiCache Subnet Group
+    Value: !Ref BBBCacheSubnetGroup

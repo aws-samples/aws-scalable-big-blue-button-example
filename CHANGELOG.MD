@@ -2,11 +2,41 @@
 # Change Log
 
 All notable changes to this project will be documented in this file.
+## [6.0.0] - 2024-11-29
+
+### Fixed
+- Bootstraping EC2 IP evaluation
+- route53-handler script does its work again
+- fixed install script step
+- fixed links for scalelite downloads when bootstrapping
+- Greenlight user creation and bootup fixed
+
+### Changed
+- pin platform for docker push/pull to linux/amd64 to ensure scripts are functional for arm based deployment systems
+- upgrade of the Aurora PostgrSQL Engine Version to 16.4
+- upgrade of the (default) BBB version to 2.7.X
+- removed the validation step of the Amazon Cloudformation templates to speed up setup. 
+- switch to valkey 7.2 
+- reorganization and optimizing the templates for better maintainability and readability
+- setup.sh and destroy.sh are now shell agnostic and improved
+- stripped down new to create vpc to the minimum needed to remove complexity for the sample code
+- rewriten handler scripts for better logging, debugging, maintainability
+- removal of single instance install for cleaner repo
+- removal of EnvironmentType Switch/Variables. 
+- removal of dev/stage/prod switch, we assume this a test/tinker environment. It ensures cleaner, simple templates
+- make the version settings for bbb-scalable more dynamic and depend on the set application version. 
+- added scalelite managament script to delete instances from the LB and debug if needed directly from the console
+
+
+### Upgrade Notes: 
+- Upgrading the Amazon Aurora Postgres Engine version and/or the switch to Aurora Serverless v2 via Amazon Cloudformation is not supported. Please refer to the official [upgrade documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_UpgradeDBInstance.PostgreSQL.html) and [migrate to Aurora Serverless v2](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2.upgrade.html) if you have a already running environment using an older engine version and/or Aurora Serverless v1 to proceed with the upgrade before using the Cloudformation deployment. 
+- This is an overall rewrite/remake of a lot of things, please do a new deployment rather than than an inplace upgrade. If you desperately want to update inplace: Do proper backups first!
 
 ## [5.0.1] - 2023-08-02
  
 ### Fixed:
 - typo at setup.sh
+
 ## [5.0.0] - 2023-06-15
 ### Upgrade Notes: 
 - Upgrading the Amazon Aurora Postgres Engine version and/or the switch to Aurora Serverless v2 via Amazon Cloudformation is not supported. Please refer to the official [upgrade documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_UpgradeDBInstance.PostgreSQL.html) and [migrate to Aurora Serverless v2](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2.upgrade.html) if you have a already running environment using an older engine version and/or Aurora Serverless v1 to proceed with the upgrade before using the Cloudformation deployment. 
