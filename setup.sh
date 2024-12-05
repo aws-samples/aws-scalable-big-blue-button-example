@@ -62,6 +62,14 @@ log() {
     fi
 }
 
+debug_exec() {
+    if [ "$LOG_LEVEL" = "DEBUG" ]; then
+        "$@" 2>&1 | tee -a "$LOG_FILE"
+    else
+        "$@" >/dev/null 2>&1
+    fi
+}
+
 # Function to monitor CloudFormation stack events in real-time
 monitor_stack() {
     local stack_name=$1
@@ -190,15 +198,15 @@ fi
 
 # Check for required tools
 log "DEBUG" "Checking required tools..."
-if ! command -v aws > /dev/null 2>&1; then
+if ! debug_exec command -v aws; then
     log "ERROR" "aws CLI is not installed"
 fi
 
-if ! docker ps > /dev/null 2>&1; then
+if ! debug_exec docker ps; then
     log "ERROR" "Docker is not running or not installed"
 fi
 
-if ! command -v jq > /dev/null 2>&1; then
+if ! debug_exec command -v jq; then
     log "ERROR" "jq is not installed"
 fi
 
@@ -209,11 +217,10 @@ log "INFO" "##################################################"
 # Deploy Prerequisites
 log "INFO" "Deploying Prerequisites for BBB Environment"
 BBBPREPSTACK="${BBBSTACK}-Sources"
-if ! deploy_stack "$BBBPREPSTACK" \
+if ! debug_exec deploy_stack "$BBBPREPSTACK" \
     "./templates/bbb-on-aws-buildbuckets.template.yaml"; then
     log "ERROR" "Failed to deploy prerequisites stack"
 fi
-log "INFO" "Prerequisites deployment completed"
 
 # Get source bucket
 SOURCE=$(aws cloudformation describe-stack-resources \
@@ -228,8 +235,8 @@ log "DEBUG" "Source bucket: $SOURCE"
 log "INFO" "Copying files to S3 bucket"
 if [ -d "./templates" ] && [ -d "./scripts" ]; then
     log "DEBUG" "Syncing templates and scripts to S3"
-    aws s3 sync --profile="$BBBPROFILE" --exclude=".DS_Store" ./templates "s3://$SOURCE"
-    aws s3 sync --profile="$BBBPROFILE" --exclude=".DS_Store" ./scripts "s3://$SOURCE"
+    debug_exec aws s3 sync --profile="$BBBPROFILE" --exclude=".DS_Store" ./templates "s3://$SOURCE"
+    debug_exec aws s3 sync --profile="$BBBPROFILE" --exclude=".DS_Store" ./scripts "s3://$SOURCE"
 else
     log "ERROR" "Required source directories (templates/ or scripts/) are missing"
 fi
@@ -239,7 +246,7 @@ deploy_registry_stack() {
     log "INFO" "Deploying ECR registry stack..."
     BBBECRSTACK="${BBBSTACK}-registry"
 
-    if ! deploy_stack "$BBBECRSTACK" \
+    if ! debug_exec deploy_stack "$BBBECRSTACK" \
         "./templates/bbb-on-aws-registry.template.yaml" \
         --capabilities CAPABILITY_IAM; then
         log "ERROR" "Failed to deploy ECR registry stack"
@@ -252,7 +259,7 @@ deploy_registry_stack() {
 
 # Deploy the registry stack
 log "INFO" "Deploying ECR registry stack"
-if ! deploy_registry_stack; then
+if ! debug_exec deploy_registry_stack; then
     log "ERROR" "Failed to deploy ECR registry stack"
     exit 1
 fi
@@ -273,10 +280,10 @@ SCALELITEIMAGETAGS=("BBBScaleliteNginxImageTag" "BBBScaleliteApiImageTag" "BBBSc
 GREENLIGHTIMAGETAGS=("BBBgreenlightImageTag")
 
 # Authenticate with ECR
-if ! aws ecr get-login-password --profile="$BBBPROFILE" | docker login --username AWS --password-stdin "$SCALELITEREGISTRY"; then
+if ! debug_exec aws ecr get-login-password --profile="$BBBPROFILE" | debug_exec docker login --username AWS --password-stdin "$SCALELITEREGISTRY"; then
     log "ERROR" "Failed to authenticate with Scalelite ECR registry"
 fi
-if ! aws ecr get-login-password --profile="$BBBPROFILE" | docker login --username AWS --password-stdin "$GREENLIGHTREGISTRY"; then
+if ! debug_exec aws ecr get-login-password --profile="$BBBPROFILE" | debug_exec docker login --username AWS --password-stdin "$GREENLIGHTREGISTRY"; then
     log "ERROR" "Failed to authenticate with Greenlight ECR registry"
 fi
 
@@ -285,19 +292,18 @@ for IMAGETAG in "${SCALELITEIMAGETAGS[@]}"
 do
     TAGVALUE=$(jq -r ".Parameters.$IMAGETAG" bbb-on-aws-param.json)
     log "DEBUG" "Processing Scalelite image with tag: $TAGVALUE"
-    docker pull --platform linux/amd64 "$SCALELITEIMAGE:$TAGVALUE"
-    docker tag "$SCALELITEIMAGE:$TAGVALUE" "$SCALELITEREGISTRY:$TAGVALUE"
-    docker push "$SCALELITEREGISTRY:$TAGVALUE"
+    debug_exec docker pull --platform linux/amd64 "$SCALELITEIMAGE:$TAGVALUE"
+    debug_exec docker tag "$SCALELITEIMAGE:$TAGVALUE" "$SCALELITEREGISTRY:$TAGVALUE"
+    debug_exec docker push "$SCALELITEREGISTRY:$TAGVALUE"
 done
 
-# Process Greenlight images
 for IMAGETAG in "${GREENLIGHTIMAGETAGS[@]}"
 do
     TAGVALUE=$(jq -r ".Parameters.$IMAGETAG" bbb-on-aws-param.json)
     log "DEBUG" "Processing Greenlight image with tag: $TAGVALUE"
-    docker pull --platform linux/amd64 "$GREENLIGHTIMAGE:$TAGVALUE"
-    docker tag "$GREENLIGHTIMAGE:$TAGVALUE" "$GREENLIGHTREGISTRY:$TAGVALUE"
-    docker push "$GREENLIGHTREGISTRY:$TAGVALUE"
+    debug_exec docker pull --platform linux/amd64 "$GREENLIGHTIMAGE:$TAGVALUE"
+    debug_exec docker tag "$GREENLIGHTIMAGE:$TAGVALUE" "$GREENLIGHTREGISTRY:$TAGVALUE"
+    debug_exec docker push "$GREENLIGHTREGISTRY:$TAGVALUE"
 done
 
 log "INFO" "##################################################"
@@ -307,7 +313,7 @@ log "INFO" "##################################################"
 
 # Final deployment
 log "INFO" "Deploying main BBB infrastructure"
-if ! deploy_stack "$BBBSTACK" \
+if ! debug_exec deploy_stack "$BBBSTACK" \
     "./bbb-on-aws-root.template.yaml" \
     --capabilities CAPABILITY_NAMED_IAM \
     --parameter-overrides \
@@ -320,15 +326,13 @@ if ! deploy_stack "$BBBSTACK" \
     log "ERROR" "Main infrastructure deployment failed"
 fi
 
-# After your existing code, add:
-
 # Set the initial admin password for the environment
 log "INFO" "Setting the initial admin password"
 log "INFO" "##################################################"
 
 # Get the secrets
 log "DEBUG" "Retrieving administrator credentials from Secrets Manager"
-ADMIN_SECRET=$(aws secretsmanager list-secrets \
+ADMIN_SECRET=$(debug_exec aws secretsmanager list-secrets \
     --profile "$BBBPROFILE" \
     --filter Key="name",Values="BBBAdministratorlogin" \
     --query 'SecretList[0].Name' \
@@ -338,7 +342,7 @@ if [ -z "$ADMIN_SECRET" ]; then
     log "ERROR" "Failed to retrieve admin secret from Secrets Manager"
 fi
 
-ADMIN_AUTH=$(aws secretsmanager get-secret-value \
+ADMIN_AUTH=$(debug_exec aws secretsmanager get-secret-value \
     --profile "$BBBPROFILE" \
     --secret-id "$ADMIN_SECRET")
 
@@ -351,7 +355,7 @@ ADMIN_LOGIN=$(echo "$ADMIN_AUTH" | jq -r '.SecretString | fromjson | .username')
 
 # Get the cluster information
 log "DEBUG" "Retrieving ECS cluster information"
-ECS_CLUSTERS=$(aws ecs --profile="$BBBPROFILE" list-clusters)
+ECS_CLUSTERS=$(debug_exec aws ecs --profile="$BBBPROFILE" list-clusters)
 ECS_CLUSTER=$(echo "$ECS_CLUSTERS" | jq -r '.clusterArns[0] | split("/") | .[1]')
 
 if [ -z "$ECS_CLUSTER" ]; then
@@ -360,7 +364,7 @@ fi
 
 # Get Greenlight service and task
 log "DEBUG" "Retrieving Greenlight service information"
-GREENLIGHT_SERVICE=$(aws ecs list-services \
+GREENLIGHT_SERVICE=$(debug_exec aws ecs list-services \
     --profile "$BBBPROFILE" \
     --cluster "$ECS_CLUSTER" \
     --query "serviceArns[?contains(@, 'BBBgreenlightService')]" \
@@ -371,7 +375,7 @@ if [ -z "$GREENLIGHT_SERVICE" ]; then
 fi
 
 log "DEBUG" "Retrieving Greenlight task information"
-GREENLIGHT_TASK=$(aws ecs list-tasks \
+GREENLIGHT_TASK=$(debug_exec aws ecs list-tasks \
     --profile "$BBBPROFILE" \
     --cluster "$ECS_CLUSTER" \
     --service "$GREENLIGHT_SERVICE" \
@@ -383,7 +387,7 @@ fi
 
 # Execute the admin creation command
 log "INFO" "Creating admin user in Greenlight"
-if ! aws ecs execute-command \
+if ! debug_exec aws ecs execute-command \
     --profile="$BBBPROFILE" \
     --cluster "$ECS_CLUSTER" \
     --task "$GREENLIGHT_TASK" \
