@@ -103,15 +103,14 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 | BBBApplicationMinInstances| 1| The minimum amount of Big Blue Button Application servers | As EC2 Autoscaling is currently not aware of ongoing video conferences, i recommend set min=max=desired and not use dynamic here (planned scale out/in) | 
 | BBBApplicationDesiredInstances| 1| The desired amount of Big Blue Button Application servers | As EC2 Autoscaling is currently not aware of ongoing video conferences, i recommend set min=max=desired and not use dynamic here (planned scale out/in) | 
 | BBBDBEngineVersion| 16.4| Set the Postgres version to be used at the Amazon Aurora setup | please refer to the Amazon Aurora [documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraPostgreSQL.Updates.20180305.html) for supported versions
-| BBBEnvironmentStage| dev | can be set to "dev","stage" or "prod" | currently stage or prod does change the Amazon Aurora Setup to a Multi-AZ Setup and adds a 2nd Nat-Gateway to the deployment. 
 | BBBServerlessAuroraMinCapacity | The minimum capacity for the Amazon Aurora Serverless Cluster. | Value has to be >= 2
 | BBBServerlessAuroraMaxCapacity | The maximum capacity for the Amazon Aurora Serverless Cluster.
 | BBBEnvironmentName | bbbonaws| the name of the environment 
-| BBBgreenlightImage | bigbluebutton/greenlight:v2| greenlight container image to be used 
-| BBBScaleliteApiImage | blindsidenetwks/scalelite:v1-api| scalelite api container image to be used
-| BBBScaleliteNginxImage | blindsidenetwks/scalelite:v1-nginx| scalelite nginx container image to be used
-| BBBScalelitePollerImage | blindsidenetwks/scalelite:v1-poller| scalelite poller container image to be used
-| BBBScaleliteImporterImage | blindsidenetwks/scalelite:v1-recording-importer| scalelite recording importer container image to be used
+| BBBgreenlightImage | bigbluebutton/greenlight:v3.4.1| greenlight container image to be used 
+| BBBScaleliteApiImage | blindsidenetwks/scalelite:v1.6-api| scalelite api container image to be used
+| BBBScaleliteNginxImage | blindsidenetwks/scalelite:v1.6-nginx| scalelite nginx container image to be used
+| BBBScalelitePollerImage | blindsidenetwks/scalelite:v1.6-poller| scalelite poller container image to be used
+| BBBScaleliteImporterImage | blindsidenetwks/scalelite:v1.6-recording-importer| scalelite recording importer container image to be used
 | BBBCacheAZMode| cross-az | Deploy the Amazon Elasticcache cluster cross-az or single-az | only cross-az supported atm
 | BBBGreenlightMemory| 1024 | memory limit of the Greenlight task 
 | BBBGreenlightCPU| 512| vCPU limit of the Greenlight task 
@@ -121,7 +120,7 @@ The deployment parameters are placed into the bbb-on-aws-param.json or to be set
 | BBBSESValidated| false | controls if a pre validated SES domain is used | set to true if you setup the SES domain outside of this deployment 
 | BBBACMCertArn | - | existing SSL/TLS Certificate ARN for HTTPS | add your Certificate ARN here. e.g. if you imported your own Cert into ACM. 
 | BBBFrontendType | Greenlight | choose "Greenlight" for deploying a scalable Greenlight Frontend and "External" to only get the Scalelite API endpoint to be able to connect an externally managed LMS" 
-
+| BBBUsePublicApplicationIP | ENABLED | Automatic Public IPs for ECS Tasks ENABLED/DISABLED - enabled for default deployment incl VPC creation
 # Deployment
 
 ## Automatic

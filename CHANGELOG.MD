@@ -25,6 +25,7 @@ All notable changes to this project will be documented in this file.
 - removal of EnvironmentType Switch/Variables. 
 - removal of dev/stage/prod switch, we assume this a test/tinker environment. It ensures cleaner, simple templates
 - make the version settings for bbb-scalable more dynamic and depend on the set application version. 
+- added scalelite managament script to delete instances from the LB and debug if needed directly from the console
 
 
 ### Upgrade Notes: 

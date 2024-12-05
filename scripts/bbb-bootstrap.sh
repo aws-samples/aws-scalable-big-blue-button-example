@@ -145,13 +145,13 @@ install_cloudwatch_agent() {
     rm -f ./amazon-cloudwatch-agent.deb
     
     # Verify version
-    local version=$(/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -version)
+    local version=$(/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a status | jq -r '.version')
     log "INFO" "CloudWatch agent version ${version} installed successfully"
 }
 
 # Function to configure CloudWatch users and permissions
-configure_cloudwatch_users() {
-    log "INFO" "Configuring CloudWatch users and permissions..."
+configure_service_users() {
+    log "INFO" "Configuring Service users and permissions..."
     
     # Add MongoDB user and configure groups
     useradd mongodb || log "WARN" "MongoDB user already exists"
@@ -165,7 +165,7 @@ configure_cloudwatch_users() {
     chown -R mongodb:mongodb /var/log/mongodb
     chmod g+r /var/log/mongodb/mongod.log
     
-    log "INFO" "CloudWatch users and permissions configured"
+    log "INFO" "Service users and permissions configured"
 }
 
 # Function to configure CloudWatch agent
@@ -422,93 +422,20 @@ install_bbb() {
     local bbb_uri_version="v${formatted_version}.x-release"
     
     log "DEBUG" "Using BBB install script from branch: ${bbb_uri_version}"
+    log "DEBUG" "Using ${BBBApplicationVersion},${instance_fqdn},${BBBOperatorEmail}"
     
     # Install BBB using the correct version format
-    if ! wget -qO- "https://raw.githubusercontent.com/bigbluebutton/bbb-install/${bbb_uri_version}/bbb-install.sh" | bash -s -- -v "${BBBApplicationVersion}" -s "${instance_fqdn}" -e "${BBBOperatorEmail}" -j; then
+    if ! sudo wget -qO- "https://raw.githubusercontent.com/bigbluebutton/bbb-install/${bbb_uri_version}/bbb-install.sh" | sudo bash -s -- -v "${BBBApplicationVersion}" -s "${instance_fqdn}" -e "${BBBOperatorEmail}" -j; then
         log "ERROR" "Failed to install BBB"
         return 1
     fi
-    
+   
     log "INFO" "BBB installation completed successfully"
     
     # Verify installation
     if ! bbb-conf --check | tee /var/log/bbb-install-check.log; then
         log "WARN" "BBB installation verification showed warnings, check /var/log/bbb-install-check.log"
     fi
-}
-
-
-check_and_reinstall_bbb() {
-    local instance_fqdn=$(cat /tmp/instance_fqdn)
-    local cert_dir="/etc/letsencrypt/live/${instance_fqdn}"
-    local formatted_version=$(echo "$BBBApplicationVersion" | sed 's/focal-//' | sed 's/\([0-9]\)\([0-9]\)\([0-9]\)/\1.\2/')
-    local bbb_uri_version="v${formatted_version}.x-release"
-    local max_attempts=5
-    local attempt=1
-    local wait_time=30  # 0.5 minutes in seconds
-
-    # Function to check installation status
-    check_installation() {
-        # Check if certificate directory exists and is not empty
-        if [ ! -d "$cert_dir" ] || [ -z "$(ls -A $cert_dir 2>/dev/null)" ]; then
-            log "WARN" "Let's Encrypt certificate directory missing or empty for ${instance_fqdn}"
-            return 1
-        fi
-
-        # Check if nginx is listening on port 443
-        if ! netstat -tuln | grep -q ':443 '; then
-            log "WARN" "Nginx not listening on port 443"
-            return 1
-        fi
-
-        return 0
-    }
-
-    # Initial check
-    if check_installation; then
-        log "INFO" "BBB installation appears to be correct"
-        return 0
-    fi
-
-    log "WARN" "Installation issues detected, starting reinstallation loop"
-
-    # Installation loop
-    while [ $attempt -le $max_attempts ]; do
-        log "INFO" "Installation attempt $attempt of $max_attempts"
-        
-        # Wait before attempting installation
-        log "INFO" "Waiting ${wait_time} seconds before attempt..."
-        for i in $(seq $wait_time -60 1); do
-            if [ $i -gt 0 ]; then
-                log "INFO" "$(($i / 60)) minutes remaining before next attempt..."
-                sleep 60
-            fi
-        done
-
-        log "INFO" "Starting BBB installation..."
-        
-        # Run the installer
-        wget -qO- "https://raw.githubusercontent.com/bigbluebutton/bbb-install/${bbb_uri_version}/bbb-install.sh" | \
-        bash -s -- -v "${BBBApplicationVersion}" -s "${instance_fqdn}" -e "${BBBOperatorEmail}" -j -l 2>&1 | \
-        tee /tmp/bbb-install.log | while IFS= read -r line; do
-            if echo "$line" | grep -i "let's encrypt" > /dev/null; then
-                log "INFO" "Let's Encrypt: $line"
-            fi
-            echo "$line"
-        done
-
-        # Check if installation was successful
-        if check_installation; then
-            log "INFO" "BBB installation successful on attempt $attempt"
-            return 0
-        fi
-
-        log "WARN" "Installation attempt $attempt failed"
-        attempt=$((attempt + 1))
-    done
-
-    log "ERROR" "Failed to install BBB after $max_attempts attempts"
-    return 1
 }
 
 # Function to setup Scalelite
@@ -632,7 +559,7 @@ while getopts ":a:b:c:e:g:h:i:j:k:l:m:n:o:d" opt; do
         e) BBBHostedZone="${OPTARG}"
            log "DEBUG" "Hosted zone parameter received: ${OPTARG}"
         ;;
-        g) BBBOperatorEMail="${OPTARG}"
+        g) BBBOperatorEmail="${OPTARG}"
            log "DEBUG" "Operator email parameter received: ${OPTARG}"
         ;;
         h) BBBApplicationVersion="${OPTARG}"
@@ -672,13 +599,14 @@ done
 main() {
     log "INFO" "Starting BBB bootstrap process..."
 
+    log "DEBUG" "BBBOperatorEmail = ${BBBOperatorEmail}"
     # Check required parameters
     local required_params=(
         "BBBStackBucketStack"
         "BBBSystemLogsGroup"
         "BBBDomainName"
         "BBBHostedZone"
-        "BBBOperatorEMail"
+        "BBBOperatorEmail"
         "BBBApplicationVersion"
         "AWSRegion"
         "BBBSharedStorageFS"
@@ -699,7 +627,7 @@ main() {
     # Execute installation steps
     local steps=(
         "install_cloudwatch_agent"
-        "configure_cloudwatch_users"
+        "configure_service_users"
         "configure_cloudwatch_agent"
         "install_required_packages"
         "install_efs_utils"
@@ -708,8 +636,6 @@ main() {
         "setup_storage"
         "wait_for_dns"
         "install_bbb"
-        "wait_for_dns"
-        "check_and_reinstall_bbb"
         "setup_scalelite"
     )
 
