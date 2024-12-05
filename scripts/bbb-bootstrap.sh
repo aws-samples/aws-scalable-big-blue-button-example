@@ -96,36 +96,37 @@ get_metadata() {
     local attempt=1
 
     while [ $attempt -le $max_attempts ]; do
-        log "DEBUG" "Requesting IMDSv2 token (attempt $attempt of $max_attempts)..."
+        log "DEBUG" "Requesting IMDSv2 token (attempt $attempt of $max_attempts)..." >&2
         token=$(curl -X PUT "http://169.254.169.254/latest/api/token" \
             -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" \
             -s -f 2>/dev/null)
 
         if [ $? -eq 0 ] && [ -n "$token" ]; then
-            log "DEBUG" "Token received successfully"
-            log "DEBUG" "Requesting metadata: $metadata_path"
+            log "DEBUG" "Token received successfully" >&2
+            log "DEBUG" "Requesting metadata: $metadata_path" >&2
             
             local result=$(curl -H "X-aws-ec2-metadata-token: $token" \
                 -s -f "http://169.254.169.254/latest/meta-data/${metadata_path}" 2>/dev/null)
 
             if [ $? -eq 0 ] && [ -n "$result" ]; then
-                log "DEBUG" "Successfully retrieved metadata"
+                log "DEBUG" "Successfully retrieved metadata" >&2
                 echo "$result"
                 return 0
             else
-                log "WARN" "Failed to get metadata, attempt $attempt"
+                log "WARN" "Failed to get metadata, attempt $attempt" >&2
             fi
         else
-            log "WARN" "Failed to get token, attempt $attempt"
+            log "WARN" "Failed to get token, attempt $attempt" >&2
         fi
 
         attempt=$((attempt + 1))
         [ $attempt -le $max_attempts ] && sleep 5
     done
 
-    log "ERROR" "Failed to get metadata after $max_attempts attempts"
+    log "ERROR" "Failed to get metadata after $max_attempts attempts" >&2
     return 1
 }
+
 
 # Function to install CloudWatch agent
 install_cloudwatch_agent() {
