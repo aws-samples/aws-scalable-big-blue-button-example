@@ -30,6 +30,7 @@ All notable changes to this project will be documented in this file.
 
 ### Upgrade Notes: 
 - Upgrading the Amazon Aurora Postgres Engine version and/or the switch to Aurora Serverless v2 via Amazon Cloudformation is not supported. Please refer to the official [upgrade documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_UpgradeDBInstance.PostgreSQL.html) and [migrate to Aurora Serverless v2](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2.upgrade.html) if you have a already running environment using an older engine version and/or Aurora Serverless v1 to proceed with the upgrade before using the Cloudformation deployment. 
+- This is an overall rewrite/remake of a lot of things, please do a new deployment rather than than an inplace upgrade. If you desperately want to update inplace: Do proper backups first!
 
 ## [5.0.1] - 2023-08-02
  
