@@ -320,6 +320,83 @@ if ! deploy_stack "$BBBSTACK" \
     log "ERROR" "Main infrastructure deployment failed"
 fi
 
+# After your existing code, add:
+
+# Set the initial admin password for the environment
+log "INFO" "Setting the initial admin password"
+log "INFO" "##################################################"
+
+# Get the secrets
+log "DEBUG" "Retrieving administrator credentials from Secrets Manager"
+ADMIN_SECRET=$(aws secretsmanager list-secrets \
+    --profile "$BBBPROFILE" \
+    --filter Key="name",Values="BBBAdministratorlogin" \
+    --query 'SecretList[0].Name' \
+    --output text)
+
+if [ -z "$ADMIN_SECRET" ]; then
+    log "ERROR" "Failed to retrieve admin secret from Secrets Manager"
+fi
+
+ADMIN_AUTH=$(aws secretsmanager get-secret-value \
+    --profile "$BBBPROFILE" \
+    --secret-id "$ADMIN_SECRET")
+
+if [ -z "$ADMIN_AUTH" ]; then
+    log "ERROR" "Failed to retrieve admin authentication values"
+fi
+
+ADMIN_PASSWORD=$(echo "$ADMIN_AUTH" | jq -r '.SecretString | fromjson | .password')
+ADMIN_LOGIN=$(echo "$ADMIN_AUTH" | jq -r '.SecretString | fromjson | .username')
+
+# Get the cluster information
+log "DEBUG" "Retrieving ECS cluster information"
+ECS_CLUSTERS=$(aws ecs --profile="$BBBPROFILE" list-clusters)
+ECS_CLUSTER=$(echo "$ECS_CLUSTERS" | jq -r '.clusterArns[0] | split("/") | .[1]')
+
+if [ -z "$ECS_CLUSTER" ]; then
+    log "ERROR" "Failed to retrieve ECS cluster information"
+fi
+
+# Get Greenlight service and task
+log "DEBUG" "Retrieving Greenlight service information"
+GREENLIGHT_SERVICE=$(aws ecs list-services \
+    --profile "$BBBPROFILE" \
+    --cluster "$ECS_CLUSTER" \
+    --query "serviceArns[?contains(@, 'BBBgreenlightService')]" \
+    --output text | xargs -n 1 basename)
+
+if [ -z "$GREENLIGHT_SERVICE" ]; then
+    log "ERROR" "Failed to retrieve Greenlight service"
+fi
+
+log "DEBUG" "Retrieving Greenlight task information"
+GREENLIGHT_TASK=$(aws ecs list-tasks \
+    --profile "$BBBPROFILE" \
+    --cluster "$ECS_CLUSTER" \
+    --service "$GREENLIGHT_SERVICE" \
+    --output text | awk -F"/" '{print $NF}' | rev | awk -F"/" '{print $1}' | rev)
+
+if [ -z "$GREENLIGHT_TASK" ]; then
+    log "ERROR" "Failed to retrieve Greenlight task"
+fi
+
+# Execute the admin creation command
+log "INFO" "Creating admin user in Greenlight"
+if ! aws ecs execute-command \
+    --profile="$BBBPROFILE" \
+    --cluster "$ECS_CLUSTER" \
+    --task "$GREENLIGHT_TASK" \
+    --container greenlight \
+    --interactive \
+    --command "bundle exec rake admin:create[\"bbbadmin\",\"${ADMIN_LOGIN}\",\"${ADMIN_PASSWORD}\"]"; then
+    
+    log "ERROR" "Failed to create admin user in Greenlight"
+fi
+
+log "INFO" "Admin user creation process completed"
+log "INFO" "##################################################"
+
 log "INFO" "Deployment completed successfully"
 log "INFO" "Log file available at: $LOG_FILE"
 exit 0
