@@ -342,16 +342,22 @@ if [ -z "$ADMIN_SECRET" ]; then
     log "ERROR" "Failed to retrieve admin secret from Secrets Manager"
 fi
 
-ADMIN_AUTH=$(debug_exec aws secretsmanager get-secret-value \
+ADMIN_PASSWORD=$(debug_exec aws secretsmanager get-secret-value \
     --profile "$BBBPROFILE" \
-    --secret-id "$ADMIN_SECRET")
+    --secret-id "$ADMIN_SECRET" \
+    --query 'SecretString' \
+    --output text | jq -r '.password')
 
-if [ -z "$ADMIN_AUTH" ]; then
-    log "ERROR" "Failed to retrieve admin authentication values"
+ADMIN_LOGIN=$(debug_exec aws secretsmanager get-secret-value \
+    --profile "$BBBPROFILE" \
+    --secret-id "$ADMIN_SECRET" \
+    --query 'SecretString' \
+    --output text | jq -r '.username')
+
+if [ -z "$ADMIN_PASSWORD" ] || [ -z "$ADMIN_LOGIN" ]; then
+    log "ERROR" "Failed to retrieve admin credentials"
+    exit 1
 fi
-
-ADMIN_PASSWORD=$(echo "$ADMIN_AUTH" | jq -r '.SecretString | fromjson | .password')
-ADMIN_LOGIN=$(echo "$ADMIN_AUTH" | jq -r '.SecretString | fromjson | .username')
 
 # Get the cluster information
 log "DEBUG" "Retrieving ECS cluster information"
@@ -384,6 +390,8 @@ GREENLIGHT_TASK=$(debug_exec aws ecs list-tasks \
 if [ -z "$GREENLIGHT_TASK" ]; then
     log "ERROR" "Failed to retrieve Greenlight task"
 fi
+
+
 
 # Execute the admin creation command
 log "INFO" "Creating admin user in Greenlight"

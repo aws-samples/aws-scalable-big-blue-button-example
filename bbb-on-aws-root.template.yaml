@@ -739,15 +739,6 @@ Resources:
           Ref: BBBOperatorEMail
         BBBECSInstanceType:
           Ref: BBBECSInstanceType
-        BBBApplicationSubnets:
-          Fn::If:
-            - BBBNewVPC 
-            - Fn::GetAtt:
-              - BBBNetworkStack
-              - Outputs.BBBApplicationSubnets
-            - Fn::Join:
-              - ","
-              - Ref: BBBApplicationSubnets
         BBBECSTaskSecurityGroup:
           Fn::GetAtt:
             - BBBSecurityGroupStack
