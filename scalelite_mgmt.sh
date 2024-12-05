@@ -108,7 +108,7 @@ prune_all() {
         --region "$region" \
         --cluster "$cluster" \
         --task "$task" \
-        --profile "$profile" \   
+        --profile "$profile" \
         --container scalelite-api \
         --interactive \
         --command "/bin/sh -c 'for id in \$(bin/rake servers | grep \"id: \" | sed \"s/id: //\"); do bin/rake servers:panic[\$id] && bin/rake servers:remove[\$id]; done'"
